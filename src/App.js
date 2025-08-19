@@ -967,20 +967,38 @@ const TennisLadderApp = () => {
       const targetRank = parseInt(rank);
       console.log('Target rank:', targetRank);
       
-      // First, shift all existing players down by 1 from the target rank
-      console.log('Shifting existing players...');
-      const { error: shiftError } = await supabase
+      // First, get all players at or above the target rank
+      console.log('Getting players to shift...');
+      const { data: playersToShift, error: getError } = await supabase
         .from('profiles')
-        .update({ 
-          rank: supabase.raw('rank + 1')
-        })
+        .select('id, rank')
         .gte('rank', targetRank)
-        .eq('in_ladder', true);
+        .eq('in_ladder', true)
+        .order('rank', { ascending: true });
 
-      if (shiftError) {
-        console.error('Error shifting ranks:', shiftError);
-        alert('Error shifting ranks: ' + shiftError.message);
+      if (getError) {
+        console.error('Error getting players to shift:', getError);
+        alert('Error getting players: ' + getError.message);
         return;
+      }
+
+      console.log('Players to shift:', playersToShift);
+
+      // Shift each player down by 1
+      if (playersToShift && playersToShift.length > 0) {
+        console.log('Shifting players down...');
+        for (const player of playersToShift) {
+          const { error: shiftError } = await supabase
+            .from('profiles')
+            .update({ rank: player.rank + 1 })
+            .eq('id', player.id);
+          
+          if (shiftError) {
+            console.error('Error shifting player:', shiftError);
+            alert('Error shifting ranks: ' + shiftError.message);
+            return;
+          }
+        }
       }
 
       // Then add the new player at the target rank
