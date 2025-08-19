@@ -1232,17 +1232,33 @@ const TennisLadderApp = () => {
 
   // Generate matches using the complex algorithm from your original code
   const generateMatches = (matchId) => {
+    console.log('generateMatches called with matchId:', matchId);
+    
+    // Find the match to get the match_date
+    const match = currentSeason?.matches?.find(m => m.id === matchId);
+    if (!match) {
+      alert('Match not found');
+      return;
+    }
+    
+    console.log('Found match:', match);
+    
     const availablePlayers = users.filter(user => {
       if (!user.in_ladder || user.status !== 'approved') return false;
       
-      const userAvailability = availability.find(a => a.player_id === user.id && a.match_id === matchId);
-      return userAvailability?.is_available === true;
+      const userAvailability = availability.find(a => a.player_id === user.id && a.match_date === match.match_date);
+      const isAvailable = userAvailability?.is_available === true;
+      
+      console.log(`Player ${user.name}: in_ladder=${user.in_ladder}, status=${user.status}, available=${isAvailable}`);
+      
+      return isAvailable;
     }).sort((a, b) => (a.rank || 999) - (b.rank || 999));
 
+    console.log('Available players:', availablePlayers.map(p => p.name));
     const numPlayers = availablePlayers.length;
     
     if (numPlayers < 4) {
-      alert('Need at least 4 players to generate matches');
+      alert(`Need at least 4 players to generate matches. Found ${numPlayers} available players.`);
       return;
     }
 
