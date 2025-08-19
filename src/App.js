@@ -1,56 +1,8 @@
-// Simple MatchesTab Component (will extract to separate file later)
-const MatchesTab = ({ 
-  currentUser, 
-  currentSeason, 
-  setShowScheduleModal 
-}) => {
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Match Schedule</h2>
-        {currentUser?.role === 'admin' && (
-          <button
-            onClick={() => setShowScheduleModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4 inline mr-2" />
-            Add Match
-          </button>
-        )}
-      </div>
-      
-      {!currentSeason?.matches || currentSeason.matches.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-500">No matches scheduled yet.</p>
-          {currentUser?.role === 'admin' && (
-            <p className="text-sm text-gray-400 mt-2">Click "Add Match" to create your first match.</p>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {currentSeason.matches.map((match) => (
-            <div key={match.id} className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold">Week {match.week_number}</h3>
-                  <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
-                  <p className="text-sm text-gray-500 mt-1">Status: {match.status}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};  // Update rankings - placeholder for now
-  const updateRankings = async () => {
-    alert('Rankings will be updated based on match results!');
-  };import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Calendar, Trophy, Settings, Plus, Check, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
-// Helper functions moved to top
+// Helper functions
 const getLadderData = (users) => {
   return users
     .filter(user => user.in_ladder && user.status === 'approved')
@@ -63,7 +15,7 @@ const getRankMovementIcon = (movement) => {
   return null;
 };
 
-// Auth Component with real Supabase authentication
+// Auth Component
 const AuthScreen = ({ onAuthChange }) => {
   const [authMode, setAuthMode] = useState('login');
   const [loading, setLoading] = useState(false);
@@ -85,7 +37,6 @@ const AuthScreen = ({ onAuthChange }) => {
       if (error) {
         alert(error.message);
       } else {
-        // Get user profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -191,7 +142,7 @@ const AuthScreen = ({ onAuthChange }) => {
   );
 };
 
-// Simple placeholder components for now - will update these next
+// Admin Component
 const AdminTab = ({ users, approveUser, addToLadder, fetchUsers }) => {
   const [loading, setLoading] = useState(false);
 
@@ -279,6 +230,54 @@ const AdminTab = ({ users, approveUser, addToLadder, fetchUsers }) => {
   );
 };
 
+// Matches Component
+const MatchesTab = ({ 
+  currentUser, 
+  currentSeason, 
+  setShowScheduleModal 
+}) => {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900">Match Schedule</h2>
+        {currentUser?.role === 'admin' && (
+          <button
+            onClick={() => setShowScheduleModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 inline mr-2" />
+            Add Match
+          </button>
+        )}
+      </div>
+      
+      {!currentSeason?.matches || currentSeason.matches.length === 0 ? (
+        <div className="bg-white rounded-lg shadow p-6 text-center">
+          <p className="text-gray-500">No matches scheduled yet.</p>
+          {currentUser?.role === 'admin' && (
+            <p className="text-sm text-gray-400 mt-2">Click "Add Match" to create your first match.</p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {currentSeason.matches.map((match) => (
+            <div key={match.id} className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold">Week {match.week_number}</h3>
+                  <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
+                  <p className="text-sm text-gray-500 mt-1">Status: {match.status}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Ladder Component
 const LadderTab = ({ currentUser, users, updateRankings }) => {
   const ladderData = getLadderData(users);
 
@@ -422,7 +421,6 @@ const Header = ({ currentUser, onSignOut }) => {
 
 // Main App Component
 const TennisLadderApp = () => {
-  // Core state management
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [seasons, setSeasons] = useState([]);
@@ -432,9 +430,7 @@ const TennisLadderApp = () => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [newMatchDate, setNewMatchDate] = useState('');
 
-  // Initialize on load
   useEffect(() => {
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         fetchUserProfile(session.user.id);
@@ -443,7 +439,6 @@ const TennisLadderApp = () => {
       }
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         fetchUserProfile(session.user.id);
@@ -456,7 +451,6 @@ const TennisLadderApp = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch user profile and initialize data
   const fetchUserProfile = async (userId) => {
     try {
       const { data, error } = await supabase
@@ -479,7 +473,6 @@ const TennisLadderApp = () => {
     }
   };
 
-  // Fetch all users
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
@@ -495,97 +488,10 @@ const TennisLadderApp = () => {
     }
   };
 
-  // Approve user
-  const approveUser = async (userId) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: 'approved' })
-        .eq('id', userId);
-
-      if (error) {
-        alert('Error approving user: ' + error.message);
-      } else {
-        alert('User approved successfully!');
-        await fetchUsers();
-      }
-    } catch (error) {
-      console.error('Error approving user:', error);
-    }
-  };
-
-  // Add user to ladder with proper rank management
-  const addToLadder = async (userId, rank) => {
-    console.log('addToLadder called with:', { userId, rank });
-    
-    try {
-      const targetRank = parseInt(rank);
-      console.log('Target rank:', targetRank);
-      
-      // First, get all players at or above the target rank
-      console.log('Getting players to shift...');
-      const { data: playersToShift, error: getError } = await supabase
-        .from('profiles')
-        .select('id, rank')
-        .gte('rank', targetRank)
-        .eq('in_ladder', true)
-        .order('rank', { ascending: true });
-
-      if (getError) {
-        console.error('Error getting players to shift:', getError);
-        alert('Error getting players: ' + getError.message);
-        return;
-      }
-
-      console.log('Players to shift:', playersToShift);
-
-      // Shift each player down by 1
-      if (playersToShift && playersToShift.length > 0) {
-        console.log('Shifting players down...');
-        for (const player of playersToShift) {
-          const { error: shiftError } = await supabase
-            .from('profiles')
-            .update({ rank: player.rank + 1 })
-            .eq('id', player.id);
-          
-          if (shiftError) {
-            console.error('Error shifting player:', shiftError);
-            alert('Error shifting ranks: ' + shiftError.message);
-            return;
-          }
-        }
-      }
-
-      // Then add the new player at the target rank
-      console.log('Adding player to ladder...');
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          in_ladder: true, 
-          rank: targetRank
-        })
-        .eq('id', userId);
-
-      if (error) {
-        console.error('Error adding to ladder:', error);
-        alert('Error adding to ladder: ' + error.message);
-      } else {
-        console.log('Successfully added to ladder');
-        alert('Player added to ladder!');
-        await fetchUsers();
-      }
-    } catch (error) {
-      console.error('Error in addToLadder:', error);
-      alert('Error in addToLadder: ' + error.message);
-    }
-  };
-
-  // Fetch seasons and set current season
   const fetchSeasons = async () => {
     try {
       console.log('Fetching seasons...');
       
-      // First, try to get any active season (limit to 1 to avoid multiple results error)
       const { data: activeSeasons, error: seasonError } = await supabase
         .from('seasons')
         .select('*')
@@ -607,7 +513,6 @@ const TennisLadderApp = () => {
         if (!activeSeason) return;
       }
       
-      // Now fetch matches for this season
       const { data: matches, error: matchesError } = await supabase
         .from('matches')
         .select('*')
@@ -629,12 +534,10 @@ const TennisLadderApp = () => {
     }
   };
 
-  // Create a default season if none exists
   const createDefaultSeason = async () => {
     try {
       console.log('Creating default season...');
       
-      // First deactivate any existing active seasons to avoid conflicts
       await supabase
         .from('seasons')
         .update({ is_active: false })
@@ -664,7 +567,6 @@ const TennisLadderApp = () => {
     }
   };
 
-  // Add match to season
   const addMatchToSeason = async () => {
     console.log('addMatchToSeason called');
     console.log('newMatchDate:', newMatchDate);
@@ -708,6 +610,90 @@ const TennisLadderApp = () => {
       console.error('Error adding match:', error);
       alert('Error adding match: ' + error.message);
     }
+  };
+
+  const approveUser = async (userId) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: 'approved' })
+        .eq('id', userId);
+
+      if (error) {
+        alert('Error approving user: ' + error.message);
+      } else {
+        alert('User approved successfully!');
+        await fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error approving user:', error);
+    }
+  };
+
+  const addToLadder = async (userId, rank) => {
+    console.log('addToLadder called with:', { userId, rank });
+    
+    try {
+      const targetRank = parseInt(rank);
+      console.log('Target rank:', targetRank);
+      
+      console.log('Getting players to shift...');
+      const { data: playersToShift, error: getError } = await supabase
+        .from('profiles')
+        .select('id, rank')
+        .gte('rank', targetRank)
+        .eq('in_ladder', true)
+        .order('rank', { ascending: true });
+
+      if (getError) {
+        console.error('Error getting players to shift:', getError);
+        alert('Error getting players: ' + getError.message);
+        return;
+      }
+
+      console.log('Players to shift:', playersToShift);
+
+      if (playersToShift && playersToShift.length > 0) {
+        console.log('Shifting players down...');
+        for (const player of playersToShift) {
+          const { error: shiftError } = await supabase
+            .from('profiles')
+            .update({ rank: player.rank + 1 })
+            .eq('id', player.id);
+          
+          if (shiftError) {
+            console.error('Error shifting player:', shiftError);
+            alert('Error shifting ranks: ' + shiftError.message);
+            return;
+          }
+        }
+      }
+
+      console.log('Adding player to ladder...');
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          in_ladder: true, 
+          rank: targetRank
+        })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error adding to ladder:', error);
+        alert('Error adding to ladder: ' + error.message);
+      } else {
+        console.log('Successfully added to ladder');
+        alert('Player added to ladder!');
+        await fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error in addToLadder:', error);
+      alert('Error in addToLadder: ' + error.message);
+    }
+  };
+
+  const updateRankings = async () => {
+    alert('Rankings will be updated based on match results!');
   };
 
   const handleSignOut = async () => {
@@ -758,7 +744,6 @@ const TennisLadderApp = () => {
         )}
       </main>
 
-      {/* Schedule Modal */}
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
