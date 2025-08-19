@@ -568,7 +568,18 @@ const AuthScreen = ({ onAuthChange }) => {
 };
 
 // Admin Component
-const AdminTab = ({ users, approveUser, addToLadder, fetchUsers }) => {
+// Enhanced Admin Component with full functionality
+const AdminTab = ({ 
+  users, 
+  currentSeason,
+  approveUser, 
+  addToLadder, 
+  fetchUsers,
+  setPlayerAvailability,
+  getPlayerAvailability,
+  getAvailabilityStats,
+  requestAvailabilityForAll = () => alert('Availability requests sent to all players!')
+}) => {
   const [loading, setLoading] = useState(false);
 
   const handleApproveUser = async (userId) => {
@@ -587,6 +598,7 @@ const AdminTab = ({ users, approveUser, addToLadder, fetchUsers }) => {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
       
+      {/* Pending Approvals */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4">Pending Approvals</h3>
         {users.filter(u => u.status === 'pending').length > 0 ? (
@@ -612,6 +624,112 @@ const AdminTab = ({ users, approveUser, addToLadder, fetchUsers }) => {
         )}
       </div>
 
+      {/* Player Availability Management */}
+      {currentSeason?.matches && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Set Player Availability</h3>
+          <p className="text-sm text-gray-600 mb-4">Set availability on behalf of players</p>
+          
+          {currentSeason.matches.map((match) => {
+            const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
+            return (
+              <div key={match.id} className="mb-6 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium mb-3">
+                  Week {match.week_number} - {new Date(match.match_date).toLocaleDateString('en-GB')}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {ladderPlayers.map(player => {
+                    const playerAvailability = getPlayerAvailability(player.id, match.id);
+                    return (
+                      <div key={player.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span className="text-sm font-medium">{player.name}</span>
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => setPlayerAvailability(match.id, true, player.id)}
+                            className={`px-2 py-1 text-xs rounded transition-colors ${
+                              playerAvailability === true
+                                ? 'bg-green-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-green-100'
+                            }`}
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => setPlayerAvailability(match.id, false, player.id)}
+                            className={`px-2 py-1 text-xs rounded transition-colors ${
+                              playerAvailability === false
+                                ? 'bg-red-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-red-100'
+                            }`}
+                          >
+                            ✗
+                          </button>
+                          {playerAvailability !== undefined && (
+                            <button
+                              onClick={() => setPlayerAvailability(match.id, undefined, player.id)}
+                              className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Availability Management */}
+      {currentSeason?.matches && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Availability Management</h3>
+            <button
+              onClick={requestAvailabilityForAll}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Request Availability for All Matches
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            {currentSeason.matches.map((match) => {
+              const stats = getAvailabilityStats(match.id);
+              return (
+                <div key={match.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">Week {match.week_number} - {new Date(match.match_date).toLocaleDateString('en-GB')}</h4>
+                      <div className="mt-2 space-y-1 text-sm text-gray-600">
+                        <div>Available: <span className="font-medium text-green-600">{stats.available}</span></div>
+                        <div>Responded: <span className="font-medium">{stats.responded}/{stats.total}</span></div>
+                        <div>Pending: <span className="font-medium text-orange-600">{stats.pending}</span></div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {stats.available >= 4 ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                          Ready to Schedule
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
+                          Need More Players
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Add Players to Ladder */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4">Add Players to Ladder</h3>
         {users.filter(u => u.status === 'approved' && !u.in_ladder).length > 0 ? (
@@ -1723,9 +1841,13 @@ const TennisLadderApp = () => {
         {activeTab === 'admin' && currentUser?.role === 'admin' && (
           <AdminTab 
             users={users}
+            currentSeason={currentSeason}
             approveUser={approveUser}
             addToLadder={addToLadder}
             fetchUsers={fetchUsers}
+            setPlayerAvailability={setPlayerAvailability}
+            getPlayerAvailability={getPlayerAvailability}
+            getAvailabilityStats={getAvailabilityStats}
           />
         )}
       </main>
