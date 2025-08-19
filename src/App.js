@@ -948,14 +948,30 @@ const TennisLadderApp = () => {
     }
   };
 
-  // Add user to ladder
+  // Add user to ladder with proper rank management
   const addToLadder = async (userId, rank) => {
     try {
+      const targetRank = parseInt(rank);
+      
+      // First, shift all existing players down by 1 from the target rank
+      const { error: shiftError } = await supabase
+        .from('profiles')
+        .update({ 
+          rank: supabase.raw('rank + 1')
+        })
+        .gte('rank', targetRank)
+        .eq('in_ladder', true);
+
+      if (shiftError) {
+        console.error('Error shifting ranks:', shiftError);
+      }
+
+      // Then add the new player at the target rank
       const { error } = await supabase
         .from('profiles')
         .update({ 
           in_ladder: true, 
-          rank: parseInt(rank) 
+          rank: targetRank
         })
         .eq('id', userId);
 
@@ -1150,15 +1166,107 @@ const TennisLadderApp = () => {
     }
   };
 
-  // Update rankings based on scores
+  // Update rankings based on scores with proper tiebreaking
   const updateRankings = async () => {
     try {
-      // Calculate stats for each player (simplified version)
-      // In a real implementation, you'd calculate this based on actual match results
-      alert('Rankings updated based on submitted scores!');
+      console.log('Updating rankings with scores:', scores);
+      
+      // Calculate stats for each ladder player
+      const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
+      const playerStats = {};
+      
+      // Initialize stats
+      ladderPlayers.forEach(player => {
+        playerStats[player.id] = {
+          name: player.name,
+          matchesPlayed: 0,
+          matchesWon: 0,
+          gamesPlayed: 0,
+          gamesWon: 0,
+          winPercentage: 0
+        };
+      });
+
+      // Calculate stats from submitted scores
+      scores.forEach(score => {
+        const allPlayersInMatch = [...score.pair1, ...score.pair2];
+        
+        allPlayersInMatch.forEach(playerName => {
+          const player = ladderPlayers.find(u => u.name === playerName);
+          if (player && playerStats[player.id]) {
+            const stats = playerStats[player.id];
+            stats.matchesPlayed += 1;
+            stats.gamesPlayed += (score.team1_score + score.team2_score);
+            
+            const isInPair1 = score.pair1.includes(playerName);
+            const wonMatch = isInPair1 ? score.team1_score > score.team2_score : score.team2_score > score.team1_score;
+            const gamesWon = isInPair1 ? score.team1_score : score.team2_score;
+            
+            if (wonMatch) {
+              stats.matchesWon += 1;
+            }
+            stats.gamesWon += gamesWon;
+          }
+        });
+      });
+
+      // Calculate win percentages
+      Object.values(playerStats).forEach(stats => {
+        stats.winPercentage = stats.gamesPlayed > 0 ? 
+          Math.round((stats.gamesWon / stats.gamesPlayed) * 100 * 10) / 10 : 0;
+      });
+
+      console.log('Calculated player stats:', playerStats);
+
+      // Sort players by: 1) Games Won %, 2) Matches Won, 3) Alphabetical
+      const sortedPlayers = ladderPlayers
+        .map(player => ({
+          ...player,
+          calculatedStats: playerStats[player.id]
+        }))
+        .sort((a, b) => {
+          const aStats = a.calculatedStats;
+          const bStats = b.calculatedStats;
+          
+          // 1. Games won percentage (higher is better)
+          if (bStats.winPercentage !== aStats.winPercentage) {
+            return bStats.winPercentage - aStats.winPercentage;
+          }
+          
+          // 2. Total matches won (higher is better)
+          if (bStats.matchesWon !== aStats.matchesWon) {
+            return bStats.matchesWon - aStats.matchesWon;
+          }
+          
+          // 3. Alphabetical by name
+          return a.name.localeCompare(b.name);
+        });
+
+      console.log('Sorted players:', sortedPlayers.map(p => ({ name: p.name, winPct: p.calculatedStats.winPercentage, matchesWon: p.calculatedStats.matchesWon })));
+
+      // Update database with new ranks and stats
+      for (let i = 0; i < sortedPlayers.length; i++) {
+        const player = sortedPlayers[i];
+        const stats = player.calculatedStats;
+        const newRank = i + 1;
+        
+        await supabase
+          .from('profiles')
+          .update({
+            rank: newRank,
+            matches_played: stats.matchesPlayed,
+            matches_won: stats.matchesWon,
+            games_played: stats.gamesPlayed,
+            games_won: stats.gamesWon
+          })
+          .eq('id', player.id);
+      }
+
       await fetchUsers();
+      alert('Rankings updated successfully!');
     } catch (error) {
       console.error('Error updating rankings:', error);
+      alert('Error updating rankings: ' + error.message);
     }
   };
 
