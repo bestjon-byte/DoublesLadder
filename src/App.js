@@ -1030,6 +1030,16 @@ const TennisLadderApp = () => {
     try {
       console.log('setPlayerAvailability called with:', { matchId, available, userId });
       
+      // Get the match date for this match
+      const match = currentSeason?.matches?.find(m => m.id === matchId);
+      if (!match) {
+        alert('Match not found');
+        return;
+      }
+      
+      const matchDate = match.match_date;
+      console.log('Using match date:', matchDate);
+      
       if (available === undefined) {
         // Remove availability record
         console.log('Removing availability record');
@@ -1037,33 +1047,32 @@ const TennisLadderApp = () => {
           .from('availability')
           .delete()
           .eq('player_id', userId)
-          .eq('match_id', matchId);
+          .eq('match_date', matchDate);
         
         if (error) {
           console.error('Error removing availability:', error);
           alert('Error clearing availability: ' + error.message);
         }
       } else {
-        // Upsert availability record
-        console.log('Upserting availability record');
-        
-        // First check if record exists
+        // Check if record exists
+        console.log('Checking for existing record...');
         const { data: existing } = await supabase
           .from('availability')
           .select('*')
           .eq('player_id', userId)
-          .eq('match_id', matchId)
-          .single();
+          .eq('match_date', matchDate)
+          .maybeSingle();
         
         console.log('Existing availability record:', existing);
         
         if (existing) {
           // Update existing record
+          console.log('Updating existing record');
           const { error } = await supabase
             .from('availability')
             .update({ is_available: available })
             .eq('player_id', userId)
-            .eq('match_id', matchId);
+            .eq('match_date', matchDate);
           
           if (error) {
             console.error('Error updating availability:', error);
@@ -1071,13 +1080,13 @@ const TennisLadderApp = () => {
           }
         } else {
           // Insert new record
+          console.log('Inserting new record');
           const { error } = await supabase
             .from('availability')
             .insert({
               player_id: userId,
-              match_id: matchId,
-              is_available: available,
-              match_date: new Date().toISOString().split('T')[0] // Add required field
+              match_date: matchDate,
+              is_available: available
             });
           
           if (error) {
@@ -1155,14 +1164,22 @@ const TennisLadderApp = () => {
 
   // Helper functions
   const getPlayerAvailability = (userId, matchId) => {
-    const userAvailability = availability.find(a => a.player_id === userId && a.match_id === matchId);
+    // Find the match to get the match_date
+    const match = currentSeason?.matches?.find(m => m.id === matchId);
+    if (!match) return undefined;
+    
+    const userAvailability = availability.find(a => a.player_id === userId && a.match_date === match.match_date);
     return userAvailability?.is_available;
   };
 
   const getAvailabilityStats = (matchId) => {
+    // Find the match to get the match_date
+    const match = currentSeason?.matches?.find(m => m.id === matchId);
+    if (!match) return { total: 0, available: 0, responded: 0, pending: 0 };
+    
     const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
-    const availableCount = availability.filter(a => a.match_id === matchId && a.is_available === true).length;
-    const respondedCount = availability.filter(a => a.match_id === matchId && (a.is_available === true || a.is_available === false)).length;
+    const availableCount = availability.filter(a => a.match_date === match.match_date && a.is_available === true).length;
+    const respondedCount = availability.filter(a => a.match_date === match.match_date && (a.is_available === true || a.is_available === false)).length;
     
     return {
       total: ladderPlayers.length,
