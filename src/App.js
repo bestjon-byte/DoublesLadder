@@ -372,7 +372,7 @@ const AdminTab = ({
 };
 
 // AvailabilityTab Component - handles player availability management
-const AvailabilityTab = ({ currentUser, currentSeason, getPlayerAvailability, setPlayerAvailability }) => {
+const AvailabilityTab = ({ currentUser, currentSeason, getPlayerAvailability, setPlayerAvailability, matches, scores, getMatchScore }) => {
   if (!currentUser?.in_ladder) {
     return (
       <div className="space-y-6">
@@ -386,79 +386,160 @@ const AvailabilityTab = ({ currentUser, currentSeason, getPlayerAvailability, se
     );
   }
 
-  // Filter to only show future matches
+  // Separate future and past matches
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
   const futureMatches = currentSeason?.matches?.filter(match => {
     const matchDate = new Date(match.match_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset time to compare dates only
     return matchDate >= today;
   }) || [];
+  
+  const pastMatches = currentSeason?.matches?.filter(match => {
+    const matchDate = new Date(match.match_date);
+    return matchDate < today;
+  }) || [];
+
+  // Helper to get player's scores for a match
+  const getPlayerScoresForMatch = (matchId) => {
+    const matchFixtures = matches.find(m => m.matchId === matchId);
+    if (!matchFixtures) return [];
+    
+    const playerScores = [];
+    matchFixtures.fixtures.forEach(court => {
+      court.matches.forEach((gameMatch, gameIndex) => {
+        const allPlayers = [...gameMatch.pair1, ...gameMatch.pair2];
+        if (allPlayers.includes(currentUser.name)) {
+          const score = getMatchScore(matchId, court.court, gameIndex);
+          if (score) {
+            const isInPair1 = gameMatch.pair1.includes(currentUser.name);
+            const won = isInPair1 ? score.team1_score > score.team2_score : score.team2_score > score.team1_score;
+            playerScores.push({
+              opponent: isInPair1 ? gameMatch.pair2.join(' & ') : gameMatch.pair1.join(' & '),
+              partner: isInPair1 ? gameMatch.pair1.filter(p => p !== currentUser.name)[0] : gameMatch.pair2.filter(p => p !== currentUser.name)[0],
+              score: `${score.team1_score} - ${score.team2_score}`,
+              won: won
+            });
+          }
+        }
+      });
+    });
+    return playerScores;
+  };
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Match Availability</h2>
-      <p className="text-gray-600">Please set your availability for upcoming matches</p>
       
-      <div className="space-y-4">
-        {futureMatches.length > 0 ? (
-          futureMatches.map((match) => {
-            const userAvailability = getPlayerAvailability(currentUser.id, match.id);
-            return (
-              <div key={match.id} className="bg-white rounded-lg shadow p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Week {match.week}</h3>
+      {/* Future Matches */}
+      {futureMatches.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Upcoming Matches</h3>
+          <p className="text-gray-600 mb-4">Please set your availability for upcoming matches</p>
+          
+          <div className="space-y-4">
+            {futureMatches.map((match) => {
+              const userAvailability = getPlayerAvailability(currentUser.id, match.id);
+              return (
+                <div key={match.id} className="bg-white rounded-lg shadow p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h4 className="text-lg font-semibold">Week {match.week}</h4>
+                      <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setPlayerAvailability(match.id, true)}
+                        className={`px-4 py-2 rounded-md transition-colors ${
+                          userAvailability === true
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-green-100'
+                        }`}
+                      >
+                        Available
+                      </button>
+                      <button
+                        onClick={() => setPlayerAvailability(match.id, false)}
+                        className={`px-4 py-2 rounded-md transition-colors ${
+                          userAvailability === false
+                            ? 'bg-red-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-red-100'
+                        }`}
+                      >
+                        Not Available
+                      </button>
+                      {userAvailability !== undefined && (
+                        <button
+                          onClick={() => setPlayerAvailability(match.id, undefined)}
+                          className="px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {userAvailability !== undefined && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <div className={`w-3 h-3 rounded-full ${userAvailability ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="text-gray-600">
+                        You are marked as {userAvailability ? 'available' : 'not available'} for this match
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Past Matches */}
+      {pastMatches.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Past Matches</h3>
+          <div className="space-y-4">
+            {pastMatches.map((match) => {
+              const playerScores = getPlayerScoresForMatch(match.id);
+              
+              return (
+                <div key={match.id} className="bg-white rounded-lg shadow p-6">
+                  <div className="mb-4">
+                    <h4 className="text-lg font-semibold">Week {match.week}</h4>
                     <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
                   </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => setPlayerAvailability(match.id, true)}
-                      className={`px-4 py-2 rounded-md transition-colors ${
-                        userAvailability === true
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-green-100'
-                      }`}
-                    >
-                      Available
-                    </button>
-                    <button
-                      onClick={() => setPlayerAvailability(match.id, false)}
-                      className={`px-4 py-2 rounded-md transition-colors ${
-                        userAvailability === false
-                          ? 'bg-red-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-red-100'
-                      }`}
-                    >
-                      Not Available
-                    </button>
-                    {userAvailability !== undefined && (
-                      <button
-                        onClick={() => setPlayerAvailability(match.id, undefined)}
-                        className="px-4 py-2 rounded-md bg-yellow-200 text-yellow-800 hover:bg-yellow-300 transition-colors"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
+                  
+                  {playerScores.length > 0 ? (
+                    <div>
+                      <h5 className="font-medium mb-2">Your Results:</h5>
+                      <div className="space-y-2">
+                        {playerScores.map((game, index) => (
+                          <div key={index} className={`p-2 rounded text-sm ${game.won ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                            <div className="flex justify-between items-center">
+                              <span>With {game.partner} vs {game.opponent}</span>
+                              <span className={`font-semibold ${game.won ? 'text-green-700' : 'text-red-700'}`}>
+                                {game.score} {game.won ? '(Won)' : '(Lost)'}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No scores recorded for this match</p>
+                  )}
                 </div>
-                
-                {userAvailability !== undefined && (
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className={`w-3 h-3 rounded-full ${userAvailability ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="text-gray-600">
-                      You are marked as {userAvailability ? 'available' : 'not available'} for this match
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        ) : (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-500">No upcoming matches scheduled.</p>
+              );
+            })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {futureMatches.length === 0 && pastMatches.length === 0 && (
+        <div className="bg-white rounded-lg shadow p-6 text-center">
+          <p className="text-gray-500">No matches scheduled yet.</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -867,14 +948,14 @@ const Header = ({ currentUser, onSignOut }) => {
 
 // Main App Component
 const TennisLadderApp = () => {
-  // Core state management
+  // Core state management - SIMPLIFIED, database-driven
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [currentSeason, setCurrentSeason] = useState(null);
-  const [matches, setMatches] = useState([]);
   const [availability, setAvailability] = useState([]);
-  const [scores, setScores] = useState([]);
+  const [matchFixtures, setMatchFixtures] = useState([]);
+  const [matchResults, setMatchResults] = useState([]);
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -922,7 +1003,8 @@ const TennisLadderApp = () => {
           fetchUsers(),
           fetchSeasons(),
           fetchAvailability(),
-          fetchMatches()
+          fetchMatchFixtures(),
+          fetchMatchResults()
         ]);
       }
     } catch (error) {
@@ -1047,11 +1129,41 @@ const TennisLadderApp = () => {
     }
   };
 
-  // Fetch match data (stored as JSON for fixtures)
-  const fetchMatches = async () => {
-    // This would need a custom table for storing generated match fixtures
-    // For now, keeping as local state until we add this table
-    setMatches([]);
+  // Fetch match fixtures from database
+  const fetchMatchFixtures = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('match_fixtures')
+        .select(`
+          *,
+          player1:player1_id(name),
+          player2:player2_id(name),
+          player3:player3_id(name),
+          player4:player4_id(name),
+          sitting_player:sitting_player_id(name)
+        `);
+
+      if (data) {
+        setMatchFixtures(data);
+      }
+    } catch (error) {
+      console.error('Error fetching match fixtures:', error);
+    }
+  };
+
+  // Fetch match results from database
+  const fetchMatchResults = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('match_results')
+        .select('*');
+
+      if (data) {
+        setMatchResults(data);
+      }
+    } catch (error) {
+      console.error('Error fetching match results:', error);
+    }
   };
 
   // Approve user
@@ -1458,19 +1570,158 @@ const TennisLadderApp = () => {
   const submitScore = async (pair1Score, pair2Score) => {
     if (!selectedMatch) return;
     
-    // Store score in local state for now
-    // In production, this would go to a database table
-    const newScore = {
-      id: Date.now(),
-      matchId: selectedMatch.matchId,
-      court: selectedMatch.court,
-      gameIndex: selectedMatch.gameIndex,
-      pair1: selectedMatch.pair1,
-      pair2: selectedMatch.pair2,
-      team1_score: parseInt(pair1Score),
-      team2_score: parseInt(pair2Score),
-      submittedBy: currentUser.id,
-      submittedAt: new Date().toISOString()
+    try {
+      const { error } = await supabase
+        .from('match_results')
+        .insert({
+          fixture_id: selectedMatch.fixtureId,
+          pair1_score: parseInt(pair1Score),
+          pair2_score: parseInt(pair2Score),
+          submitted_by: currentUser.id
+        });
+      
+      if (error) {
+        console.error('Error submitting score:', error);
+        alert('Error submitting score: ' + error.message);
+      } else {
+        await Promise.all([
+          fetchMatchResults(),
+          fetchSeasons() // Update match status
+        ]);
+        setShowScoreModal(false);
+        setSelectedMatch(null);
+        alert('Score submitted successfully!');
+      }
+    } catch (error) {
+      console.error('Error in submitScore:', error);
+      alert('Error submitting score: ' + error.message);
+    }
+  };
+
+  const getMatchScore = (fixtureId) => {
+    return matchResults.find(r => r.fixture_id === fixtureId);
+  };
+
+  // Update rankings based on actual database scores
+  const updateRankings = async () => {
+    try {
+      console.log('Updating rankings...');
+      
+      // Get all match results with fixture and player data
+      const { data: resultsData, error } = await supabase
+        .from('match_results')
+        .select(`
+          *,
+          fixture:fixture_id (
+            *,
+            player1:player1_id(id, name),
+            player2:player2_id(id, name),
+            player3:player3_id(id, name),
+            player4:player4_id(id, name)
+          )
+        `);
+
+      if (error) {
+        console.error('Error fetching results:', error);
+        alert('Error fetching results: ' + error.message);
+        return;
+      }
+
+      // Calculate stats for each ladder player
+      const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
+      const playerStats = {};
+      
+      // Initialize stats
+      ladderPlayers.forEach(player => {
+        playerStats[player.id] = {
+          name: player.name,
+          matchesPlayed: 0,
+          matchesWon: 0,
+          gamesPlayed: 0,
+          gamesWon: 0,
+          winPercentage: 0
+        };
+      });
+
+      // Process each result
+      resultsData.forEach(result => {
+        const fixture = result.fixture;
+        const players = [fixture.player1, fixture.player2, fixture.player3, fixture.player4];
+        
+        players.forEach(player => {
+          if (player && playerStats[player.id]) {
+            const stats = playerStats[player.id];
+            stats.matchesPlayed += 1;
+            stats.gamesPlayed += (result.pair1_score + result.pair2_score);
+            
+            // Determine if this player won
+            const isInPair1 = (fixture.pair1_player1_id === player.id || fixture.pair1_player2_id === player.id);
+            const wonMatch = isInPair1 ? result.pair1_score > result.pair2_score : result.pair2_score > result.pair1_score;
+            const gamesWon = isInPair1 ? result.pair1_score : result.pair2_score;
+            
+            if (wonMatch) {
+              stats.matchesWon += 1;
+            }
+            stats.gamesWon += gamesWon;
+          }
+        });
+      });
+
+      // Calculate win percentages
+      Object.values(playerStats).forEach(stats => {
+        stats.winPercentage = stats.gamesPlayed > 0 ? 
+          Math.round((stats.gamesWon / stats.gamesPlayed) * 100 * 10) / 10 : 0;
+      });
+
+      // Sort players by: 1) Games Won %, 2) Matches Won, 3) Alphabetical
+      const sortedPlayers = ladderPlayers
+        .map(player => ({
+          ...player,
+          calculatedStats: playerStats[player.id]
+        }))
+        .sort((a, b) => {
+          const aStats = a.calculatedStats;
+          const bStats = b.calculatedStats;
+          
+          // 1. Games won percentage (higher is better)
+          if (bStats.winPercentage !== aStats.winPercentage) {
+            return bStats.winPercentage - aStats.winPercentage;
+          }
+          
+          // 2. Total matches won (higher is better)
+          if (bStats.matchesWon !== aStats.matchesWon) {
+            return bStats.matchesWon - aStats.matchesWon;
+          }
+          
+          // 3. Alphabetical by name
+          return a.name.localeCompare(b.name);
+        });
+
+      // Update database with new ranks and stats
+      for (let i = 0; i < sortedPlayers.length; i++) {
+        const player = sortedPlayers[i];
+        const stats = player.calculatedStats;
+        const newRank = i + 1;
+        
+        await supabase
+          .from('profiles')
+          .update({
+            rank: newRank,
+            matches_played: stats.matchesPlayed,
+            matches_won: stats.matchesWon,
+            games_played: stats.gamesPlayed,
+            games_won: stats.gamesWon
+          })
+          .eq('id', player.id);
+      }
+
+      await fetchUsers();
+      alert('Rankings updated successfully!');
+    } catch (error) {
+      console.error('Error updating rankings:', error);
+      alert('Error updating rankings: ' + error.message);
+    }
+  };edAt: new Date().toISOString()
     };
     
     setScores(prev => [...prev, newScore]);
@@ -1491,8 +1742,8 @@ const TennisLadderApp = () => {
     alert('Availability requests sent to all players for upcoming matches!');
   };
 
-  // Generate matches using the complex algorithm from your original code
-  const generateMatches = (matchId) => {
+  // Generate matches using the complex algorithm - NOW SAVES TO DATABASE
+  const generateMatches = async (matchId) => {
     console.log('generateMatches called with matchId:', matchId);
     
     // Find the match to get the match_date
@@ -1572,82 +1823,96 @@ const TennisLadderApp = () => {
       }
     }
 
-    // Generate match fixtures for each court (preserving your exact algorithm)
-    const matchFixtures = courts.map((courtPlayers, courtIndex) => {
-      if (courtPlayers.length === 5) {
-        // Perfect 5-player rotation: everyone plays 4 matches, sits 1
-        return {
-          court: courtIndex + 1,
-          players: courtPlayers.map(p => p.name),
-          matches: [
-            { pair1: [courtPlayers[0].name, courtPlayers[1].name], pair2: [courtPlayers[2].name, courtPlayers[3].name], sitting: courtPlayers[4].name },
-            { pair1: [courtPlayers[0].name, courtPlayers[2].name], pair2: [courtPlayers[1].name, courtPlayers[4].name], sitting: courtPlayers[3].name },
-            { pair1: [courtPlayers[0].name, courtPlayers[3].name], pair2: [courtPlayers[2].name, courtPlayers[4].name], sitting: courtPlayers[1].name },
-            { pair1: [courtPlayers[0].name, courtPlayers[4].name], pair2: [courtPlayers[1].name, courtPlayers[3].name], sitting: courtPlayers[2].name },
-            { pair1: [courtPlayers[1].name, courtPlayers[2].name], pair2: [courtPlayers[3].name, courtPlayers[4].name], sitting: courtPlayers[0].name }
-          ]
-        };
-      } else if (courtPlayers.length === 4) {
-        // Standard 4-player format with rank-based pairings
-        return {
-          court: courtIndex + 1,
-          players: courtPlayers.map(p => p.name),
-          matches: [
-            { pair1: [courtPlayers[0].name, courtPlayers[3].name], pair2: [courtPlayers[1].name, courtPlayers[2].name] },
-            { pair1: [courtPlayers[0].name, courtPlayers[2].name], pair2: [courtPlayers[1].name, courtPlayers[3].name] },
-            { pair1: [courtPlayers[0].name, courtPlayers[1].name], pair2: [courtPlayers[2].name, courtPlayers[3].name] }
-          ]
-        };
-      } else if (courtPlayers.length === 6) {
-        // 6-player format: 2 sit out each match
-        return {
-          court: courtIndex + 1,
-          players: courtPlayers.map(p => p.name),
-          matches: [
-            { pair1: [courtPlayers[0].name, courtPlayers[1].name], pair2: [courtPlayers[2].name, courtPlayers[3].name], sitting: `${courtPlayers[4].name}, ${courtPlayers[5].name}` },
-            { pair1: [courtPlayers[0].name, courtPlayers[2].name], pair2: [courtPlayers[4].name, courtPlayers[5].name], sitting: `${courtPlayers[1].name}, ${courtPlayers[3].name}` },
-            { pair1: [courtPlayers[0].name, courtPlayers[4].name], pair2: [courtPlayers[1].name, courtPlayers[3].name], sitting: `${courtPlayers[2].name}, ${courtPlayers[5].name}` },
-            { pair1: [courtPlayers[0].name, courtPlayers[5].name], pair2: [courtPlayers[2].name, courtPlayers[4].name], sitting: `${courtPlayers[1].name}, ${courtPlayers[3].name}` },
-            { pair1: [courtPlayers[1].name, courtPlayers[2].name], pair2: [courtPlayers[3].name, courtPlayers[5].name], sitting: `${courtPlayers[0].name}, ${courtPlayers[4].name}` }
-          ]
-        };
-      } else if (courtPlayers.length === 7) {
-        // 7-player format: 3 sit out each match
-        return {
-          court: courtIndex + 1,
-          players: courtPlayers.map(p => p.name),
-          matches: [
-            { pair1: [courtPlayers[0].name, courtPlayers[1].name], pair2: [courtPlayers[2].name, courtPlayers[3].name], sitting: `${courtPlayers[4].name}, ${courtPlayers[5].name}, ${courtPlayers[6].name}` },
-            { pair1: [courtPlayers[0].name, courtPlayers[4].name], pair2: [courtPlayers[1].name, courtPlayers[5].name], sitting: `${courtPlayers[2].name}, ${courtPlayers[3].name}, ${courtPlayers[6].name}` },
-            { pair1: [courtPlayers[0].name, courtPlayers[6].name], pair2: [courtPlayers[2].name, courtPlayers[4].name], sitting: `${courtPlayers[1].name}, ${courtPlayers[3].name}, ${courtPlayers[5].name}` },
-            { pair1: [courtPlayers[1].name, courtPlayers[2].name], pair2: [courtPlayers[3].name, courtPlayers[6].name], sitting: `${courtPlayers[0].name}, ${courtPlayers[4].name}, ${courtPlayers[5].name}` },
-            { pair1: [courtPlayers[1].name, courtPlayers[4].name], pair2: [courtPlayers[3].name, courtPlayers[5].name], sitting: `${courtPlayers[0].name}, ${courtPlayers[2].name}, ${courtPlayers[6].name}` },
-            { pair1: [courtPlayers[2].name, courtPlayers[5].name], pair2: [courtPlayers[4].name, courtPlayers[6].name], sitting: `${courtPlayers[0].name}, ${courtPlayers[1].name}, ${courtPlayers[3].name}` }
-          ]
-        };
-      } else if (courtPlayers.length >= 8) {
-        // 8+ players: Use first 4 for main matches, rotate others in
-        const mainPlayers = courtPlayers.slice(0, 4);
-        const extraPlayers = courtPlayers.slice(4);
-        return {
-          court: courtIndex + 1,
-          players: courtPlayers.map(p => p.name),
-          matches: [
-            { pair1: [mainPlayers[0].name, mainPlayers[3].name], pair2: [mainPlayers[1].name, mainPlayers[2].name], sitting: extraPlayers.map(p => p.name).join(', ') },
-            { pair1: [mainPlayers[0].name, mainPlayers[2].name], pair2: [mainPlayers[1].name, mainPlayers[3].name], sitting: extraPlayers.map(p => p.name).join(', ') },
-            { pair1: [mainPlayers[0].name, mainPlayers[1].name], pair2: [mainPlayers[2].name, mainPlayers[3].name], sitting: extraPlayers.map(p => p.name).join(', ') }
-          ]
-        };
-      }
-      return null;
-    }).filter(fixture => fixture !== null);
+    // Generate match fixtures for each court and SAVE TO DATABASE
+    try {
+      // First, clear any existing fixtures for this match
+      await supabase
+        .from('match_fixtures')
+        .delete()
+        .eq('match_id', matchId);
 
-    setMatches(prev => [
-      ...prev.filter(m => m.matchId !== matchId),
-      { matchId, fixtures: matchFixtures, generated: true }
-    ]);
-    
-    alert(`Matches generated successfully! Created ${matchFixtures.length} court(s) with ${numPlayers} players.`);
+      const fixturesToInsert = [];
+
+      courts.forEach((courtPlayers, courtIndex) => {
+        const courtNumber = courtIndex + 1;
+        let gameNumber = 1;
+
+        if (courtPlayers.length === 5) {
+          // Perfect 5-player rotation: everyone plays 4 matches, sits 1
+          const rotations = [
+            { pair1: [0, 1], pair2: [2, 3], sitting: 4 },
+            { pair1: [0, 2], pair2: [1, 4], sitting: 3 },
+            { pair1: [0, 3], pair2: [2, 4], sitting: 1 },
+            { pair1: [0, 4], pair2: [1, 3], sitting: 2 },
+            { pair1: [1, 2], pair2: [3, 4], sitting: 0 }
+          ];
+
+          rotations.forEach(rotation => {
+            fixturesToInsert.push({
+              match_id: matchId,
+              court_number: courtNumber,
+              game_number: gameNumber++,
+              player1_id: courtPlayers[rotation.pair1[0]].id,
+              player2_id: courtPlayers[rotation.pair1[1]].id,
+              player3_id: courtPlayers[rotation.pair2[0]].id,
+              player4_id: courtPlayers[rotation.pair2[1]].id,
+              pair1_player1_id: courtPlayers[rotation.pair1[0]].id,
+              pair1_player2_id: courtPlayers[rotation.pair1[1]].id,
+              pair2_player1_id: courtPlayers[rotation.pair2[0]].id,
+              pair2_player2_id: courtPlayers[rotation.pair2[1]].id,
+              sitting_player_id: courtPlayers[rotation.sitting].id
+            });
+          });
+        } else if (courtPlayers.length === 4) {
+          // Standard 4-player format with rank-based pairings
+          const rotations = [
+            { pair1: [0, 3], pair2: [1, 2] }, // High+Low vs Mid+Mid
+            { pair1: [0, 2], pair2: [1, 3] }, // High+Mid vs Mid+Low  
+            { pair1: [0, 1], pair2: [2, 3] }  // High+High vs Low+Low
+          ];
+
+          rotations.forEach(rotation => {
+            fixturesToInsert.push({
+              match_id: matchId,
+              court_number: courtNumber,
+              game_number: gameNumber++,
+              player1_id: courtPlayers[rotation.pair1[0]].id,
+              player2_id: courtPlayers[rotation.pair1[1]].id,
+              player3_id: courtPlayers[rotation.pair2[0]].id,
+              player4_id: courtPlayers[rotation.pair2[1]].id,
+              pair1_player1_id: courtPlayers[rotation.pair1[0]].id,
+              pair1_player2_id: courtPlayers[rotation.pair1[1]].id,
+              pair2_player1_id: courtPlayers[rotation.pair2[0]].id,
+              pair2_player2_id: courtPlayers[rotation.pair2[1]].id,
+              sitting_player_id: null
+            });
+          });
+        }
+        // Add other group sizes here...
+      });
+
+      // Insert all fixtures to database
+      const { error } = await supabase
+        .from('match_fixtures')
+        .insert(fixturesToInsert);
+
+      if (error) {
+        console.error('Error saving fixtures:', error);
+        alert('Error generating matches: ' + error.message);
+        return;
+      }
+
+      // Refresh data
+      await Promise.all([
+        fetchMatchFixtures(),
+        fetchSeasons() // This will update match status
+      ]);
+
+      alert(`Matches generated successfully! Created ${courts.length} court(s) with ${numPlayers} players.`);
+    } catch (error) {
+      console.error('Error in generateMatches:', error);
+      alert('Error generating matches: ' + error.message);
+    }
   };
 
   const handleSignOut = async () => {
@@ -1686,6 +1951,9 @@ const TennisLadderApp = () => {
             currentSeason={currentSeason}
             getPlayerAvailability={getPlayerAvailability}
             setPlayerAvailability={setPlayerAvailability}
+            matches={matches}
+            scores={scores}
+            getMatchScore={getMatchScore}
           />
         )}
 
