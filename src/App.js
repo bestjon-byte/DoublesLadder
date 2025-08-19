@@ -332,25 +332,36 @@ const AdminTab = ({
         <h3 className="text-lg font-semibold mb-4">Add Players to Ladder</h3>
         {users.filter(u => u.status === 'approved' && !u.in_ladder).length > 0 ? (
           <div className="space-y-3">
-            {users.filter(u => u.status === 'approved' && !u.in_ladder).map(user => (
-              <div key={user.id} className="flex justify-between items-center p-3 border border-gray-200 rounded">
-                <p className="font-medium">{user.name}</p>
-                <div className="flex items-center space-x-2">
-                  <select className="border border-gray-300 rounded px-2 py-1 text-sm">
-                    {Array.from({length: users.filter(u => u.in_ladder && u.status === 'approved').length + 1}, (_, i) => i + 1).map(rank => (
-                      <option key={rank} value={rank}>Rank {rank}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => handleAddToLadder(user.id, 1)}
-                    disabled={loading}
-                    className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
-                  >
-                    Add
-                  </button>
+            {users.filter(u => u.status === 'approved' && !u.in_ladder).map(user => {
+              const maxRank = users.filter(u => u.in_ladder && u.status === 'approved').length + 1;
+              return (
+                <div key={user.id} className="flex justify-between items-center p-3 border border-gray-200 rounded">
+                  <p className="font-medium">{user.name}</p>
+                  <div className="flex items-center space-x-2">
+                    <select 
+                      id={`rank-${user.id}`}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm"
+                      defaultValue={maxRank}
+                    >
+                      {Array.from({length: maxRank}, (_, i) => i + 1).map(rank => (
+                        <option key={rank} value={rank}>Rank {rank}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => {
+                        const selectedRank = document.getElementById(`rank-${user.id}`).value;
+                        console.log(`Adding user ${user.name} to ladder at rank ${selectedRank}`);
+                        handleAddToLadder(user.id, selectedRank);
+                      }}
+                      disabled={loading}
+                      className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-gray-500">No approved players waiting to join ladder</p>
