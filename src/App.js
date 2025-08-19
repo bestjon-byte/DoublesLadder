@@ -152,6 +152,7 @@ const AdminTab = ({
   setPlayerAvailability,
   getPlayerAvailability,
   getAvailabilityStats,
+  clearOldMatches,
   requestAvailabilityForAll = () => alert('Availability requests sent to all players!')
 }) => {
   const [loading, setLoading] = useState(false);
@@ -342,6 +343,22 @@ const AdminTab = ({
         ) : (
           <p className="text-gray-500">No approved players waiting to join ladder</p>
         )}
+      </div>
+
+      {/* Debug/Maintenance Section */}
+      <div className="bg-red-50 border border-red-200 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4 text-red-800">⚠️ Admin Maintenance</h3>
+        <p className="text-sm text-red-600 mb-4">Use these tools carefully - they will delete data permanently!</p>
+        <button
+          onClick={() => {
+            if (window.confirm('This will delete ALL matches, fixtures, results, and availability data. Are you absolutely sure?')) {
+              clearOldMatches();
+            }
+          }}
+          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+        >
+          Clear All Match Data
+        </button>
       </div>
     </div>
   );
@@ -1178,19 +1195,28 @@ const TennisLadderApp = () => {
       const weekNumber = (currentSeason?.matches?.length || 0) + 1;
       console.log('Inserting match with weekNumber:', weekNumber);
       
+      // Try the insert with minimal data first
       const { data, error } = await supabase
         .from('matches')
         .insert({
           season_id: currentSeason.id,
           week_number: weekNumber,
           match_date: newMatchDate
-          // Removed status field - let it use the default value
         })
         .select();
 
       if (error) {
-        console.error('Supabase error:', error);
-        alert('Error adding match: ' + error.message);
+        console.error('Supabase error details:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        
+        // More specific error message
+        if (error.message.includes('check constraint')) {
+          alert(`Database constraint error: ${error.message}\n\nThis might be due to old data. Check the browser console for details.`);
+        } else {
+          alert('Error adding match: ' + error.message);
+        }
       } else {
         console.log('Match added successfully:', data);
         alert(`Match added for ${new Date(newMatchDate).toLocaleDateString('en-GB')}`);
@@ -1201,6 +1227,28 @@ const TennisLadderApp = () => {
     } catch (error) {
       console.error('Error adding match:', error);
       alert('Error adding match: ' + error.message);
+    }
+  };
+
+  // Add a function to clear old data (for admin use)
+  const clearOldMatches = async () => {
+    if (!currentUser?.role === 'admin') return;
+    
+    const confirmed = window.confirm('This will delete ALL matches and related data. Are you sure?');
+    if (!confirmed) return;
+    
+    try {
+      // Delete in correct order due to foreign key constraints
+      await supabase.from('match_results').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('match_fixtures').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('availability').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      alert('All match data cleared successfully!');
+      await fetchSeasons();
+    } catch (error) {
+      console.error('Error clearing data:', error);
+      alert('Error clearing data: ' + error.message);
     }
   };
 
@@ -1788,6 +1836,7 @@ const TennisLadderApp = () => {
             setPlayerAvailability={setPlayerAvailability}
             getPlayerAvailability={getPlayerAvailability}
             getAvailabilityStats={getAvailabilityStats}
+            clearOldMatches={clearOldMatches}
           />
         )}
       </main>
