@@ -1721,6 +1721,127 @@ const TennisLadderApp = () => {
       console.error('Error updating rankings:', error);
       alert('Error updating rankings: ' + error.message);
     }
+  };
+
+  // Update rankings based on actual database scores
+  const updateRankings = async () => {
+    try {
+      console.log('Updating rankings...');
+      
+      // Get all match results with fixture and player data
+      const { data: resultsData, error } = await supabase
+        .from('match_results')
+        .select(`
+          *,
+          fixture:fixture_id (
+            *,
+            player1:player1_id(id, name),
+            player2:player2_id(id, name),
+            player3:player3_id(id, name),
+            player4:player4_id(id, name)
+          )
+        `);
+
+      if (error) {
+        console.error('Error fetching results:', error);
+        alert('Error fetching results: ' + error.message);
+        return;
+      }
+
+      // Calculate stats for each ladder player
+      const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
+      const playerStats = {};
+      
+      // Initialize stats
+      ladderPlayers.forEach(player => {
+        playerStats[player.id] = {
+          name: player.name,
+          matchesPlayed: 0,
+          matchesWon: 0,
+          gamesPlayed: 0,
+          gamesWon: 0,
+          winPercentage: 0
+        };
+      });
+
+      // Process each result
+      resultsData.forEach(result => {
+        const fixture = result.fixture;
+        const players = [fixture.player1, fixture.player2, fixture.player3, fixture.player4];
+        
+        players.forEach(player => {
+          if (player && playerStats[player.id]) {
+            const stats = playerStats[player.id];
+            stats.matchesPlayed += 1;
+            stats.gamesPlayed += (result.pair1_score + result.pair2_score);
+            
+            // Determine if this player won
+            const isInPair1 = (fixture.pair1_player1_id === player.id || fixture.pair1_player2_id === player.id);
+            const wonMatch = isInPair1 ? result.pair1_score > result.pair2_score : result.pair2_score > result.pair1_score;
+            const gamesWon = isInPair1 ? result.pair1_score : result.pair2_score;
+            
+            if (wonMatch) {
+              stats.matchesWon += 1;
+            }
+            stats.gamesWon += gamesWon;
+          }
+        });
+      });
+
+      // Calculate win percentages
+      Object.values(playerStats).forEach(stats => {
+        stats.winPercentage = stats.gamesPlayed > 0 ? 
+          Math.round((stats.gamesWon / stats.gamesPlayed) * 100 * 10) / 10 : 0;
+      });
+
+      // Sort players by: 1) Games Won %, 2) Matches Won, 3) Alphabetical
+      const sortedPlayers = ladderPlayers
+        .map(player => ({
+          ...player,
+          calculatedStats: playerStats[player.id]
+        }))
+        .sort((a, b) => {
+          const aStats = a.calculatedStats;
+          const bStats = b.calculatedStats;
+          
+          // 1. Games won percentage (higher is better)
+          if (bStats.winPercentage !== aStats.winPercentage) {
+            return bStats.winPercentage - aStats.winPercentage;
+          }
+          
+          // 2. Total matches won (higher is better)
+          if (bStats.matchesWon !== aStats.matchesWon) {
+            return bStats.matchesWon - aStats.matchesWon;
+          }
+          
+          // 3. Alphabetical by name
+          return a.name.localeCompare(b.name);
+        });
+
+      // Update database with new ranks and stats
+      for (let i = 0; i < sortedPlayers.length; i++) {
+        const player = sortedPlayers[i];
+        const stats = player.calculatedStats;
+        const newRank = i + 1;
+        
+        await supabase
+          .from('profiles')
+          .update({
+            rank: newRank,
+            matches_played: stats.matchesPlayed,
+            matches_won: stats.matchesWon,
+            games_played: stats.gamesPlayed,
+            games_won: stats.gamesWon
+          })
+          .eq('id', player.id);
+      }
+
+      await fetchUsers();
+      alert('Rankings updated successfully!');
+    } catch (error) {
+      console.error('Error updating rankings:', error);
+      alert('Error updating rankings: ' + error.message);
+    }
   };edAt: new Date().toISOString()
     };
     
