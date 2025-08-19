@@ -1028,27 +1028,70 @@ const TennisLadderApp = () => {
   // Set player availability
   const setPlayerAvailability = async (matchId, available, userId = currentUser?.id) => {
     try {
+      console.log('setPlayerAvailability called with:', { matchId, available, userId });
+      
       if (available === undefined) {
         // Remove availability record
-        await supabase
+        console.log('Removing availability record');
+        const { error } = await supabase
           .from('availability')
           .delete()
           .eq('player_id', userId)
           .eq('match_id', matchId);
+        
+        if (error) {
+          console.error('Error removing availability:', error);
+          alert('Error clearing availability: ' + error.message);
+        }
       } else {
         // Upsert availability record
-        await supabase
+        console.log('Upserting availability record');
+        
+        // First check if record exists
+        const { data: existing } = await supabase
           .from('availability')
-          .upsert({
-            player_id: userId,
-            match_id: matchId,
-            is_available: available
-          });
+          .select('*')
+          .eq('player_id', userId)
+          .eq('match_id', matchId)
+          .single();
+        
+        console.log('Existing availability record:', existing);
+        
+        if (existing) {
+          // Update existing record
+          const { error } = await supabase
+            .from('availability')
+            .update({ is_available: available })
+            .eq('player_id', userId)
+            .eq('match_id', matchId);
+          
+          if (error) {
+            console.error('Error updating availability:', error);
+            alert('Error updating availability: ' + error.message);
+          }
+        } else {
+          // Insert new record
+          const { error } = await supabase
+            .from('availability')
+            .insert({
+              player_id: userId,
+              match_id: matchId,
+              is_available: available,
+              match_date: new Date().toISOString().split('T')[0] // Add required field
+            });
+          
+          if (error) {
+            console.error('Error inserting availability:', error);
+            alert('Error setting availability: ' + error.message);
+          }
+        }
       }
       
+      console.log('Refreshing availability data...');
       await fetchAvailability();
     } catch (error) {
-      console.error('Error setting availability:', error);
+      console.error('Error in setPlayerAvailability:', error);
+      alert('Error managing availability: ' + error.message);
     }
   };
 
