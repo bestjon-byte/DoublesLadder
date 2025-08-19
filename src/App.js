@@ -1293,8 +1293,8 @@ const TennisLadderApp = () => {
       }
 
       // Clear local state
-      setScores([]);
-      setMatches([]);
+      setMatchFixtures([]);
+      setMatchResults([]);
       setAvailability([]);
       setShowConfirmModal(false);
       
