@@ -386,14 +386,22 @@ const AvailabilityTab = ({ currentUser, currentSeason, getPlayerAvailability, se
     );
   }
 
+  // Filter to only show future matches
+  const futureMatches = currentSeason?.matches?.filter(match => {
+    const matchDate = new Date(match.match_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+    return matchDate >= today;
+  }) || [];
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Match Availability</h2>
       <p className="text-gray-600">Please set your availability for upcoming matches</p>
       
       <div className="space-y-4">
-        {currentSeason?.matches && currentSeason.matches.length > 0 ? (
-          currentSeason.matches.map((match) => {
+        {futureMatches.length > 0 ? (
+          futureMatches.map((match) => {
             const userAvailability = getPlayerAvailability(currentUser.id, match.id);
             return (
               <div key={match.id} className="bg-white rounded-lg shadow p-6">
@@ -447,7 +455,7 @@ const AvailabilityTab = ({ currentUser, currentSeason, getPlayerAvailability, se
           })
         ) : (
           <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-500">No matches scheduled yet.</p>
+            <p className="text-gray-500">No upcoming matches scheduled.</p>
           </div>
         )}
       </div>
@@ -469,6 +477,48 @@ const MatchesTab = ({
   getAvailabilityStats,
   getMatchScore
 }) => {
+  // Helper function to determine match status
+  const getMatchStatus = (match, matchFixtures) => {
+    const today = new Date();
+    const matchDate = new Date(match.match_date);
+    
+    if (!matchFixtures) {
+      if (matchDate < today) {
+        return 'past-no-fixtures'; // Past match with no fixtures generated
+      }
+      return 'future-no-fixtures'; // Future match, can generate fixtures
+    }
+    
+    // Count total games and completed games
+    let totalGames = 0;
+    let completedGames = 0;
+    
+    matchFixtures.fixtures.forEach(court => {
+      court.matches.forEach((_, gameIndex) => {
+        totalGames++;
+        const score = getMatchScore(match.id, court.court, gameIndex);
+        if (score) completedGames++;
+      });
+    });
+    
+    if (completedGames === 0) {
+      return matchDate < today ? 'past-in-progress' : 'future-in-progress';
+    } else if (completedGames < totalGames) {
+      return 'partially-complete';
+    } else {
+      return 'completed';
+    }
+  };
+
+  // Helper function to check if current user can enter scores for a match
+  const canUserEnterScores = (match, gameMatch) => {
+    if (currentUser?.role === 'admin') return true;
+    
+    // Check if current user is in this specific game
+    const allPlayers = [...gameMatch.pair1, ...gameMatch.pair2];
+    return allPlayers.includes(currentUser?.name);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -495,6 +545,8 @@ const MatchesTab = ({
         currentSeason.matches.map((match) => {
           const stats = getAvailabilityStats(match.id);
           const matchFixtures = matches.find(m => m.matchId === match.id);
+          const matchStatus = getMatchStatus(match, matchFixtures);
+          const isAdmin = currentUser?.role === 'admin';
           
           return (
             <div key={match.id} className="bg-white rounded-lg shadow p-6">
@@ -502,13 +554,43 @@ const MatchesTab = ({
                 <div>
                   <h3 className="text-lg font-semibold">Week {match.week}</h3>
                   <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
-                  <div className="mt-2 text-sm text-gray-600">
-                    Availability: {stats.available} available, {stats.pending} pending response
+                  
+                  {/* Match Status Indicator */}
+                  <div className="mt-2">
+                    {matchStatus === 'completed' && (
+                      <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                        ✅ Match Completed
+                      </span>
+                    )}
+                    {matchStatus === 'partially-complete' && (
+                      <span className="inline-flex px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                        🔄 Scores Being Entered
+                      </span>
+                    )}
+                    {matchStatus === 'future-in-progress' && (
+                      <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                        📋 Fixtures Generated
+                      </span>
+                    )}
+                    {matchStatus === 'past-in-progress' && (
+                      <span className="inline-flex px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded">
+                        ⏰ Match Played - Enter Scores
+                      </span>
+                    )}
                   </div>
+                  
+                  {/* Availability Info (only for future matches without fixtures) */}
+                  {matchStatus === 'future-no-fixtures' && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      Availability: {stats.available} available, {stats.pending} pending response
+                    </div>
+                  )}
                 </div>
-                {currentUser?.role === 'admin' && (
+                
+                {/* Admin Controls */}
+                {isAdmin && (
                   <div className="space-x-2">
-                    {match.status === 'scheduled' && stats.available >= 4 && !matchFixtures && (
+                    {matchStatus === 'future-no-fixtures' && stats.available >= 4 && (
                       <button
                         onClick={() => generateMatches(match.id)}
                         className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
@@ -516,29 +598,39 @@ const MatchesTab = ({
                         Generate Matches ({stats.available} available)
                       </button>
                     )}
-                    {match.status === 'scheduled' && stats.available < 4 && (
+                    {matchStatus === 'future-no-fixtures' && stats.available < 4 && (
                       <span className="text-gray-500 text-sm">Need 4+ players to generate matches</span>
                     )}
                   </div>
                 )}
               </div>
 
+              {/* Match Fixtures Display */}
               {matchFixtures && (
                 <div className="space-y-4">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <h5 className="font-medium text-green-800 mb-2">✅ Match Generation Complete</h5>
-                    <div className="text-sm text-green-700">
-                      <div><strong>Available Players:</strong> {
-                        users.filter(user => {
-                          if (!user.in_ladder || user.status !== 'approved') return false;
-                          const userAvailability = availability.find(a => a.player_id === user.id && a.match_id === match.id);
-                          return userAvailability?.is_available === true;
-                        }).map(p => p.name).join(', ')
-                      }</div>
-                      <div><strong>Courts Created:</strong> {matchFixtures.fixtures.length}</div>
+                  {/* Available Players Info (Admin Debug) */}
+                  {isAdmin && matchStatus !== 'completed' && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <h5 className="font-medium text-green-800 mb-2">
+                        {matchStatus === 'completed' ? '✅ Match Complete' : '📋 Match Details'}
+                      </h5>
+                      <div className="text-sm text-green-700">
+                        <div><strong>Available Players:</strong> {
+                          users.filter(user => {
+                            if (!user.in_ladder || user.status !== 'approved') return false;
+                            const userAvailability = availability.find(a => a.player_id === user.id && a.match_date === match.match_date);
+                            return userAvailability?.is_available === true;
+                          })
+                          .sort((a, b) => (a.rank || 999) - (b.rank || 999))
+                          .map(p => `${p.name} (Rank ${p.rank})`)
+                          .join(', ') || 'None'
+                        }</div>
+                        <div><strong>Courts Created:</strong> {matchFixtures.fixtures.length}</div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
+                  {/* Court Fixtures */}
                   {matchFixtures.fixtures.map((court, courtIndex) => (
                     <div key={courtIndex} className="border border-gray-200 rounded-lg p-4">
                       <h4 className="font-semibold mb-2">Court {court.court}</h4>
@@ -548,6 +640,8 @@ const MatchesTab = ({
                       <div className="space-y-2">
                         {court.matches.map((gameMatch, matchIndex) => {
                           const existingScore = getMatchScore(match.id, court.court, matchIndex);
+                          const canEnterScore = canUserEnterScores(match, gameMatch);
+                          
                           return (
                             <div key={matchIndex} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                               <div className="flex-1">
@@ -561,7 +655,9 @@ const MatchesTab = ({
                                   </div>
                                 )}
                               </div>
-                              {!existingScore && (
+                              
+                              {/* Score Entry Button */}
+                              {!existingScore && canEnterScore && matchStatus !== 'future-no-fixtures' && (
                                 <button 
                                   onClick={() => openScoreModal({
                                     matchId: match.id,
@@ -575,9 +671,18 @@ const MatchesTab = ({
                                   Enter Score
                                 </button>
                               )}
+                              
+                              {/* Score Status */}
                               {existingScore && (
                                 <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
                                   Complete
+                                </span>
+                              )}
+                              
+                              {/* No Access Message */}
+                              {!existingScore && !canEnterScore && matchStatus !== 'future-no-fixtures' && (
+                                <span className="text-xs text-gray-500 px-2 py-1">
+                                  {currentUser?.role === 'admin' ? 'Admin can enter' : 'Not your match'}
                                 </span>
                               )}
                             </div>
@@ -586,6 +691,15 @@ const MatchesTab = ({
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              
+              {/* No Fixtures Message for Past Matches */}
+              {matchStatus === 'past-no-fixtures' && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-yellow-800 text-sm">
+                    This match date has passed but no fixtures were generated.
+                  </p>
                 </div>
               )}
             </div>
