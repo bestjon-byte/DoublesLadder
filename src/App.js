@@ -961,10 +961,14 @@ const TennisLadderApp = () => {
 
   // Add user to ladder with proper rank management
   const addToLadder = async (userId, rank) => {
+    console.log('addToLadder called with:', { userId, rank });
+    
     try {
       const targetRank = parseInt(rank);
+      console.log('Target rank:', targetRank);
       
       // First, shift all existing players down by 1 from the target rank
+      console.log('Shifting existing players...');
       const { error: shiftError } = await supabase
         .from('profiles')
         .update({ 
@@ -975,9 +979,12 @@ const TennisLadderApp = () => {
 
       if (shiftError) {
         console.error('Error shifting ranks:', shiftError);
+        alert('Error shifting ranks: ' + shiftError.message);
+        return;
       }
 
       // Then add the new player at the target rank
+      console.log('Adding player to ladder...');
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -987,13 +994,16 @@ const TennisLadderApp = () => {
         .eq('id', userId);
 
       if (error) {
+        console.error('Error adding to ladder:', error);
         alert('Error adding to ladder: ' + error.message);
       } else {
+        console.log('Successfully added to ladder');
         alert('Player added to ladder!');
         await fetchUsers();
       }
     } catch (error) {
-      console.error('Error adding to ladder:', error);
+      console.error('Error in addToLadder:', error);
+      alert('Error in addToLadder: ' + error.message);
     }
   };
 
