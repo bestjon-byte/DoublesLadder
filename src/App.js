@@ -828,47 +828,47 @@ const TennisLadderApp = () => {
     try {
       console.log('Fetching seasons...');
       
-      // First, try to get active season without matches
-      const { data: activeSeason, error: seasonError } = await supabase
+      // First, try to get any active season (limit to 1 to avoid multiple results error)
+      const { data: activeSeasons, error: seasonError } = await supabase
         .from('seasons')
         .select('*')
         .eq('is_active', true)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid error if no rows
+        .limit(1);
       
-      console.log('Active season query result:', { activeSeason, seasonError });
+      console.log('Active season query result:', { activeSeasons, seasonError });
       
       if (seasonError) {
         console.error('Error fetching active season:', seasonError);
-        // If no active season exists, create one
-        await createDefaultSeason();
         return;
       }
       
-      if (activeSeason) {
-        // Now fetch matches for this season
-        const { data: matches, error: matchesError } = await supabase
-          .from('matches')
-          .select('*')
-          .eq('season_id', activeSeason.id)
-          .order('week_number', { ascending: true });
-        
-        console.log('Matches query result:', { matches, matchesError });
-        
-        const seasonWithMatches = {
-          ...activeSeason,
-          matches: matches || []
-        };
-        
-        console.log('Setting current season:', seasonWithMatches);
-        setCurrentSeason(seasonWithMatches);
-        setSeasons([seasonWithMatches]);
-      } else {
+      let activeSeason = activeSeasons?.[0];
+      
+      if (!activeSeason) {
         console.log('No active season found, creating default season');
-        await createDefaultSeason();
+        activeSeason = await createDefaultSeason();
+        if (!activeSeason) return;
       }
+      
+      // Now fetch matches for this season
+      const { data: matches, error: matchesError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('season_id', activeSeason.id)
+        .order('week_number', { ascending: true });
+      
+      console.log('Matches query result:', { matches, matchesError });
+      
+      const seasonWithMatches = {
+        ...activeSeason,
+        matches: matches || []
+      };
+      
+      console.log('Setting current season:', seasonWithMatches);
+      setCurrentSeason(seasonWithMatches);
+      setSeasons([seasonWithMatches]);
     } catch (error) {
       console.error('Error in fetchSeasons:', error);
-      await createDefaultSeason();
     }
   };
 
@@ -876,6 +876,12 @@ const TennisLadderApp = () => {
   const createDefaultSeason = async () => {
     try {
       console.log('Creating default season...');
+      
+      // First deactivate any existing active seasons to avoid conflicts
+      await supabase
+        .from('seasons')
+        .update({ is_active: false })
+        .eq('is_active', true);
       
       const { data: newSeason, error } = await supabase
         .from('seasons')
@@ -890,14 +896,14 @@ const TennisLadderApp = () => {
       if (error) {
         console.error('Error creating default season:', error);
         alert('Error creating season: ' + error.message);
+        return null;
       } else {
         console.log('Default season created:', newSeason);
-        const seasonWithMatches = { ...newSeason, matches: [] };
-        setCurrentSeason(seasonWithMatches);
-        setSeasons([seasonWithMatches]);
+        return newSeason;
       }
     } catch (error) {
       console.error('Error in createDefaultSeason:', error);
+      return null;
     }
   };
 
