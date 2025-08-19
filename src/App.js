@@ -1,4 +1,52 @@
-import React, { useState, useEffect } from 'react';
+// Simple MatchesTab Component (will extract to separate file later)
+const MatchesTab = ({ 
+  currentUser, 
+  currentSeason, 
+  setShowScheduleModal 
+}) => {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900">Match Schedule</h2>
+        {currentUser?.role === 'admin' && (
+          <button
+            onClick={() => setShowScheduleModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 inline mr-2" />
+            Add Match
+          </button>
+        )}
+      </div>
+      
+      {!currentSeason?.matches || currentSeason.matches.length === 0 ? (
+        <div className="bg-white rounded-lg shadow p-6 text-center">
+          <p className="text-gray-500">No matches scheduled yet.</p>
+          {currentUser?.role === 'admin' && (
+            <p className="text-sm text-gray-400 mt-2">Click "Add Match" to create your first match.</p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {currentSeason.matches.map((match) => (
+            <div key={match.id} className="bg-white rounded-lg shadow p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold">Week {match.week_number}</h3>
+                  <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
+                  <p className="text-sm text-gray-500 mt-1">Status: {match.status}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};  // Update rankings - placeholder for now
+  const updateRankings = async () => {
+    alert('Rankings will be updated based on match results!');
+  };import React, { useState, useEffect } from 'react';
 import { Users, Calendar, Trophy, Settings, Plus, Check, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -315,6 +363,17 @@ const Navigation = ({ activeTab, setActiveTab, currentUser }) => {
             <Trophy className="w-4 h-4 inline mr-2" />
             Ladder
           </button>
+          <button
+            onClick={() => setActiveTab('matches')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 ${
+              activeTab === 'matches' 
+                ? 'border-green-500 text-green-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Calendar className="w-4 h-4 inline mr-2" />
+            Matches
+          </button>
           {currentUser?.role === 'admin' && (
             <button
               onClick={() => setActiveTab('admin')}
@@ -363,11 +422,15 @@ const Header = ({ currentUser, onSignOut }) => {
 
 // Main App Component
 const TennisLadderApp = () => {
-  // Core state management - SIMPLIFIED, database-driven
+  // Core state management
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
+  const [seasons, setSeasons] = useState([]);
+  const [currentSeason, setCurrentSeason] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ladder');
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [newMatchDate, setNewMatchDate] = useState('');
 
   // Initialize on load
   useEffect(() => {
@@ -404,7 +467,10 @@ const TennisLadderApp = () => {
 
       if (data) {
         setCurrentUser(data);
-        await fetchUsers();
+        await Promise.all([
+          fetchUsers(),
+          fetchSeasons()
+        ]);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -514,9 +580,134 @@ const TennisLadderApp = () => {
     }
   };
 
-  // Update rankings - placeholder for now
-  const updateRankings = async () => {
-    alert('Rankings will be updated based on match results!');
+  // Fetch seasons and set current season
+  const fetchSeasons = async () => {
+    try {
+      console.log('Fetching seasons...');
+      
+      // First, try to get any active season (limit to 1 to avoid multiple results error)
+      const { data: activeSeasons, error: seasonError } = await supabase
+        .from('seasons')
+        .select('*')
+        .eq('is_active', true)
+        .limit(1);
+      
+      console.log('Active season query result:', { activeSeasons, seasonError });
+      
+      if (seasonError) {
+        console.error('Error fetching active season:', seasonError);
+        return;
+      }
+      
+      let activeSeason = activeSeasons?.[0];
+      
+      if (!activeSeason) {
+        console.log('No active season found, creating default season');
+        activeSeason = await createDefaultSeason();
+        if (!activeSeason) return;
+      }
+      
+      // Now fetch matches for this season
+      const { data: matches, error: matchesError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('season_id', activeSeason.id)
+        .order('week_number', { ascending: true });
+      
+      console.log('Matches query result:', { matches, matchesError });
+      
+      const seasonWithMatches = {
+        ...activeSeason,
+        matches: matches || []
+      };
+      
+      console.log('Setting current season:', seasonWithMatches);
+      setCurrentSeason(seasonWithMatches);
+      setSeasons([seasonWithMatches]);
+    } catch (error) {
+      console.error('Error in fetchSeasons:', error);
+    }
+  };
+
+  // Create a default season if none exists
+  const createDefaultSeason = async () => {
+    try {
+      console.log('Creating default season...');
+      
+      // First deactivate any existing active seasons to avoid conflicts
+      await supabase
+        .from('seasons')
+        .update({ is_active: false })
+        .eq('is_active', true);
+      
+      const { data: newSeason, error } = await supabase
+        .from('seasons')
+        .insert({
+          name: `Season ${new Date().getFullYear()}`,
+          start_date: new Date().toISOString().split('T')[0],
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating default season:', error);
+        alert('Error creating season: ' + error.message);
+        return null;
+      } else {
+        console.log('Default season created:', newSeason);
+        return newSeason;
+      }
+    } catch (error) {
+      console.error('Error in createDefaultSeason:', error);
+      return null;
+    }
+  };
+
+  // Add match to season
+  const addMatchToSeason = async () => {
+    console.log('addMatchToSeason called');
+    console.log('newMatchDate:', newMatchDate);
+    console.log('currentSeason:', currentSeason);
+    
+    if (!newMatchDate) {
+      alert('Please select a date for the match');
+      return;
+    }
+    
+    if (!currentSeason) {
+      alert('No active season found. Please create a season first.');
+      return;
+    }
+    
+    try {
+      const weekNumber = (currentSeason?.matches?.length || 0) + 1;
+      console.log('Inserting match with weekNumber:', weekNumber);
+      
+      const { data, error } = await supabase
+        .from('matches')
+        .insert({
+          season_id: currentSeason.id,
+          week_number: weekNumber,
+          match_date: newMatchDate,
+          status: 'scheduled'
+        })
+        .select();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        alert('Error adding match: ' + error.message);
+      } else {
+        console.log('Match added successfully:', data);
+        alert(`Match added for ${new Date(newMatchDate).toLocaleDateString('en-GB')}`);
+        await fetchSeasons();
+        setShowScheduleModal(false);
+        setNewMatchDate('');
+      }
+    } catch (error) {
+      console.error('Error adding match:', error);
+      alert('Error adding match: ' + error.message);
+    }
   };
 
   const handleSignOut = async () => {
@@ -549,6 +740,14 @@ const TennisLadderApp = () => {
           />
         )}
 
+        {activeTab === 'matches' && (
+          <MatchesTab 
+            currentUser={currentUser}
+            currentSeason={currentSeason}
+            setShowScheduleModal={setShowScheduleModal}
+          />
+        )}
+
         {activeTab === 'admin' && currentUser?.role === 'admin' && (
           <AdminTab 
             users={users}
@@ -558,6 +757,49 @@ const TennisLadderApp = () => {
           />
         )}
       </main>
+
+      {/* Schedule Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Add New Match</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Match Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newMatchDate}
+                    onChange={(e) => setNewMatchDate(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={addMatchToSeason}
+                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
+                  >
+                    Add Match
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowScheduleModal(false);
+                      setNewMatchDate('');
+                    }}
+                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
