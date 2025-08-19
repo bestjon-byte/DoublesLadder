@@ -1518,12 +1518,7 @@ const TennisLadderApp = () => {
 
     // Generate match fixtures for each court and SAVE TO DATABASE
     try {
-      // First, clear any existing fixtures for this match
-      await supabase
-        .from('match_fixtures')
-        .delete()
-        .eq('match_id', matchId);
-
+      // Create a temporary array to store all fixtures
       const fixturesToInsert = [];
 
       courts.forEach((courtPlayers, courtIndex) => {
@@ -1584,7 +1579,10 @@ const TennisLadderApp = () => {
         // Add other group sizes here...
       });
 
-      // Insert all fixtures to database
+      console.log('About to insert fixtures:', fixturesToInsert.length, 'fixtures');
+      
+      // Just insert the new fixtures without deleting old ones first
+      // This avoids triggering any status updates on the matches table
       const { error } = await supabase
         .from('match_fixtures')
         .insert(fixturesToInsert);
@@ -1594,6 +1592,8 @@ const TennisLadderApp = () => {
         alert('Error generating matches: ' + error.message);
         return;
       }
+
+      console.log('Fixtures inserted successfully');
 
       // Refresh data
       await Promise.all([
