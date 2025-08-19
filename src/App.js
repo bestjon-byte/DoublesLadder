@@ -75,7 +75,7 @@ const AuthScreen = ({ onAuthChange }) => {
           <div className="w-16 h-16 bg-green-500 rounded-full mx-auto mb-2 flex items-center justify-center">
             <span className="text-white font-bold text-lg">C</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Cawood Tennis Club</h1>
+          <h1 className="text-2xl font-bold text-gray-800">🎾 Cawood Tennis Club 🎾</h1>
           <p className="text-gray-600">Doubles Ladder</p>
         </div>
 
