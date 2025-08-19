@@ -1183,8 +1183,8 @@ const TennisLadderApp = () => {
         .insert({
           season_id: currentSeason.id,
           week_number: weekNumber,
-          match_date: newMatchDate,
-          status: 'scheduled'
+          match_date: newMatchDate
+          // Removed status field - let it use the default value
         })
         .select();
 
