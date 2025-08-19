@@ -233,7 +233,7 @@ const AdminTab = ({
             return (
               <div key={match.id} className="mb-6 border border-gray-200 rounded-lg p-4">
                 <h4 className="font-medium mb-3">
-                  Week {match.week} - {new Date(match.match_date).toLocaleDateString()}
+                  Week {match.week} - {new Date(match.match_date).toLocaleDateString('en-GB')}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {ladderPlayers.map(player => {
@@ -301,7 +301,7 @@ const AdminTab = ({
                 <div key={match.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-medium">Week {match.week} - {new Date(match.match_date).toLocaleDateString()}</h4>
+                      <h4 className="font-medium">Week {match.week} - {new Date(match.match_date).toLocaleDateString('en-GB')}</h4>
                       <div className="mt-2 space-y-1 text-sm text-gray-600">
                         <div>Available: <span className="font-medium text-green-600">{stats.available}</span></div>
                         <div>Responded: <span className="font-medium">{stats.responded}/{stats.total}</span></div>
@@ -389,7 +389,7 @@ const AvailabilityTab = ({ currentUser, currentSeason, getPlayerAvailability, se
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-semibold">Week {match.week}</h3>
-                    <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString()}</p>
+                    <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
                   </div>
                   <div className="flex space-x-2">
                     <button
@@ -490,7 +490,7 @@ const MatchesTab = ({
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-lg font-semibold">Week {match.week}</h3>
-                  <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString()}</p>
+                  <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
                   <div className="mt-2 text-sm text-gray-600">
                     Availability: {stats.available} available, {stats.pending} pending response
                   </div>
@@ -991,33 +991,47 @@ const TennisLadderApp = () => {
 
   // Add match to season
   const addMatchToSeason = async () => {
+    console.log('addMatchToSeason called');
+    console.log('newMatchDate:', newMatchDate);
+    console.log('currentSeason:', currentSeason);
+    
     if (!newMatchDate) {
       alert('Please select a date for the match');
       return;
     }
     
+    if (!currentSeason) {
+      alert('No active season found. Please create a season first.');
+      return;
+    }
+    
     try {
       const weekNumber = (currentSeason?.matches?.length || 0) + 1;
+      console.log('Inserting match with weekNumber:', weekNumber);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('matches')
         .insert({
           season_id: currentSeason.id,
           week_number: weekNumber,
           match_date: newMatchDate,
           status: 'scheduled'
-        });
+        })
+        .select();
 
       if (error) {
+        console.error('Supabase error:', error);
         alert('Error adding match: ' + error.message);
       } else {
-        alert(`Match added for ${new Date(newMatchDate).toLocaleDateString()}`);
+        console.log('Match added successfully:', data);
+        alert(`Match added for ${new Date(newMatchDate).toLocaleDateString('en-GB')}`);
         await fetchSeasons();
         setShowScheduleModal(false);
         setNewMatchDate('');
       }
     } catch (error) {
       console.error('Error adding match:', error);
+      alert('Error adding match: ' + error.message);
     }
   };
 
