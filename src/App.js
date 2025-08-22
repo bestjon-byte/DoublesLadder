@@ -15,6 +15,32 @@ const getRankMovementIcon = (movement) => {
   return null;
 };
 
+const getRankMovementDisplay = (previousRank, currentRank) => {
+  if (!previousRank || previousRank === currentRank) {
+    return <span className="text-gray-400 text-xs">-</span>;
+  }
+  
+  if (previousRank > currentRank) {
+    // Moved up (lower number = higher rank)
+    const positions = previousRank - currentRank;
+    return (
+      <div className="flex items-center space-x-1">
+        <ArrowUp className="w-4 h-4 text-green-500" />
+        <span className="text-green-600 text-xs font-medium">+{positions}</span>
+      </div>
+    );
+  } else {
+    // Moved down (higher number = lower rank)
+    const positions = currentRank - previousRank;
+    return (
+      <div className="flex items-center space-x-1">
+        <ArrowDown className="w-4 h-4 text-red-500" />
+        <span className="text-red-600 text-xs font-medium">-{positions}</span>
+      </div>
+    );
+  }
+};
+
 // Auth Component
 const AuthScreen = ({ onAuthChange }) => {
   const [authMode, setAuthMode] = useState('login');
@@ -844,12 +870,13 @@ const LadderTab = ({ currentUser, users, updateRankings }) => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matches</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Games</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win %</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Move</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {ladderData.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                     No players in ladder yet
                   </td>
                 </tr>
@@ -868,6 +895,9 @@ const LadderTab = ({ currentUser, users, updateRankings }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {player.games_played > 0 ? Math.round((player.games_won / player.games_played) * 100 * 10) / 10 : 0}%
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap w-20">
+                      {getRankMovementDisplay(player.previous_rank, player.rank)}
                     </td>
                   </tr>
                 ))
@@ -1738,15 +1768,17 @@ const TennisLadderApp = () => {
           return a.name.localeCompare(b.name);
         });
 
-      // Update database with new ranks and stats
+      // Update database with new ranks and stats, storing previous rank
       for (let i = 0; i < sortedPlayers.length; i++) {
         const player = sortedPlayers[i];
         const stats = player.calculatedStats;
         const newRank = i + 1;
+        const previousRank = player.rank; // Store current rank as previous
         
         await supabase
           .from('profiles')
           .update({
+            previous_rank: previousRank, // Store the old rank
             rank: newRank,
             matches_played: stats.matchesPlayed,
             matches_won: stats.matchesWon,
