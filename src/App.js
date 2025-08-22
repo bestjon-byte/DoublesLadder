@@ -41,7 +41,7 @@ const getRankMovementDisplay = (previousRank, currentRank) => {
   }
 };
 
-/// Auth Component
+// Auth Component
 const AuthScreen = ({ onAuthChange }) => {
   const [authMode, setAuthMode] = useState('login');
   const [loading, setLoading] = useState(false);
@@ -114,7 +114,6 @@ const AuthScreen = ({ onAuthChange }) => {
           <h1 className="text-2xl font-bold text-gray-800">Cawood Tennis Club</h1>
           <p className="text-gray-600">Doubles Ladder</p>
         </div>
-
         <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
           <button
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
