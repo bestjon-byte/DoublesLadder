@@ -13,8 +13,7 @@ const AdminTab = ({
   getAvailabilityStats,
   clearOldMatches,
   matchFixtures,
-  matchResults,
-  requestAvailabilityForAll = () => console.log('Availability requests would be sent to all players')
+  matchResults
 }) => {
   const [loading, setLoading] = useState(false);
 
@@ -147,24 +146,20 @@ const AdminTab = ({
       {/* Availability Management */}
       {currentSeason?.matches && (
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Availability Management</h3>
-            <button
-              onClick={requestAvailabilityForAll}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Request Availability for All Matches
-            </button>
-          </div>
+          <h3 className="text-lg font-semibold mb-4">Availability Overview</h3>
           
           <div className="space-y-4">
             {currentSeason.matches.map((match) => {
               const stats = getAvailabilityStats(match.id);
+              const matchComplete = isMatchComplete(match.id);
+              const matchDate = new Date(match.match_date);
+              const isPast = matchDate < new Date();
+              
               return (
                 <div key={match.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-medium">Week {match.week_number} - {new Date(match.match_date).toLocaleDateString('en-GB')}</h4>
+                      <h4 className="font-medium">Week {match.week_number} - {matchDate.toLocaleDateString('en-GB')}</h4>
                       <div className="mt-2 space-y-1 text-sm text-gray-600">
                         <div>Available: <span className="font-medium text-green-600">{stats.available}</span></div>
                         <div>Responded: <span className="font-medium">{stats.responded}/{stats.total}</span></div>
@@ -172,8 +167,16 @@ const AdminTab = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      {stats.available >= 4 ? (
+                      {matchComplete ? (
                         <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                          ✅ Match Completed
+                        </span>
+                      ) : isPast ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
+                          Match Date Passed
+                        </span>
+                      ) : stats.available >= 4 ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
                           Ready to Schedule
                         </span>
                       ) : (
