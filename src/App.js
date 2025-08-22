@@ -844,13 +844,12 @@ const LadderTab = ({ currentUser, users, updateRankings }) => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matches</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Games</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win %</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Movement</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {ladderData.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
                     No players in ladder yet
                   </td>
                 </tr>
@@ -869,9 +868,6 @@ const LadderTab = ({ currentUser, users, updateRankings }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {player.games_played > 0 ? Math.round((player.games_won / player.games_played) * 100 * 10) / 10 : 0}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {/* Movement tracking would need to be implemented */}
                     </td>
                   </tr>
                 ))
