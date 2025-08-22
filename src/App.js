@@ -41,7 +41,7 @@ const getRankMovementDisplay = (previousRank, currentRank) => {
   }
 };
 
-// Auth Component
+/// Auth Component
 const AuthScreen = ({ onAuthChange }) => {
   const [authMode, setAuthMode] = useState('login');
   const [loading, setLoading] = useState(false);
@@ -98,10 +98,20 @@ const AuthScreen = ({ onAuthChange }) => {
     <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-green-500 rounded-full mx-auto mb-2 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">C</span>
+          <img 
+            src="/club-logo.png" 
+            alt="Cawood Tennis Club Logo" 
+            className="w-24 h-24 mx-auto mb-3 rounded-full shadow-md object-contain bg-white p-1"
+            onError={(e) => {
+              console.error('Logo failed to load');
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+          <div className="w-24 h-24 bg-green-500 rounded-full mx-auto mb-3 flex items-center justify-center shadow-md" style={{display: 'none'}}>
+            <span className="text-white font-bold text-3xl">C</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">🎾 Cawood Tennis Club 🎾 - LOGO TEST</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Cawood Tennis Club</h1>
           <p className="text-gray-600">Doubles Ladder</p>
         </div>
 
