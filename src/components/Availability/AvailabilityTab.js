@@ -37,6 +37,18 @@ const AvailabilityTab = ({
     return matchDate < today;
   }) || [];
 
+  // Helper to check if a match is complete
+  const isMatchComplete = (matchId) => {
+    const matchGameFixtures = matchFixtures.filter(f => f.match_id === matchId);
+    if (matchGameFixtures.length === 0) return false;
+    
+    const completedGames = matchGameFixtures.filter(fixture => 
+      matchResults.some(result => result.fixture_id === fixture.id)
+    ).length;
+    
+    return completedGames === matchGameFixtures.length && matchGameFixtures.length > 0;
+  };
+
   // Helper to get player's scores for a match
   const getPlayerScoresForMatch = (matchId) => {
     const playerFixtures = matchFixtures.filter(fixture => 
@@ -85,6 +97,8 @@ const AvailabilityTab = ({
           <div className="space-y-4">
             {futureMatches.map((match) => {
               const userAvailability = getPlayerAvailability(currentUser.id, match.id);
+              const matchComplete = isMatchComplete(match.id);
+              
               return (
                 <div key={match.id} className="bg-white rounded-lg shadow p-6">
                   <div className="flex justify-between items-start mb-4">
@@ -92,44 +106,56 @@ const AvailabilityTab = ({
                       <h4 className="text-lg font-semibold">Week {match.week_number}</h4>
                       <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
                     </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setPlayerAvailability(match.id, true)}
-                        className={`px-4 py-2 rounded-md transition-colors ${
-                          userAvailability === true
-                            ? 'bg-green-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-green-100'
-                        }`}
-                      >
-                        Available
-                      </button>
-                      <button
-                        onClick={() => setPlayerAvailability(match.id, false)}
-                        className={`px-4 py-2 rounded-md transition-colors ${
-                          userAvailability === false
-                            ? 'bg-red-600 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-red-100'
-                        }`}
-                      >
-                        Not Available
-                      </button>
-                      {userAvailability !== undefined && (
+                    {matchComplete ? (
+                      <div className="bg-green-100 text-green-800 px-4 py-2 rounded-md font-medium">
+                        ✅ Match Completed
+                      </div>
+                    ) : (
+                      <div className="flex space-x-2">
                         <button
-                          onClick={() => setPlayerAvailability(match.id, undefined)}
-                          className="px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                          onClick={() => setPlayerAvailability(match.id, true)}
+                          className={`px-4 py-2 rounded-md transition-colors ${
+                            userAvailability === true
+                              ? 'bg-green-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-green-100'
+                          }`}
                         >
-                          Clear
+                          Available
                         </button>
-                      )}
-                    </div>
+                        <button
+                          onClick={() => setPlayerAvailability(match.id, false)}
+                          className={`px-4 py-2 rounded-md transition-colors ${
+                            userAvailability === false
+                              ? 'bg-red-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-red-100'
+                          }`}
+                        >
+                          Not Available
+                        </button>
+                        {userAvailability !== undefined && (
+                          <button
+                            onClick={() => setPlayerAvailability(match.id, undefined)}
+                            className="px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   
-                  {userAvailability !== undefined && (
+                  {!matchComplete && userAvailability !== undefined && (
                     <div className="flex items-center space-x-2 text-sm">
                       <div className={`w-3 h-3 rounded-full ${userAvailability ? 'bg-green-500' : 'bg-red-500'}`}></div>
                       <span className="text-gray-600">
                         You are marked as {userAvailability ? 'available' : 'not available'} for this match
                       </span>
+                    </div>
+                  )}
+                  
+                  {matchComplete && (
+                    <div className="text-sm text-gray-600">
+                      All results have been entered for this match. Check your results below.
                     </div>
                   )}
                 </div>

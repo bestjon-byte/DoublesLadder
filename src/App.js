@@ -252,7 +252,7 @@ const TennisLadderApp = () => {
         alert('Error adding match: ' + error.message);
       } else {
         console.log('Match added successfully:', data);
-        alert(`Match added for ${new Date(newMatchDate).toLocaleDateString('en-GB')}`);
+        // No annoying popup - user can see the match was added
         await fetchSeasons();
         setShowScheduleModal(false);
         setNewMatchDate('');
@@ -293,7 +293,7 @@ const TennisLadderApp = () => {
       if (error) {
         alert('Error approving user: ' + error.message);
       } else {
-        alert('User approved successfully!');
+        // No popup - the user disappears from pending list, that's enough feedback
         await fetchUsers();
       }
     } catch (error) {
@@ -349,7 +349,7 @@ const TennisLadderApp = () => {
         alert('Error adding to ladder: ' + error.message);
       } else {
         console.log('Successfully added to ladder');
-        alert('Player added to ladder!');
+        // No popup - they appear in the ladder, that's enough
         await fetchUsers();
       }
     } catch (error) {
@@ -605,7 +605,8 @@ const TennisLadderApp = () => {
         fetchSeasons()
       ]);
 
-      alert(`Matches generated successfully! Created ${courts.length} court(s) with ${numPlayers} players.`);
+      // No annoying popup - the fixtures appear on screen
+      console.log(`Matches generated successfully! Created ${courts.length} court(s) with ${numPlayers} players.`);
     } catch (error) {
       console.error('Error in generateMatches:', error);
       alert('Error generating matches: ' + error.message);
@@ -640,7 +641,8 @@ const TennisLadderApp = () => {
         ]);
         setShowScoreModal(false);
         setSelectedMatch(null);
-        alert('Score submitted successfully!');
+        // No popup - the score appears on screen
+        console.log('Score submitted successfully');
       }
     } catch (error) {
       console.error('Error in submitScore:', error);
@@ -756,7 +758,8 @@ const TennisLadderApp = () => {
       }
 
       await fetchUsers();
-      alert('Rankings updated successfully!');
+      // No popup - the rankings update on screen
+      console.log('Rankings updated successfully');
     } catch (error) {
       console.error('Error updating rankings:', error);
       alert('Error updating rankings: ' + error.message);
@@ -835,6 +838,8 @@ const TennisLadderApp = () => {
             getPlayerAvailability={getPlayerAvailability}
             getAvailabilityStats={getAvailabilityStats}
             clearOldMatches={clearOldMatches}
+            matchFixtures={matchFixtures}
+            matchResults={matchResults}
           />
         )}
       </main>
