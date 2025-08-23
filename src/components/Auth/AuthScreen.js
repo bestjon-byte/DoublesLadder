@@ -16,22 +16,45 @@ const AuthScreen = ({ onAuthChange }) => {
   useEffect(() => {
     // Check if user is coming from a password reset email
     const checkForPasswordReset = () => {
+      console.log('🔍 Checking for password reset URL...');
+      console.log('Current URL:', window.location.href);
+      
+      // Check both query params and hash fragments (Supabase uses hash)
       const urlParams = new URLSearchParams(window.location.search);
-      const type = urlParams.get('type');
-      const accessToken = urlParams.get('access_token');
-      const refreshToken = urlParams.get('refresh_token');
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      // Try query params first, then hash params
+      let type = urlParams.get('type') || hashParams.get('type');
+      let accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+      let refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
 
-      console.log('URL params:', { type, accessToken: !!accessToken, refreshToken: !!refreshToken });
+      console.log('🔑 Auth tokens found:', { 
+        type, 
+        accessToken: !!accessToken, 
+        refreshToken: !!refreshToken,
+        from: accessToken ? (urlParams.get('access_token') ? 'query' : 'hash') : 'none'
+      });
 
       if (type === 'recovery' && accessToken && refreshToken) {
-        console.log('Password reset detected, switching to update mode');
+        console.log('✅ Password reset detected, switching to update mode');
         setAuthMode('update');
         
         // Set the session with the tokens from the URL
         supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken
+        }).then(({ data, error }) => {
+          console.log('🔐 Session set result:', { data, error });
+          
+          // Clean up the URL to remove the tokens
+          if (window.history.replaceState) {
+            const cleanUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState(null, '', cleanUrl);
+            console.log('🧹 URL cleaned:', cleanUrl);
+          }
         });
+      } else {
+        console.log('ℹ️ No password reset tokens found');
       }
     };
 
