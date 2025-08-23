@@ -33,21 +33,61 @@ const TennisLadderApp = () => {
   useEffect(() => {
     console.log('🚀 App starting up, checking initial session...');
     
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('📧 Initial session check:', { session, error });
+    // FIRST: Check for password reset tokens in URL (before checking session)
+    const checkForPasswordReset = () => {
+      console.log('🔍 Checking for password reset URL...');
+      console.log('Current URL:', window.location.href);
       
-      if (error) {
-        console.error('❌ Error getting initial session:', error);
-      }
+      // Check both query params and hash fragments (Supabase uses hash)
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
       
-      if (session) {
-        console.log('✅ Found existing session for user:', session.user.email);
-        fetchUserProfile(session.user.id);
-      } else {
-        console.log('ℹ️ No existing session found');
+      // Try query params first, then hash params
+      let type = urlParams.get('type') || hashParams.get('type');
+      let accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+      let refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
+
+      console.log('🔑 Auth tokens found:', { 
+        type, 
+        accessToken: !!accessToken, 
+        refreshToken: !!refreshToken,
+        from: accessToken ? (urlParams.get('access_token') ? 'query' : 'hash') : 'none'
+      });
+
+      if (type === 'recovery' && accessToken && refreshToken) {
+        console.log('✅ Password reset detected, forcing auth screen with update mode');
+        
+        // Force the user to null so AuthScreen shows
+        setCurrentUser(null);
         setLoading(false);
+        
+        // The AuthScreen will pick up these tokens
+        return true; // Indicates password reset detected
       }
-    });
+      
+      return false; // No password reset
+    };
+    
+    const isPasswordReset = checkForPasswordReset();
+    
+    // Only check normal session if it's NOT a password reset
+    if (!isPasswordReset) {
+      supabase.auth.getSession().then(({ data: { session }, error }) => {
+        console.log('📧 Initial session check:', { session, error });
+        
+        if (error) {
+          console.error('❌ Error getting initial session:', error);
+        }
+        
+        if (session) {
+          console.log('✅ Found existing session for user:', session.user.email);
+          fetchUserProfile(session.user.id);
+        } else {
+          console.log('ℹ️ No existing session found');
+          setLoading(false);
+        }
+      });
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔄 Auth state changed:', { event, session });
@@ -67,9 +107,9 @@ const TennisLadderApp = () => {
         console.log('📝 Other auth event:', event);
       }
 
-      if (session) {
+      if (session && event !== 'PASSWORD_RECOVERY') {
         fetchUserProfile(session.user.id);
-      } else {
+      } else if (!session && event !== 'PASSWORD_RECOVERY') {
         setCurrentUser(null);
         setLoading(false);
       }
