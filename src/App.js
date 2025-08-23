@@ -29,31 +29,36 @@ const TennisLadderApp = () => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
 
+  // Check for recovery tokens IMMEDIATELY when component mounts
+  const isRecoverySession = React.useMemo(() => {
+    console.log('🔍 Checking for recovery tokens at mount...');
+    console.log('Full URL:', window.location.href);
+    
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    const hasTokens = type === 'recovery';
+    
+    console.log('🔑 Recovery check:', { type, isRecovery: hasTokens });
+    return hasTokens;
+  }, []);
+
   // Authentication and initialization with enhanced logging
   useEffect(() => {
-    console.log('🚀 App starting up, checking initial session...');
+    console.log('🚀 App starting up, isRecoverySession:', isRecoverySession);
     
-    // Helper function to check if URL contains recovery tokens
-    const hasRecoveryTokens = () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const type = hashParams.get('type');
-      return type === 'recovery';
-    };
+    // If this is a recovery session, don't do any auth processing
+    if (isRecoverySession) {
+      console.log('🚫 Recovery session detected - skipping all auth processing');
+      setCurrentUser(null);
+      setLoading(false);
+      return;
+    }
     
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       console.log('📧 Initial session check:', { session, error });
       
       if (error) {
         console.error('❌ Error getting initial session:', error);
-        setLoading(false);
-        return;
-      }
-      
-      // Check if this is a password recovery session
-      if (session && hasRecoveryTokens()) {
-        console.log('🔑 Recovery session detected - NOT logging in automatically');
-        console.log('🔄 Forcing AuthScreen to handle password reset');
-        setCurrentUser(null);
         setLoading(false);
         return;
       }
@@ -68,19 +73,19 @@ const TennisLadderApp = () => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Auth state changed:', { event, session });
+      console.log('🔄 Auth state changed:', { event, session, isRecoverySession });
       
-      // If this is a recovery session, don't auto-login
-      if (session && hasRecoveryTokens() && event === 'SIGNED_IN') {
-        console.log('🚫 Blocking recovery session auto-login');
-        setCurrentUser(null);
-        setLoading(false);
+      // If this was a recovery session at startup, ignore all auth events except successful login after password update
+      if (isRecoverySession && event !== 'SIGNED_IN') {
+        console.log('🚫 Ignoring auth event in recovery mode:', event);
         return;
       }
       
       if (event === 'SIGNED_IN') {
-        console.log('✅ User signed in:', session.user.email);
-        fetchUserProfile(session.user.id);
+        console.log('✅ User signed in:', session?.user?.email);
+        if (session) {
+          fetchUserProfile(session.user.id);
+        }
       } else if (event === 'SIGNED_OUT') {
         console.log('👋 User signed out');
         setCurrentUser(null);
@@ -94,20 +99,13 @@ const TennisLadderApp = () => {
       } else {
         console.log('📝 Other auth event:', event);
       }
-
-      if (event === 'SIGNED_IN' && session && !hasRecoveryTokens()) {
-        fetchUserProfile(session.user.id);
-      } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null);
-        setLoading(false);
-      }
     });
 
     return () => {
       console.log('🧹 Cleaning up auth subscription');
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isRecoverySession]);
 
   const fetchUserProfile = async (userId) => {
     try {
