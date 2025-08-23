@@ -129,59 +129,6 @@ const AuthScreen = ({ onAuthChange }) => {
             {loading ? 'Loading...' : (authMode === 'login' ? 'Sign In' : 'Sign Up')}
           </button>
         </div>
-          <button
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              authMode === 'login' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
-            }`}
-            onClick={() => setAuthMode('login')}
-          >
-            Sign In
-          </button>
-          <button
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              authMode === 'register' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
-            }`}
-            onClick={() => setAuthMode('register')}
-          >
-            Sign Up
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {authMode === 'register' && (
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={authForm.name}
-              onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              required
-            />
-          )}
-          <input
-            type="email"
-            placeholder="Email"
-            value={authForm.email}
-            onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={authForm.password}
-            onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            required
-          />
-          <button
-            onClick={handleAuth}
-            disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 transition-colors font-medium disabled:opacity-50"
-          >
-            {loading ? 'Loading...' : (authMode === 'login' ? 'Sign In' : 'Sign Up')}
-          </button>
-        </div>
 
         <div className="mt-4 text-sm text-gray-600 text-center">
           Create an account to get started!
