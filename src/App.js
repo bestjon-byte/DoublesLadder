@@ -28,68 +28,68 @@ const TennisLadderApp = () => {
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
-
-  // Check for recovery tokens IMMEDIATELY when component mounts
-  const isRecoverySession = React.useMemo(() => {
-    console.log('🔍 Checking for recovery tokens at mount...');
-    console.log('Full URL:', window.location.href);
-    
+  
+  // Use state instead of useMemo so it can be updated
+  const [isRecoverySession, setIsRecoverySession] = useState(() => {
+    console.log('🔍 Initial recovery check...');
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get('type');
     const hasTokens = type === 'recovery';
-    
-    console.log('🔑 Recovery check:', { type, isRecovery: hasTokens });
+    console.log('🔑 Initial recovery state:', hasTokens);
     return hasTokens;
-  }, []);
+  });
 
   // Authentication and initialization with enhanced logging
   useEffect(() => {
     console.log('🚀 App starting up, isRecoverySession:', isRecoverySession);
     
-    // If this is a recovery session, don't do any auth processing
+    // If this is a recovery session, don't do any auth processing initially
     if (isRecoverySession) {
-      console.log('🚫 Recovery session detected - skipping all auth processing');
+      console.log('🚫 Recovery session detected - skipping initial auth processing');
       setCurrentUser(null);
       setLoading(false);
-      return;
+      // Don't return here - we still need to set up the auth listener
+    } else {
+      // Normal startup - check for existing session
+      supabase.auth.getSession().then(({ data: { session }, error }) => {
+        console.log('📧 Initial session check:', { session, error });
+        
+        if (error) {
+          console.error('❌ Error getting initial session:', error);
+          setLoading(false);
+          return;
+        }
+        
+        if (session) {
+          console.log('✅ Found existing normal session for user:', session.user.email);
+          fetchUserProfile(session.user.id);
+        } else {
+          console.log('ℹ️ No existing session found');
+          setLoading(false);
+        }
+      });
     }
-    
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('📧 Initial session check:', { session, error });
-      
-      if (error) {
-        console.error('❌ Error getting initial session:', error);
-        setLoading(false);
-        return;
-      }
-      
-      if (session) {
-        console.log('✅ Found existing normal session for user:', session.user.email);
-        fetchUserProfile(session.user.id);
-      } else {
-        console.log('ℹ️ No existing session found');
-        setLoading(false);
-      }
-    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔄 Auth state changed:', { event, session, isRecoverySession });
       
-      // If this was a recovery session at startup, ignore all auth events except successful login after password update
-      if (isRecoverySession && event !== 'SIGNED_IN') {
-        console.log('🚫 Ignoring auth event in recovery mode:', event);
-        return;
-      }
-      
-      if (event === 'SIGNED_IN') {
-        console.log('✅ User signed in:', session?.user?.email);
-        if (session) {
-          fetchUserProfile(session.user.id);
+      if (event === 'SIGNED_IN' && session) {
+        console.log('✅ User signed in:', session.user.email);
+        // If this was a recovery session and user just signed in, exit recovery mode
+        if (isRecoverySession) {
+          console.log('🔓 Exiting recovery mode after successful login');
+          setIsRecoverySession(false);
         }
+        fetchUserProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         console.log('👋 User signed out');
         setCurrentUser(null);
         setLoading(false);
+        // Also exit recovery mode on sign out
+        if (isRecoverySession) {
+          console.log('🔓 Exiting recovery mode after sign out');
+          setIsRecoverySession(false);
+        }
       } else if (event === 'PASSWORD_RECOVERY') {
         console.log('🔑 Password recovery event detected');
         setCurrentUser(null);
