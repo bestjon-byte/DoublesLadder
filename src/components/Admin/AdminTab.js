@@ -59,7 +59,7 @@ const AdminTab = ({
                 <button
                   onClick={() => handleApproveUser(user.id)}
                   disabled={loading}
-                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+                  className="bg-[#5D1F1F] text-white px-3 py-1 rounded text-sm hover:bg-[#4A1818] disabled:opacity-50"
                 >
                   <Check className="w-4 h-4" />
                 </button>
@@ -220,7 +220,7 @@ const AdminTab = ({
                         handleAddToLadder(user.id, selectedRank);
                       }}
                       disabled={loading}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+                      className="bg-[#5D1F1F] text-white px-3 py-1 rounded text-sm hover:bg-[#4A1818] disabled:opacity-50"
                     >
                       Add
                     </button>

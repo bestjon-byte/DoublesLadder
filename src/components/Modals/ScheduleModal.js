@@ -32,7 +32,7 @@ const ScheduleModal = ({
             <div className="flex space-x-3 pt-4">
               <button
                 onClick={addMatchToSeason}
-                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700"
+                className="flex-1 bg-[#5D1F1F] text-white py-2 px-4 rounded-md hover:bg-[#4A1818]"
               >
                 Add Match
               </button>
