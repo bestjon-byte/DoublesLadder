@@ -55,7 +55,7 @@ const AuthScreen = ({ onAuthChange }) => {
   };
 
   return (
-    <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
         <div className="text-center mb-6">
           <img 
@@ -68,7 +68,7 @@ const AuthScreen = ({ onAuthChange }) => {
               e.target.nextSibling.style.display = 'flex';
             }}
           />
-          <div className="w-24 h-24 bg-green-500 rounded-full mx-auto mb-3 flex items-center justify-center shadow-md" style={{display: 'none'}}>
+          <div className="w-24 h-24 bg-[#5D1F1F] rounded-full mx-auto mb-3 flex items-center justify-center shadow-md" style={{display: 'none'}}>
             <span className="text-white font-bold text-3xl">C</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-800">Cawood Tennis Club</h1>
@@ -76,6 +76,59 @@ const AuthScreen = ({ onAuthChange }) => {
         </div>
 
         <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
+          <button
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              authMode === 'login' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
+            }`}
+            onClick={() => setAuthMode('login')}
+          >
+            Sign In
+          </button>
+          <button
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              authMode === 'register' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
+            }`}
+            onClick={() => setAuthMode('register')}
+          >
+            Sign Up
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {authMode === 'register' && (
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={authForm.name}
+              onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+              required
+            />
+          )}
+          <input
+            type="email"
+            placeholder="Email"
+            value={authForm.email}
+            onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={authForm.password}
+            onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
+            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+            required
+          />
+          <button
+            onClick={handleAuth}
+            disabled={loading}
+            className="w-full bg-[#5D1F1F] text-white py-3 rounded-md hover:bg-[#4A1818] transition-colors font-medium disabled:opacity-50"
+          >
+            {loading ? 'Loading...' : (authMode === 'login' ? 'Sign In' : 'Sign Up')}
+          </button>
+        </div>
           <button
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               authMode === 'login' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'

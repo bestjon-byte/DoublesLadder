@@ -11,7 +11,7 @@ const Navigation = ({ activeTab, setActiveTab, currentUser }) => {
             onClick={() => setActiveTab('ladder')}
             className={`px-4 py-3 text-sm font-medium border-b-2 ${
               activeTab === 'ladder' 
-                ? 'border-green-500 text-green-600' 
+                ? 'border-[#5D1F1F] text-[#5D1F1F]' 
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -22,7 +22,7 @@ const Navigation = ({ activeTab, setActiveTab, currentUser }) => {
             onClick={() => setActiveTab('matches')}
             className={`px-4 py-3 text-sm font-medium border-b-2 ${
               activeTab === 'matches' 
-                ? 'border-green-500 text-green-600' 
+                ? 'border-[#5D1F1F] text-[#5D1F1F]' 
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -34,7 +34,7 @@ const Navigation = ({ activeTab, setActiveTab, currentUser }) => {
               onClick={() => setActiveTab('availability')}
               className={`px-4 py-3 text-sm font-medium border-b-2 ${
                 activeTab === 'availability' 
-                  ? 'border-green-500 text-green-600' 
+                  ? 'border-[#5D1F1F] text-[#5D1F1F]' 
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -47,7 +47,7 @@ const Navigation = ({ activeTab, setActiveTab, currentUser }) => {
               onClick={() => setActiveTab('admin')}
               className={`px-4 py-3 text-sm font-medium border-b-2 ${
                 activeTab === 'admin' 
-                  ? 'border-green-500 text-green-600' 
+                  ? 'border-[#5D1F1F] text-[#5D1F1F]' 
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
