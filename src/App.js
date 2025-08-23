@@ -55,14 +55,21 @@ const TennisLadderApp = () => {
       });
 
       if (type === 'recovery' && accessToken && refreshToken) {
-        console.log('✅ Password reset detected, forcing auth screen with update mode');
+        console.log('✅ Password reset detected - BLOCKING normal auth flow');
         
-        // Force the user to null so AuthScreen shows
+        // Set the session for password recovery (but don't fetch user profile)
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        }).then(({ data, error }) => {
+          console.log('🔐 Password recovery session set:', { data, error });
+        });
+        
+        // Force the user to null and show AuthScreen in update mode
         setCurrentUser(null);
         setLoading(false);
         
-        // The AuthScreen will pick up these tokens
-        return true; // Indicates password reset detected
+        return true; // Indicates password reset detected - block normal flow
       }
       
       return false; // No password reset
@@ -92,6 +99,12 @@ const TennisLadderApp = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔄 Auth state changed:', { event, session });
       
+      // If we're in password reset mode, don't process normal auth events
+      if (isPasswordReset && event !== 'PASSWORD_RECOVERY') {
+        console.log('🚫 Ignoring auth event during password reset:', event);
+        return;
+      }
+      
       if (event === 'SIGNED_IN') {
         console.log('✅ User signed in:', session.user.email);
         fetchUserProfile(session.user.id);
@@ -101,17 +114,23 @@ const TennisLadderApp = () => {
         setLoading(false);
       } else if (event === 'PASSWORD_RECOVERY') {
         console.log('🔑 Password recovery event detected');
+        // Don't auto-login during password recovery
+        setCurrentUser(null);
+        setLoading(false);
       } else if (event === 'TOKEN_REFRESHED') {
         console.log('🔄 Auth token refreshed');
       } else {
         console.log('📝 Other auth event:', event);
       }
 
-      if (session && event !== 'PASSWORD_RECOVERY') {
-        fetchUserProfile(session.user.id);
-      } else if (!session && event !== 'PASSWORD_RECOVERY') {
-        setCurrentUser(null);
-        setLoading(false);
+      // Only process session changes if NOT in password reset mode
+      if (!isPasswordReset) {
+        if (session && event !== 'PASSWORD_RECOVERY') {
+          fetchUserProfile(session.user.id);
+        } else if (!session && event !== 'PASSWORD_RECOVERY') {
+          setCurrentUser(null);
+          setLoading(false);
+        }
       }
     });
 
