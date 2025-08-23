@@ -1,9 +1,11 @@
-// src/components/Auth/AuthScreen.js
-import React, { useState } from 'react';
+// src/components/Auth/AuthScreen.js - Updated with password reset
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import PasswordReset from './PasswordReset';
+import PasswordUpdate from './PasswordUpdate';
 
 const AuthScreen = ({ onAuthChange }) => {
-  const [authMode, setAuthMode] = useState('login');
+  const [authMode, setAuthMode] = useState('login'); // 'login', 'register', 'reset', 'update'
   const [loading, setLoading] = useState(false);
   const [authForm, setAuthForm] = useState({
     email: '',
@@ -11,49 +13,107 @@ const AuthScreen = ({ onAuthChange }) => {
     name: ''
   });
 
+  useEffect(() => {
+    // Check if user is coming from a password reset email
+    const checkForPasswordReset = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const type = urlParams.get('type');
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+
+      console.log('URL params:', { type, accessToken: !!accessToken, refreshToken: !!refreshToken });
+
+      if (type === 'recovery' && accessToken && refreshToken) {
+        console.log('Password reset detected, switching to update mode');
+        setAuthMode('update');
+        
+        // Set the session with the tokens from the URL
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+      }
+    };
+
+    checkForPasswordReset();
+  }, []);
+
   const handleAuth = async () => {
     setLoading(true);
     
-    if (authMode === 'login') {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: authForm.email,
-        password: authForm.password,
-      });
-      
-      if (error) {
-        alert(error.message);
-      } else {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
+    try {
+      if (authMode === 'login') {
+        console.log('Attempting login for:', authForm.email);
         
-        onAuthChange(profile);
-      }
-    } else {
-      const { data, error } = await supabase.auth.signUp({
-        email: authForm.email,
-        password: authForm.password,
-        options: {
-          data: {
-            name: authForm.name,
-          }
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: authForm.email,
+          password: authForm.password,
+        });
+        
+        console.log('Login response:', { data, error });
+        
+        if (error) {
+          console.error('Login error:', error);
+          alert(`Login failed: ${error.message}`);
+        } else {
+          console.log('Login successful, fetching profile...');
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+          
+          console.log('Profile data:', profile);
+          onAuthChange(profile);
         }
-      });
-      
-      if (error) {
-        alert(error.message);
-      } else {
-        alert('Registration successful! Please wait for admin approval.');
-        setAuthMode('login');
+      } else if (authMode === 'register') {
+        console.log('Attempting registration for:', authForm.email);
+        
+        const { data, error } = await supabase.auth.signUp({
+          email: authForm.email,
+          password: authForm.password,
+          options: {
+            data: {
+              name: authForm.name,
+            }
+          }
+        });
+        
+        console.log('Registration response:', { data, error });
+        
+        if (error) {
+          console.error('Registration error:', error);
+          alert(`Registration failed: ${error.message}`);
+        } else {
+          console.log('Registration successful');
+          alert('Registration successful! Please wait for admin approval.');
+          setAuthMode('login');
+        }
       }
+    } catch (err) {
+      console.error('Unexpected auth error:', err);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+      setAuthForm({ email: '', password: '', name: '' });
     }
-    
-    setLoading(false);
-    setAuthForm({ email: '', password: '', name: '' });
   };
 
+  // Handle password reset mode
+  if (authMode === 'reset') {
+    return (
+      <PasswordReset onBackToLogin={() => setAuthMode('login')} />
+    );
+  }
+
+  // Handle password update mode (from email link)
+  if (authMode === 'update') {
+    return (
+      <PasswordUpdate onPasswordUpdated={() => setAuthMode('login')} />
+    );
+  }
+
+  // Main auth screen
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
@@ -103,6 +163,7 @@ const AuthScreen = ({ onAuthChange }) => {
               onChange={(e) => setAuthForm({...authForm, name: e.target.value})}
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
               required
+              disabled={loading}
             />
           )}
           <input
@@ -112,6 +173,7 @@ const AuthScreen = ({ onAuthChange }) => {
             onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
             required
+            disabled={loading}
           />
           <input
             type="password"
@@ -120,6 +182,7 @@ const AuthScreen = ({ onAuthChange }) => {
             onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
             className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
             required
+            disabled={loading}
           />
           <button
             onClick={handleAuth}
@@ -130,8 +193,24 @@ const AuthScreen = ({ onAuthChange }) => {
           </button>
         </div>
 
+        {authMode === 'login' && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setAuthMode('reset')}
+              className="text-[#5D1F1F] hover:text-[#4A1818] text-sm transition-colors"
+              disabled={loading}
+            >
+              Forgot your password?
+            </button>
+          </div>
+        )}
+
         <div className="mt-4 text-sm text-gray-600 text-center">
           Create an account to get started!
+        </div>
+
+        <div className="mt-4 text-xs text-gray-500 text-center">
+          <p>Debug info will appear in browser console</p>
         </div>
       </div>
     </div>

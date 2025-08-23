@@ -1,4 +1,4 @@
-// src/App.js - Complete refactored version
+// src/App.js - Updated with enhanced auth logging
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
@@ -29,17 +29,44 @@ const TennisLadderApp = () => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
 
-  // Authentication and initialization
+  // Authentication and initialization with enhanced logging
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    console.log('🚀 App starting up, checking initial session...');
+    
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('📧 Initial session check:', { session, error });
+      
+      if (error) {
+        console.error('❌ Error getting initial session:', error);
+      }
+      
       if (session) {
+        console.log('✅ Found existing session for user:', session.user.email);
         fetchUserProfile(session.user.id);
       } else {
+        console.log('ℹ️ No existing session found');
         setLoading(false);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔄 Auth state changed:', { event, session });
+      
+      if (event === 'SIGNED_IN') {
+        console.log('✅ User signed in:', session.user.email);
+        fetchUserProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        console.log('👋 User signed out');
+        setCurrentUser(null);
+        setLoading(false);
+      } else if (event === 'PASSWORD_RECOVERY') {
+        console.log('🔑 Password recovery event detected');
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('🔄 Auth token refreshed');
+      } else {
+        console.log('📝 Other auth event:', event);
+      }
+
       if (session) {
         fetchUserProfile(session.user.id);
       } else {
@@ -48,19 +75,29 @@ const TennisLadderApp = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('🧹 Cleaning up auth subscription');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserProfile = async (userId) => {
     try {
+      console.log('👤 Fetching user profile for ID:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (data) {
+      if (error) {
+        console.error('❌ Error fetching user profile:', error);
+      } else if (data) {
+        console.log('✅ User profile loaded:', { name: data.name, role: data.role, status: data.status });
         setCurrentUser(data);
+        
+        console.log('📊 Loading additional app data...');
         await Promise.all([
           fetchUsers(),
           fetchSeasons(),
@@ -68,9 +105,10 @@ const TennisLadderApp = () => {
           fetchMatchFixtures(),
           fetchMatchResults()
         ]);
+        console.log('✅ All app data loaded successfully');
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('💥 Unexpected error fetching user profile:', error);
     } finally {
       setLoading(false);
     }
@@ -85,6 +123,9 @@ const TennisLadderApp = () => {
 
       if (data) {
         setUsers(data);
+      }
+      if (error) {
+        console.error('Error fetching users:', error);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -179,6 +220,9 @@ const TennisLadderApp = () => {
       if (data) {
         setAvailability(data);
       }
+      if (error) {
+        console.error('Error fetching availability:', error);
+      }
     } catch (error) {
       console.error('Error fetching availability:', error);
     }
@@ -200,6 +244,9 @@ const TennisLadderApp = () => {
       if (data) {
         setMatchFixtures(data);
       }
+      if (error) {
+        console.error('Error fetching match fixtures:', error);
+      }
     } catch (error) {
       console.error('Error fetching match fixtures:', error);
     }
@@ -213,6 +260,9 @@ const TennisLadderApp = () => {
 
       if (data) {
         setMatchResults(data);
+      }
+      if (error) {
+        console.error('Error fetching match results:', error);
       }
     } catch (error) {
       console.error('Error fetching match results:', error);
@@ -252,7 +302,6 @@ const TennisLadderApp = () => {
         alert('Error adding match: ' + error.message);
       } else {
         console.log('Match added successfully:', data);
-        // No annoying popup - user can see the match was added
         await fetchSeasons();
         setShowScheduleModal(false);
         setNewMatchDate('');
@@ -293,7 +342,6 @@ const TennisLadderApp = () => {
       if (error) {
         alert('Error approving user: ' + error.message);
       } else {
-        // No popup - the user disappears from pending list, that's enough feedback
         await fetchUsers();
       }
     } catch (error) {
@@ -349,7 +397,6 @@ const TennisLadderApp = () => {
         alert('Error adding to ladder: ' + error.message);
       } else {
         console.log('Successfully added to ladder');
-        // No popup - they appear in the ladder, that's enough
         await fetchUsers();
       }
     } catch (error) {
@@ -605,7 +652,6 @@ const TennisLadderApp = () => {
         fetchSeasons()
       ]);
 
-      // No annoying popup - the fixtures appear on screen
       console.log(`Matches generated successfully! Created ${courts.length} court(s) with ${numPlayers} players.`);
     } catch (error) {
       console.error('Error in generateMatches:', error);
@@ -641,7 +687,6 @@ const TennisLadderApp = () => {
         ]);
         setShowScoreModal(false);
         setSelectedMatch(null);
-        // No popup - the score appears on screen
         console.log('Score submitted successfully');
       }
     } catch (error) {
@@ -758,7 +803,6 @@ const TennisLadderApp = () => {
       }
 
       await fetchUsers();
-      // No popup - the rankings update on screen
       console.log('Rankings updated successfully');
     } catch (error) {
       console.error('Error updating rankings:', error);
@@ -767,6 +811,7 @@ const TennisLadderApp = () => {
   };
 
   const handleSignOut = async () => {
+    console.log('👋 User initiated sign out');
     await supabase.auth.signOut();
   };
 
