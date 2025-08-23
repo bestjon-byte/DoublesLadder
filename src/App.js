@@ -28,6 +28,7 @@ const TennisLadderApp = () => {
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
+  const [isPasswordResetMode, setIsPasswordResetMode] = useState(false); // NEW STATE
 
   // Authentication and initialization with enhanced logging
   useEffect(() => {
@@ -68,6 +69,14 @@ const TennisLadderApp = () => {
         // Force the user to null and show AuthScreen in update mode
         setCurrentUser(null);
         setLoading(false);
+        setIsPasswordResetMode(true); // Set password reset mode
+        
+        // Clean up URL to remove tokens
+        if (window.history.replaceState) {
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState(null, '', cleanUrl);
+          console.log('🧹 URL cleaned:', cleanUrl);
+        }
         
         return true; // Indicates password reset detected - block normal flow
       }
@@ -97,12 +106,25 @@ const TennisLadderApp = () => {
     }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Auth state changed:', { event, session });
+      console.log('🔄 Auth state changed:', { event, session, isPasswordResetMode });
       
-      // If we're in password reset mode, don't process normal auth events
-      if (isPasswordReset && event !== 'PASSWORD_RECOVERY') {
-        console.log('🚫 Ignoring auth event during password reset:', event);
-        return;
+      // If we're in password reset mode, only allow specific events
+      if (isPasswordResetMode) {
+        if (event === 'SIGNED_OUT') {
+          console.log('✅ Sign out during password reset - clearing reset mode');
+          setIsPasswordResetMode(false);
+          setCurrentUser(null);
+          setLoading(false);
+          return;
+        } else if (event === 'SIGNED_IN') {
+          console.log('✅ Password reset complete - user signed in normally');
+          setIsPasswordResetMode(false);
+          fetchUserProfile(session.user.id);
+          return;
+        } else {
+          console.log('🚫 Ignoring auth event during password reset:', event);
+          return;
+        }
       }
       
       if (event === 'SIGNED_IN') {
@@ -124,7 +146,7 @@ const TennisLadderApp = () => {
       }
 
       // Only process session changes if NOT in password reset mode
-      if (!isPasswordReset) {
+      if (!isPasswordResetMode) {
         if (session && event !== 'PASSWORD_RECOVERY') {
           fetchUserProfile(session.user.id);
         } else if (!session && event !== 'PASSWORD_RECOVERY') {
@@ -138,7 +160,7 @@ const TennisLadderApp = () => {
       console.log('🧹 Cleaning up auth subscription');
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isPasswordResetMode]); // Add isPasswordResetMode to dependency array
 
   const fetchUserProfile = async (userId) => {
     try {
