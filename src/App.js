@@ -33,15 +33,33 @@ const TennisLadderApp = () => {
   useEffect(() => {
     console.log('🚀 App starting up, checking initial session...');
     
+    // Helper function to check if URL contains recovery tokens
+    const hasRecoveryTokens = () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const type = hashParams.get('type');
+      return type === 'recovery';
+    };
+    
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       console.log('📧 Initial session check:', { session, error });
       
       if (error) {
         console.error('❌ Error getting initial session:', error);
+        setLoading(false);
+        return;
+      }
+      
+      // Check if this is a password recovery session
+      if (session && hasRecoveryTokens()) {
+        console.log('🔑 Recovery session detected - NOT logging in automatically');
+        console.log('🔄 Forcing AuthScreen to handle password reset');
+        setCurrentUser(null);
+        setLoading(false);
+        return;
       }
       
       if (session) {
-        console.log('✅ Found existing session for user:', session.user.email);
+        console.log('✅ Found existing normal session for user:', session.user.email);
         fetchUserProfile(session.user.id);
       } else {
         console.log('ℹ️ No existing session found');
@@ -52,6 +70,14 @@ const TennisLadderApp = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔄 Auth state changed:', { event, session });
       
+      // If this is a recovery session, don't auto-login
+      if (session && hasRecoveryTokens() && event === 'SIGNED_IN') {
+        console.log('🚫 Blocking recovery session auto-login');
+        setCurrentUser(null);
+        setLoading(false);
+        return;
+      }
+      
       if (event === 'SIGNED_IN') {
         console.log('✅ User signed in:', session.user.email);
         fetchUserProfile(session.user.id);
@@ -61,7 +87,6 @@ const TennisLadderApp = () => {
         setLoading(false);
       } else if (event === 'PASSWORD_RECOVERY') {
         console.log('🔑 Password recovery event detected');
-        // Let AuthScreen handle password recovery
         setCurrentUser(null);
         setLoading(false);
       } else if (event === 'TOKEN_REFRESHED') {
@@ -70,7 +95,7 @@ const TennisLadderApp = () => {
         console.log('📝 Other auth event:', event);
       }
 
-      if (event === 'SIGNED_IN' && session) {
+      if (event === 'SIGNED_IN' && session && !hasRecoveryTokens()) {
         fetchUserProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
