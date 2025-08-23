@@ -29,107 +29,28 @@ const TennisLadderApp = () => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
 
-  // Use a ref to track password reset mode - persists across renders
-  const isPasswordResetMode = React.useRef(false);
-
   // Authentication and initialization with enhanced logging
   useEffect(() => {
     console.log('🚀 App starting up, checking initial session...');
     
-    // FIRST: Check for password reset tokens in URL (before checking session)
-    const checkForPasswordReset = () => {
-      console.log('🔍 Checking for password reset URL...');
-      console.log('Current URL:', window.location.href);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('📧 Initial session check:', { session, error });
       
-      // Check both query params and hash fragments (Supabase uses hash)
-      const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      
-      // Try query params first, then hash params
-      let type = urlParams.get('type') || hashParams.get('type');
-      let accessToken = urlParams.get('access_token') || hashParams.get('access_token');
-      let refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
-
-      console.log('🔑 Auth tokens found:', { 
-        type, 
-        accessToken: !!accessToken, 
-        refreshToken: !!refreshToken,
-        from: accessToken ? (urlParams.get('access_token') ? 'query' : 'hash') : 'none'
-      });
-
-      if (type === 'recovery' && accessToken && refreshToken) {
-        console.log('✅ Password reset detected - SETTING RESET MODE');
-        
-        // Set password reset mode flag
-        isPasswordResetMode.current = true;
-        
-        // Set the session for password recovery (but don't fetch user profile)
-        supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        }).then(({ data, error }) => {
-          console.log('🔐 Password recovery session set:', { data, error });
-        });
-        
-        // Force the user to null and show AuthScreen in update mode
-        setCurrentUser(null);
-        setLoading(false);
-        
-        // Clean up URL to remove tokens
-        if (window.history.replaceState) {
-          const cleanUrl = window.location.origin + window.location.pathname;
-          window.history.replaceState(null, '', cleanUrl);
-          console.log('🧹 URL cleaned:', cleanUrl);
-        }
-        
-        return true; // Indicates password reset detected - block normal flow
+      if (error) {
+        console.error('❌ Error getting initial session:', error);
       }
       
-      return false; // No password reset
-    };
-    
-    const isPasswordReset = checkForPasswordReset();
-    
-    // Only check normal session if it's NOT a password reset
-    if (!isPasswordReset) {
-      supabase.auth.getSession().then(({ data: { session }, error }) => {
-        console.log('📧 Initial session check:', { session, error });
-        
-        if (error) {
-          console.error('❌ Error getting initial session:', error);
-        }
-        
-        if (session) {
-          console.log('✅ Found existing session for user:', session.user.email);
-          fetchUserProfile(session.user.id);
-        } else {
-          console.log('ℹ️ No existing session found');
-          setLoading(false);
-        }
-      });
-    }
+      if (session) {
+        console.log('✅ Found existing session for user:', session.user.email);
+        fetchUserProfile(session.user.id);
+      } else {
+        console.log('ℹ️ No existing session found');
+        setLoading(false);
+      }
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Auth state changed:', { event, session, passwordResetMode: isPasswordResetMode.current });
-      
-      // If we're in password reset mode, handle events carefully
-      if (isPasswordResetMode.current) {
-        if (event === 'SIGNED_OUT') {
-          console.log('✅ Sign out during password reset - clearing reset mode');
-          isPasswordResetMode.current = false;
-          setCurrentUser(null);
-          setLoading(false);
-          return;
-        } else if (event === 'SIGNED_IN' && session) {
-          console.log('✅ Password reset complete - user signed in normally');
-          isPasswordResetMode.current = false;
-          fetchUserProfile(session.user.id);
-          return;
-        } else {
-          console.log('🚫 Ignoring auth event during password reset:', event);
-          return;
-        }
-      }
+      console.log('🔄 Auth state changed:', { event, session });
       
       if (event === 'SIGNED_IN') {
         console.log('✅ User signed in:', session.user.email);
@@ -140,7 +61,7 @@ const TennisLadderApp = () => {
         setLoading(false);
       } else if (event === 'PASSWORD_RECOVERY') {
         console.log('🔑 Password recovery event detected');
-        // Don't auto-login during password recovery
+        // Let AuthScreen handle password recovery
         setCurrentUser(null);
         setLoading(false);
       } else if (event === 'TOKEN_REFRESHED') {
@@ -149,14 +70,11 @@ const TennisLadderApp = () => {
         console.log('📝 Other auth event:', event);
       }
 
-      // Only process session changes if NOT in password reset mode
-      if (!isPasswordResetMode.current) {
-        if (session && event !== 'PASSWORD_RECOVERY') {
-          fetchUserProfile(session.user.id);
-        } else if (!session && event !== 'PASSWORD_RECOVERY') {
-          setCurrentUser(null);
-          setLoading(false);
-        }
+      if (event === 'SIGNED_IN' && session) {
+        fetchUserProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setLoading(false);
       }
     });
 

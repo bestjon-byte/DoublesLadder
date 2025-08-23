@@ -1,4 +1,4 @@
-// src/components/Auth/AuthScreen.js - Updated with password reset
+// src/components/Auth/AuthScreen.js - Completely rewritten for password reset
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import PasswordReset from './PasswordReset';
@@ -14,51 +14,27 @@ const AuthScreen = ({ onAuthChange }) => {
   });
 
   useEffect(() => {
-    // Check if user is coming from a password reset email
-    const checkForPasswordReset = () => {
-      console.log('🔍 Checking for password reset URL...');
-      console.log('Current URL:', window.location.href);
-      
-      // Check both query params and hash fragments (Supabase uses hash)
-      const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      
-      // Try query params first, then hash params
-      let type = urlParams.get('type') || hashParams.get('type');
-      let accessToken = urlParams.get('access_token') || hashParams.get('access_token');
-      let refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
+    // Check for password reset tokens in URL immediately on component mount
+    console.log('🔍 AuthScreen: Checking for password reset tokens...');
+    
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    
+    console.log('🔑 AuthScreen tokens:', { type, hasAccess: !!accessToken, hasRefresh: !!refreshToken });
 
-      console.log('🔑 Auth tokens found:', { 
-        type, 
-        accessToken: !!accessToken, 
-        refreshToken: !!refreshToken,
-        from: accessToken ? (urlParams.get('access_token') ? 'query' : 'hash') : 'none'
-      });
-
-      if (type === 'recovery' && accessToken && refreshToken) {
-        console.log('✅ Password reset detected, switching to update mode');
-        setAuthMode('update');
-        
-        // Set the session with the tokens from the URL
-        supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        }).then(({ data, error }) => {
-          console.log('🔐 Session set result:', { data, error });
-          
-          // Clean up the URL to remove the tokens
-          if (window.history.replaceState) {
-            const cleanUrl = window.location.origin + window.location.pathname;
-            window.history.replaceState(null, '', cleanUrl);
-            console.log('🧹 URL cleaned:', cleanUrl);
-          }
-        });
-      } else {
-        console.log('ℹ️ No password reset tokens found');
+    if (type === 'recovery' && accessToken && refreshToken) {
+      console.log('✅ AuthScreen: Password reset detected, switching to update mode');
+      setAuthMode('update');
+      
+      // Clean up URL
+      if (window.history.replaceState) {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState(null, '', cleanUrl);
+        console.log('🧹 AuthScreen: URL cleaned');
       }
-    };
-
-    checkForPasswordReset();
+    }
   }, []);
 
   const handleAuth = async () => {
@@ -66,31 +42,31 @@ const AuthScreen = ({ onAuthChange }) => {
     
     try {
       if (authMode === 'login') {
-        console.log('Attempting login for:', authForm.email);
+        console.log('🔐 AuthScreen: Attempting login for:', authForm.email);
         
         const { data, error } = await supabase.auth.signInWithPassword({
           email: authForm.email,
           password: authForm.password,
         });
         
-        console.log('Login response:', { data, error });
+        console.log('🔐 AuthScreen: Login response:', { data, error });
         
         if (error) {
-          console.error('Login error:', error);
+          console.error('❌ AuthScreen: Login error:', error);
           alert(`Login failed: ${error.message}`);
         } else {
-          console.log('Login successful, fetching profile...');
+          console.log('✅ AuthScreen: Login successful, fetching profile...');
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single();
           
-          console.log('Profile data:', profile);
+          console.log('👤 AuthScreen: Profile data:', profile);
           onAuthChange(profile);
         }
       } else if (authMode === 'register') {
-        console.log('Attempting registration for:', authForm.email);
+        console.log('📝 AuthScreen: Attempting registration for:', authForm.email);
         
         const { data, error } = await supabase.auth.signUp({
           email: authForm.email,
@@ -102,19 +78,19 @@ const AuthScreen = ({ onAuthChange }) => {
           }
         });
         
-        console.log('Registration response:', { data, error });
+        console.log('📝 AuthScreen: Registration response:', { data, error });
         
         if (error) {
-          console.error('Registration error:', error);
+          console.error('❌ AuthScreen: Registration error:', error);
           alert(`Registration failed: ${error.message}`);
         } else {
-          console.log('Registration successful');
+          console.log('✅ AuthScreen: Registration successful');
           alert('Registration successful! Please wait for admin approval.');
           setAuthMode('login');
         }
       }
     } catch (err) {
-      console.error('Unexpected auth error:', err);
+      console.error('💥 AuthScreen: Unexpected auth error:', err);
       alert('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -132,7 +108,10 @@ const AuthScreen = ({ onAuthChange }) => {
   // Handle password update mode (from email link)
   if (authMode === 'update') {
     return (
-      <PasswordUpdate onPasswordUpdated={() => setAuthMode('login')} />
+      <PasswordUpdate onPasswordUpdated={() => {
+        console.log('🔄 AuthScreen: Password updated, switching to login');
+        setAuthMode('login');
+      }} />
     );
   }
 
