@@ -1,4 +1,4 @@
-// src/App.js - Updated with enhanced auth logging
+// src/App.js - FIXED password reset handling
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
@@ -28,88 +28,91 @@ const TennisLadderApp = () => {
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
-  
-  // Use state instead of useMemo so it can be updated
-  const [isRecoverySession, setIsRecoverySession] = useState(() => {
-    console.log('🔍 Initial recovery check...');
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get('type');
-    const hasTokens = type === 'recovery';
-    console.log('🔑 Initial recovery state:', hasTokens);
-    return hasTokens;
-  });
+  const [isPasswordReset, setIsPasswordReset] = useState(false);
 
-  // Authentication and initialization with enhanced logging
+  // Check for password reset on mount
   useEffect(() => {
-    console.log('🚀 App starting up, isRecoverySession:', isRecoverySession);
-    
-    // If this is a recovery session, don't do any auth processing initially
-    if (isRecoverySession) {
-      console.log('🚫 Recovery session detected - skipping initial auth processing');
-      setCurrentUser(null);
-      setLoading(false);
-      // Don't return here - we still need to set up the auth listener
-    } else {
-      // Normal startup - check for existing session
-      supabase.auth.getSession().then(({ data: { session }, error }) => {
-        console.log('📧 Initial session check:', { session, error });
+    const checkForPasswordReset = async () => {
+      console.log('🔍 Checking for password reset tokens...');
+      
+      // Check URL hash for recovery tokens
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const type = hashParams.get('type');
+      const accessToken = hashParams.get('access_token');
+      
+      if (type === 'recovery' && accessToken) {
+        console.log('🔑 Password reset detected!');
+        setIsPasswordReset(true);
+        setLoading(false);
+        // Don't try to load normal session data
+        return;
+      }
+
+      // Normal session check
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('❌ Error getting initial session:', error);
+          console.error('❌ Error getting session:', error);
           setLoading(false);
           return;
         }
         
-        if (session) {
-          console.log('✅ Found existing normal session for user:', session.user.email);
-          fetchUserProfile(session.user.id);
+        if (session && !session.user?.recovery_sent_at) {
+          console.log('✅ Normal session found for:', session.user.email);
+          await fetchUserProfile(session.user.id);
         } else {
-          console.log('ℹ️ No existing session found');
+          console.log('ℹ️ No session found');
           setLoading(false);
         }
-      });
-    }
+      } catch (err) {
+        console.error('💥 Unexpected error:', err);
+        setLoading(false);
+      }
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔄 Auth state changed:', { event, session, isRecoverySession });
+    checkForPasswordReset();
+
+    // Set up auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Auth event:', event, session?.user?.email);
       
-      if (event === 'SIGNED_IN' && session) {
-        console.log('✅ User signed in:', session.user.email);
-        // If this was a recovery session and user just signed in, exit recovery mode
-        if (isRecoverySession) {
-          console.log('🔓 Exiting recovery mode after successful login');
-          setIsRecoverySession(false);
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('🔑 Password recovery mode');
+        setIsPasswordReset(true);
+        setCurrentUser(null);
+        setLoading(false);
+      } else if (event === 'SIGNED_IN' && session) {
+        // Check if this is a recovery session
+        if (session.user?.recovery_sent_at) {
+          console.log('🔑 Recovery session detected');
+          setIsPasswordReset(true);
+          setCurrentUser(null);
+          setLoading(false);
+        } else {
+          console.log('✅ Normal sign in');
+          setIsPasswordReset(false);
+          await fetchUserProfile(session.user.id);
         }
-        fetchUserProfile(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         console.log('👋 User signed out');
         setCurrentUser(null);
+        setIsPasswordReset(false);
         setLoading(false);
-        // Also exit recovery mode on sign out
-        if (isRecoverySession) {
-          console.log('🔓 Exiting recovery mode after sign out');
-          setIsRecoverySession(false);
+      } else if (event === 'USER_UPDATED') {
+        console.log('👤 User updated');
+        if (session && !session.user?.recovery_sent_at) {
+          await fetchUserProfile(session.user.id);
         }
-      } else if (event === 'PASSWORD_RECOVERY') {
-        console.log('🔑 Password recovery event detected');
-        setCurrentUser(null);
-        setLoading(false);
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('🔄 Auth token refreshed');
-      } else {
-        console.log('📝 Other auth event:', event);
       }
     });
 
-    return () => {
-      console.log('🧹 Cleaning up auth subscription');
-      subscription.unsubscribe();
-    };
-  }, [isRecoverySession]);
+    return () => subscription.unsubscribe();
+  }, []);
 
   const fetchUserProfile = async (userId) => {
     try {
-      console.log('👤 Fetching user profile for ID:', userId);
+      console.log('👤 Fetching profile for:', userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -118,12 +121,16 @@ const TennisLadderApp = () => {
         .single();
 
       if (error) {
-        console.error('❌ Error fetching user profile:', error);
-      } else if (data) {
-        console.log('✅ User profile loaded:', { name: data.name, role: data.role, status: data.status });
+        console.error('❌ Error fetching profile:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (data) {
+        console.log('✅ Profile loaded:', data.name);
         setCurrentUser(data);
         
-        console.log('📊 Loading additional app data...');
+        // Load all app data
         await Promise.all([
           fetchUsers(),
           fetchSeasons(),
@@ -131,10 +138,9 @@ const TennisLadderApp = () => {
           fetchMatchFixtures(),
           fetchMatchResults()
         ]);
-        console.log('✅ All app data loaded successfully');
       }
     } catch (error) {
-      console.error('💥 Unexpected error fetching user profile:', error);
+      console.error('💥 Error in fetchUserProfile:', error);
     } finally {
       setLoading(false);
     }
@@ -147,12 +153,8 @@ const TennisLadderApp = () => {
         .select('*')
         .order('rank', { ascending: true, nullsLast: true });
 
-      if (data) {
-        setUsers(data);
-      }
-      if (error) {
-        console.error('Error fetching users:', error);
-      }
+      if (data) setUsers(data);
+      if (error) console.error('Error fetching users:', error);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -160,43 +162,35 @@ const TennisLadderApp = () => {
 
   const fetchSeasons = async () => {
     try {
-      console.log('Fetching seasons...');
-      
       const { data: activeSeasons, error: seasonError } = await supabase
         .from('seasons')
         .select('*')
         .eq('is_active', true)
         .limit(1);
       
-      console.log('Active season query result:', { activeSeasons, seasonError });
-      
       if (seasonError) {
-        console.error('Error fetching active season:', seasonError);
+        console.error('Error fetching season:', seasonError);
         return;
       }
       
       let activeSeason = activeSeasons?.[0];
       
       if (!activeSeason) {
-        console.log('No active season found, creating default season');
         activeSeason = await createDefaultSeason();
         if (!activeSeason) return;
       }
       
-      const { data: matches, error: matchesError } = await supabase
+      const { data: matches } = await supabase
         .from('matches')
         .select('*')
         .eq('season_id', activeSeason.id)
         .order('week_number', { ascending: true });
-      
-      console.log('Matches query result:', { matches, matchesError });
       
       const seasonWithMatches = {
         ...activeSeason,
         matches: matches || []
       };
       
-      console.log('Setting current season:', seasonWithMatches);
       setCurrentSeason(seasonWithMatches);
       setSeasons([seasonWithMatches]);
     } catch (error) {
@@ -206,8 +200,6 @@ const TennisLadderApp = () => {
 
   const createDefaultSeason = async () => {
     try {
-      console.log('Creating default season...');
-      
       await supabase
         .from('seasons')
         .update({ is_active: false })
@@ -224,13 +216,11 @@ const TennisLadderApp = () => {
         .single();
 
       if (error) {
-        console.error('Error creating default season:', error);
-        alert('Error creating season: ' + error.message);
+        console.error('Error creating season:', error);
         return null;
-      } else {
-        console.log('Default season created:', newSeason);
-        return newSeason;
       }
+      
+      return newSeason;
     } catch (error) {
       console.error('Error in createDefaultSeason:', error);
       return null;
@@ -239,16 +229,10 @@ const TennisLadderApp = () => {
 
   const fetchAvailability = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('availability')
         .select('*');
-
-      if (data) {
-        setAvailability(data);
-      }
-      if (error) {
-        console.error('Error fetching availability:', error);
-      }
+      if (data) setAvailability(data);
     } catch (error) {
       console.error('Error fetching availability:', error);
     }
@@ -256,7 +240,7 @@ const TennisLadderApp = () => {
 
   const fetchMatchFixtures = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('match_fixtures')
         .select(`
           *,
@@ -266,55 +250,38 @@ const TennisLadderApp = () => {
           player4:player4_id(name),
           sitting_player:sitting_player_id(name)
         `);
-
-      if (data) {
-        setMatchFixtures(data);
-      }
-      if (error) {
-        console.error('Error fetching match fixtures:', error);
-      }
+      if (data) setMatchFixtures(data);
     } catch (error) {
-      console.error('Error fetching match fixtures:', error);
+      console.error('Error fetching fixtures:', error);
     }
   };
 
   const fetchMatchResults = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('match_results')
         .select('*');
-
-      if (data) {
-        setMatchResults(data);
-      }
-      if (error) {
-        console.error('Error fetching match results:', error);
-      }
+      if (data) setMatchResults(data);
     } catch (error) {
-      console.error('Error fetching match results:', error);
+      console.error('Error fetching results:', error);
     }
   };
 
   const addMatchToSeason = async () => {
-    console.log('addMatchToSeason called');
-    console.log('newMatchDate:', newMatchDate);
-    console.log('currentSeason:', currentSeason);
-    
     if (!newMatchDate) {
       alert('Please select a date for the match');
       return;
     }
     
     if (!currentSeason) {
-      alert('No active season found. Please create a season first.');
+      alert('No active season found');
       return;
     }
     
     try {
       const weekNumber = (currentSeason?.matches?.length || 0) + 1;
-      console.log('Inserting match with weekNumber:', weekNumber);
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('matches')
         .insert({
           season_id: currentSeason.id,
@@ -324,16 +291,13 @@ const TennisLadderApp = () => {
         .select();
 
       if (error) {
-        console.error('Supabase error details:', error);
         alert('Error adding match: ' + error.message);
       } else {
-        console.log('Match added successfully:', data);
         await fetchSeasons();
         setShowScheduleModal(false);
         setNewMatchDate('');
       }
     } catch (error) {
-      console.error('Error adding match:', error);
       alert('Error adding match: ' + error.message);
     }
   };
@@ -341,19 +305,15 @@ const TennisLadderApp = () => {
   const clearOldMatches = async () => {
     if (!currentUser?.role === 'admin') return;
     
-    const confirmed = window.confirm('This will delete ALL matches and related data. Are you sure?');
-    if (!confirmed) return;
-    
     try {
       await supabase.from('match_results').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('match_fixtures').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('availability').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       
-      alert('All match data cleared successfully!');
+      alert('All match data cleared!');
       await fetchSeasons();
     } catch (error) {
-      console.error('Error clearing data:', error);
       alert('Error clearing data: ' + error.message);
     }
   };
@@ -365,22 +325,15 @@ const TennisLadderApp = () => {
         .update({ status: 'approved' })
         .eq('id', userId);
 
-      if (error) {
-        alert('Error approving user: ' + error.message);
-      } else {
-        await fetchUsers();
-      }
+      if (!error) await fetchUsers();
     } catch (error) {
       console.error('Error approving user:', error);
     }
   };
 
   const addToLadder = async (userId, rank) => {
-    console.log('addToLadder called with:', { userId, rank });
-    
     try {
       const targetRank = parseInt(rank);
-      console.log('Target rank:', targetRank);
       
       const { data: playersToShift, error: getError } = await supabase
         .from('profiles')
@@ -390,23 +343,16 @@ const TennisLadderApp = () => {
         .order('rank', { ascending: true });
 
       if (getError) {
-        console.error('Error getting players to shift:', getError);
-        alert('Error getting players: ' + getError.message);
+        alert('Error: ' + getError.message);
         return;
       }
 
-      if (playersToShift && playersToShift.length > 0) {
+      if (playersToShift?.length > 0) {
         for (const player of playersToShift) {
-          const { error: shiftError } = await supabase
+          await supabase
             .from('profiles')
             .update({ rank: player.rank + 1 })
             .eq('id', player.id);
-          
-          if (shiftError) {
-            console.error('Error shifting player:', shiftError);
-            alert('Error shifting ranks: ' + shiftError.message);
-            return;
-          }
         }
       }
 
@@ -418,46 +364,26 @@ const TennisLadderApp = () => {
         })
         .eq('id', userId);
 
-      if (error) {
-        console.error('Error adding to ladder:', error);
-        alert('Error adding to ladder: ' + error.message);
-      } else {
-        console.log('Successfully added to ladder');
-        await fetchUsers();
-      }
+      if (!error) await fetchUsers();
     } catch (error) {
-      console.error('Error in addToLadder:', error);
-      alert('Error in addToLadder: ' + error.message);
+      alert('Error: ' + error.message);
     }
   };
 
   const setPlayerAvailability = async (matchId, available, userId = currentUser?.id) => {
     try {
-      console.log('setPlayerAvailability called with:', { matchId, available, userId });
-      
       const match = currentSeason?.matches?.find(m => m.id === matchId);
-      if (!match) {
-        alert('Match not found');
-        return;
-      }
+      if (!match) return;
       
       const matchDate = match.match_date;
-      console.log('Using match date:', matchDate);
       
       if (available === undefined) {
-        console.log('Removing availability record');
-        const { error } = await supabase
+        await supabase
           .from('availability')
           .delete()
           .eq('player_id', userId)
           .eq('match_date', matchDate);
-        
-        if (error) {
-          console.error('Error removing availability:', error);
-          alert('Error clearing availability: ' + error.message);
-        }
       } else {
-        console.log('Checking for existing record...');
         const { data: existing } = await supabase
           .from('availability')
           .select('*')
@@ -465,42 +391,26 @@ const TennisLadderApp = () => {
           .eq('match_date', matchDate)
           .maybeSingle();
         
-        console.log('Existing availability record:', existing);
-        
         if (existing) {
-          console.log('Updating existing record');
-          const { error } = await supabase
+          await supabase
             .from('availability')
             .update({ is_available: available })
             .eq('player_id', userId)
             .eq('match_date', matchDate);
-          
-          if (error) {
-            console.error('Error updating availability:', error);
-            alert('Error updating availability: ' + error.message);
-          }
         } else {
-          console.log('Inserting new record');
-          const { error } = await supabase
+          await supabase
             .from('availability')
             .insert({
               player_id: userId,
               match_date: matchDate,
               is_available: available
             });
-          
-          if (error) {
-            console.error('Error inserting availability:', error);
-            alert('Error setting availability: ' + error.message);
-          }
         }
       }
       
-      console.log('Refreshing availability data...');
       await fetchAvailability();
     } catch (error) {
-      console.error('Error in setPlayerAvailability:', error);
-      alert('Error managing availability: ' + error.message);
+      alert('Error: ' + error.message);
     }
   };
 
@@ -529,38 +439,28 @@ const TennisLadderApp = () => {
   };
 
   const generateMatches = async (matchId) => {
-    console.log('generateMatches called with matchId:', matchId);
-    
     const match = currentSeason?.matches?.find(m => m.id === matchId);
     if (!match) {
       alert('Match not found');
       return;
     }
     
-    console.log('Found match:', match);
-    
     const availablePlayers = users.filter(user => {
       if (!user.in_ladder || user.status !== 'approved') return false;
-      
       const userAvailability = availability.find(a => a.player_id === user.id && a.match_date === match.match_date);
-      const isAvailable = userAvailability?.is_available === true;
-      
-      console.log(`Player ${user.name}: in_ladder=${user.in_ladder}, status=${user.status}, available=${isAvailable}`);
-      
-      return isAvailable;
+      return userAvailability?.is_available === true;
     }).sort((a, b) => (a.rank || 999) - (b.rank || 999));
 
-    console.log('Available players:', availablePlayers.map(p => `${p.name} (Rank ${p.rank})`));
     const numPlayers = availablePlayers.length;
     
     if (numPlayers < 4) {
-      alert(`Need at least 4 players to generate matches. Found ${numPlayers} available players.`);
+      alert(`Need at least 4 players. Found ${numPlayers}.`);
       return;
     }
 
     const courts = [];
 
-    // Intelligent grouping based on available players
+    // Group players intelligently
     if (numPlayers % 4 === 0) {
       for (let i = 0; i < numPlayers; i += 4) {
         courts.push(availablePlayers.slice(i, i + 4));
@@ -573,32 +473,16 @@ const TennisLadderApp = () => {
     } else if (numPlayers === 10) {
       courts.push(availablePlayers.slice(0, 5));
       courts.push(availablePlayers.slice(5, 10));
-    } else if (numPlayers === 6) {
-      courts.push(availablePlayers);
-    } else if (numPlayers === 7) {
-      courts.push(availablePlayers);
-    } else if (numPlayers === 13) {
-      courts.push(availablePlayers.slice(0, 4));
-      courts.push(availablePlayers.slice(4, 8));
-      courts.push(availablePlayers.slice(8, 13));
-    } else if (numPlayers === 14) {
-      courts.push(availablePlayers.slice(0, 5));
-      courts.push(availablePlayers.slice(5, 10));
-      courts.push(availablePlayers.slice(10, 14));
     } else {
       const groups = Math.floor(numPlayers / 4);
-      const remainder = numPlayers % 4;
-      
       for (let i = 0; i < groups; i++) {
         courts.push(availablePlayers.slice(i * 4, (i + 1) * 4));
       }
-      
-      if (remainder > 0) {
+      if (numPlayers % 4 > 0) {
         courts.push(availablePlayers.slice(groups * 4));
       }
     }
 
-    // Generate match fixtures for each court
     try {
       const fixturesToInsert = [];
 
@@ -607,7 +491,6 @@ const TennisLadderApp = () => {
         let gameNumber = 1;
 
         if (courtPlayers.length === 5) {
-          // 5-player rotation
           const rotations = [
             { pair1: [0, 1], pair2: [2, 3], sitting: 4 },
             { pair1: [0, 2], pair2: [1, 4], sitting: 3 },
@@ -633,7 +516,6 @@ const TennisLadderApp = () => {
             });
           });
         } else if (courtPlayers.length === 4) {
-          // Standard 4-player format
           const rotations = [
             { pair1: [0, 3], pair2: [1, 2] },
             { pair1: [0, 2], pair2: [1, 3] },
@@ -659,29 +541,21 @@ const TennisLadderApp = () => {
         }
       });
 
-      console.log('About to insert fixtures:', fixturesToInsert.length, 'fixtures');
-      
       const { error } = await supabase
         .from('match_fixtures')
         .insert(fixturesToInsert);
 
       if (error) {
-        console.error('Error saving fixtures:', error);
-        alert('Error generating matches: ' + error.message);
+        alert('Error: ' + error.message);
         return;
       }
-
-      console.log('Fixtures inserted successfully');
 
       await Promise.all([
         fetchMatchFixtures(),
         fetchSeasons()
       ]);
-
-      console.log(`Matches generated successfully! Created ${courts.length} court(s) with ${numPlayers} players.`);
     } catch (error) {
-      console.error('Error in generateMatches:', error);
-      alert('Error generating matches: ' + error.message);
+      alert('Error: ' + error.message);
     }
   };
 
@@ -703,21 +577,16 @@ const TennisLadderApp = () => {
           submitted_by: currentUser.id
         });
       
-      if (error) {
-        console.error('Error submitting score:', error);
-        alert('Error submitting score: ' + error.message);
-      } else {
+      if (!error) {
         await Promise.all([
           fetchMatchResults(),
           fetchSeasons()
         ]);
         setShowScoreModal(false);
         setSelectedMatch(null);
-        console.log('Score submitted successfully');
       }
     } catch (error) {
-      console.error('Error in submitScore:', error);
-      alert('Error submitting score: ' + error.message);
+      alert('Error: ' + error.message);
     }
   };
 
@@ -727,8 +596,6 @@ const TennisLadderApp = () => {
 
   const updateRankings = async () => {
     try {
-      console.log('Updating rankings...');
-      
       const { data: resultsData, error } = await supabase
         .from('match_results')
         .select(`
@@ -743,8 +610,7 @@ const TennisLadderApp = () => {
         `);
 
       if (error) {
-        console.error('Error fetching results:', error);
-        alert('Error fetching results: ' + error.message);
+        alert('Error: ' + error.message);
         return;
       }
 
@@ -776,9 +642,7 @@ const TennisLadderApp = () => {
             const wonMatch = isInPair1 ? result.pair1_score > result.pair2_score : result.pair2_score > result.pair1_score;
             const gamesWon = isInPair1 ? result.pair1_score : result.pair2_score;
             
-            if (wonMatch) {
-              stats.matchesWon += 1;
-            }
+            if (wonMatch) stats.matchesWon += 1;
             stats.gamesWon += gamesWon;
           }
         });
@@ -829,19 +693,23 @@ const TennisLadderApp = () => {
       }
 
       await fetchUsers();
-      console.log('Rankings updated successfully');
     } catch (error) {
-      console.error('Error updating rankings:', error);
-      alert('Error updating rankings: ' + error.message);
+      alert('Error: ' + error.message);
     }
   };
 
   const handleSignOut = async () => {
-    console.log('👋 User initiated sign out');
     await supabase.auth.signOut();
   };
 
-  // Render loading state
+  const handlePasswordResetComplete = () => {
+    console.log('✅ Password reset complete, returning to normal');
+    setIsPasswordReset(false);
+    // Force a fresh start
+    window.location.href = '/';
+  };
+
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -850,12 +718,23 @@ const TennisLadderApp = () => {
     );
   }
 
-  // Render auth screen if not logged in
+  // Password reset mode - show auth screen in special mode
+  if (isPasswordReset) {
+    return (
+      <AuthScreen 
+        onAuthChange={setCurrentUser}
+        isPasswordReset={true}
+        onPasswordResetComplete={handlePasswordResetComplete}
+      />
+    );
+  }
+
+  // Not logged in - show normal auth
   if (!currentUser) {
     return <AuthScreen onAuthChange={setCurrentUser} />;
   }
 
-  // Main app render
+  // Main app
   return (
     <div className="min-h-screen bg-gray-50">
       <Header currentUser={currentUser} onSignOut={handleSignOut} />

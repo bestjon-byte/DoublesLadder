@@ -1,11 +1,11 @@
-// src/components/Auth/AuthScreen.js - Completely rewritten for password reset
+// src/components/Auth/AuthScreen.js - FIXED password reset handling
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import PasswordReset from './PasswordReset';
 import PasswordUpdate from './PasswordUpdate';
 
-const AuthScreen = ({ onAuthChange }) => {
-  const [authMode, setAuthMode] = useState('login'); // 'login', 'register', 'reset', 'update'
+const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComplete }) => {
+  const [authMode, setAuthMode] = useState('login');
   const [loading, setLoading] = useState(false);
   const [authForm, setAuthForm] = useState({
     email: '',
@@ -14,59 +14,40 @@ const AuthScreen = ({ onAuthChange }) => {
   });
 
   useEffect(() => {
-    // Check for password reset tokens in URL immediately on component mount
-    console.log('🔍 AuthScreen: Checking for password reset tokens...');
-    
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get('type');
-    const accessToken = hashParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token');
-    
-    console.log('🔑 AuthScreen tokens:', { type, hasAccess: !!accessToken, hasRefresh: !!refreshToken });
-
-    if (type === 'recovery' && accessToken && refreshToken) {
-      console.log('✅ AuthScreen: Password reset detected, switching to update mode');
+    // If we're in password reset mode, show the update form
+    if (isPasswordReset) {
+      console.log('🔑 AuthScreen: Password reset mode activated');
       setAuthMode('update');
-      
-      // Clean up URL
-      if (window.history.replaceState) {
-        const cleanUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState(null, '', cleanUrl);
-        console.log('🧹 AuthScreen: URL cleaned');
-      }
     }
-  }, []);
+  }, [isPasswordReset]);
 
   const handleAuth = async () => {
     setLoading(true);
     
     try {
       if (authMode === 'login') {
-        console.log('🔐 AuthScreen: Attempting login for:', authForm.email);
+        console.log('🔐 Attempting login for:', authForm.email);
         
         const { data, error } = await supabase.auth.signInWithPassword({
           email: authForm.email,
           password: authForm.password,
         });
         
-        console.log('🔐 AuthScreen: Login response:', { data, error });
-        
         if (error) {
-          console.error('❌ AuthScreen: Login error:', error);
+          console.error('❌ Login error:', error);
           alert(`Login failed: ${error.message}`);
         } else {
-          console.log('✅ AuthScreen: Login successful, fetching profile...');
+          console.log('✅ Login successful');
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single();
           
-          console.log('👤 AuthScreen: Profile data:', profile);
           onAuthChange(profile);
         }
       } else if (authMode === 'register') {
-        console.log('📝 AuthScreen: Attempting registration for:', authForm.email);
+        console.log('📝 Attempting registration');
         
         const { data, error } = await supabase.auth.signUp({
           email: authForm.email,
@@ -78,19 +59,17 @@ const AuthScreen = ({ onAuthChange }) => {
           }
         });
         
-        console.log('📝 AuthScreen: Registration response:', { data, error });
-        
         if (error) {
-          console.error('❌ AuthScreen: Registration error:', error);
+          console.error('❌ Registration error:', error);
           alert(`Registration failed: ${error.message}`);
         } else {
-          console.log('✅ AuthScreen: Registration successful');
+          console.log('✅ Registration successful');
           alert('Registration successful! Please wait for admin approval.');
           setAuthMode('login');
         }
       }
     } catch (err) {
-      console.error('💥 AuthScreen: Unexpected auth error:', err);
+      console.error('💥 Unexpected error:', err);
       alert('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -108,10 +87,16 @@ const AuthScreen = ({ onAuthChange }) => {
   // Handle password update mode (from email link)
   if (authMode === 'update') {
     return (
-      <PasswordUpdate onPasswordUpdated={() => {
-        console.log('🔄 AuthScreen: Password updated, switching to login');
-        setAuthMode('login');
-      }} />
+      <PasswordUpdate 
+        onPasswordUpdated={() => {
+          console.log('✅ Password updated successfully');
+          if (onPasswordResetComplete) {
+            onPasswordResetComplete();
+          } else {
+            setAuthMode('login');
+          }
+        }} 
+      />
     );
   }
 
@@ -209,10 +194,6 @@ const AuthScreen = ({ onAuthChange }) => {
 
         <div className="mt-4 text-sm text-gray-600 text-center">
           Create an account to get started!
-        </div>
-
-        <div className="mt-4 text-xs text-gray-500 text-center">
-          <p>Debug info will appear in browser console</p>
         </div>
       </div>
     </div>
