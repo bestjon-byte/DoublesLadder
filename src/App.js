@@ -115,10 +115,17 @@ const TennisLadderApp = () => {
     try {
       console.log('👤 Fetching profile for:', userId);
       
+      // Double-check we're not in recovery mode
+      if (window.location.hash.includes('type=recovery')) {
+        console.log('⚠️ ABORT: Recovery URL detected, not fetching profile');
+        setLoading(false);
+        return;
+      }
+      
       // Check if we're in a recovery session
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.recovery_sent_at) {
-        console.log('⚠️ Skipping profile fetch - recovery session detected');
+        console.log('⚠️ ABORT: Recovery session detected, not fetching profile');
         setLoading(false);
         return;
       }
@@ -132,8 +139,8 @@ const TennisLadderApp = () => {
       if (error) {
         console.error('❌ Error fetching profile:', error);
         // If we can't fetch the profile during password reset, that's expected
-        if (error.message?.includes('JWT') || error.message?.includes('token')) {
-          console.log('⚠️ Token issue - likely in password reset mode');
+        if (error.message?.includes('JWT') || error.message?.includes('token') || error.code === 'PGRST301') {
+          console.log('⚠️ Token/permission issue - likely in password reset mode');
           setIsPasswordReset(true);
         }
         setLoading(false);
@@ -155,6 +162,7 @@ const TennisLadderApp = () => {
       }
     } catch (error) {
       console.error('💥 Error in fetchUserProfile:', error);
+      setLoading(false);
     } finally {
       setLoading(false);
     }
