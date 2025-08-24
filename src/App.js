@@ -115,6 +115,14 @@ const TennisLadderApp = () => {
     try {
       console.log('👤 Fetching profile for:', userId);
       
+      // Check if we're in a recovery session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.recovery_sent_at) {
+        console.log('⚠️ Skipping profile fetch - recovery session detected');
+        setLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -123,6 +131,11 @@ const TennisLadderApp = () => {
 
       if (error) {
         console.error('❌ Error fetching profile:', error);
+        // If we can't fetch the profile during password reset, that's expected
+        if (error.message?.includes('JWT') || error.message?.includes('token')) {
+          console.log('⚠️ Token issue - likely in password reset mode');
+          setIsPasswordReset(true);
+        }
         setLoading(false);
         return;
       }

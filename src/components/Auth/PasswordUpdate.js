@@ -73,6 +73,7 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
       if (error) {
         console.error('❌ Password update error:', error);
         setError(`Failed to update password: ${error.message}`);
+        setLoading(false);
       } else {
         console.log('✅ Password updated successfully');
         
@@ -90,21 +91,19 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
         
         // Small delay to ensure sign out completes
         setTimeout(() => {
-          // Call the completion handler
+          // Call the completion handler or redirect
           if (onPasswordUpdated) {
             console.log('🔄 Calling password update completion handler');
             onPasswordUpdated();
           } else {
-            // Fallback to redirect
             console.log('🔄 No handler, redirecting to home');
             window.location.href = '/';
           }
-        }, 100);
+        }, 500);
       }
     } catch (err) {
       console.error('💥 Unexpected error:', err);
       setError('An unexpected error occurred. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
