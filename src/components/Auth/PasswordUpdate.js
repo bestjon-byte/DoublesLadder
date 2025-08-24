@@ -77,29 +77,17 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
       } else {
         console.log('✅ Password updated successfully');
         
-        // Sign out to clear the recovery session
-        console.log('🔄 Signing out to clear recovery session...');
-        const { error: signOutError } = await supabase.auth.signOut();
-        
-        if (signOutError) {
-          console.error('❌ Error signing out:', signOutError);
-        } else {
-          console.log('✅ Signed out successfully');
-        }
-        
+        // Nuclear option - just reload the page after password update
         alert('Password updated successfully! You can now sign in with your new password.');
         
-        // Small delay to ensure sign out completes
+        // Sign out and force reload
+        await supabase.auth.signOut();
+        
+        // Force a complete page reload to clear everything
         setTimeout(() => {
-          // Call the completion handler or redirect
-          if (onPasswordUpdated) {
-            console.log('🔄 Calling password update completion handler');
-            onPasswordUpdated();
-          } else {
-            console.log('🔄 No handler, redirecting to home');
-            window.location.href = '/';
-          }
-        }, 500);
+          window.location.href = '/';
+          window.location.reload(true);
+        }, 100);
       }
     } catch (err) {
       console.error('💥 Unexpected error:', err);
