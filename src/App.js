@@ -5,9 +5,6 @@ import { supabase } from './supabaseClient';
 // src/components/Admin/AdminTab.js
 
 import { Check } from 'lucide-react';
-import ScoreChallengesSection from './ScoreChallengesSection';
-
-
 
 // Component imports
 import AuthScreen from './components/Auth/AuthScreen';
@@ -21,6 +18,7 @@ import ScheduleModal from './components/Modals/ScheduleModal';
 import ScoreModal from './components/Modals/ScoreModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/scoreSubmission';
+import ScoreChallengesSection from './components/Admin/ScoreChallengesSection';
 
 const TennisLadderApp = () => {
   // State variables
