@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 // src/components/Admin/AdminTab.js
-import React, { useState } from 'react';
+
 import { Check } from 'lucide-react';
 import ScoreChallengesSection from './ScoreChallengesSection';
 
