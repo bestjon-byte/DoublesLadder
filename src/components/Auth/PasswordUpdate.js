@@ -77,14 +77,29 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
         console.log('✅ Password updated successfully');
         
         // Sign out to clear the recovery session
-        await supabase.auth.signOut();
+        console.log('🔄 Signing out to clear recovery session...');
+        const { error: signOutError } = await supabase.auth.signOut();
+        
+        if (signOutError) {
+          console.error('❌ Error signing out:', signOutError);
+        } else {
+          console.log('✅ Signed out successfully');
+        }
         
         alert('Password updated successfully! You can now sign in with your new password.');
         
-        // Call the completion handler
-        if (onPasswordUpdated) {
-          onPasswordUpdated();
-        }
+        // Small delay to ensure sign out completes
+        setTimeout(() => {
+          // Call the completion handler
+          if (onPasswordUpdated) {
+            console.log('🔄 Calling password update completion handler');
+            onPasswordUpdated();
+          } else {
+            // Fallback to redirect
+            console.log('🔄 No handler, redirecting to home');
+            window.location.href = '/';
+          }
+        }, 100);
       }
     } catch (err) {
       console.error('💥 Unexpected error:', err);

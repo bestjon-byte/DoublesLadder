@@ -101,7 +101,8 @@ const TennisLadderApp = () => {
         setLoading(false);
       } else if (event === 'USER_UPDATED') {
         console.log('👤 User updated');
-        if (session && !session.user?.recovery_sent_at) {
+        // Don't fetch profile if we're in password reset mode
+        if (!isPasswordReset && session && !session.user?.recovery_sent_at) {
           await fetchUserProfile(session.user.id);
         }
       }
