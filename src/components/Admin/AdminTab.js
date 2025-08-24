@@ -1,6 +1,8 @@
 // src/components/Admin/AdminTab.js
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
+import ScoreChallengesSection from './ScoreChallengesSection';
+
 
 const AdminTab = ({ 
   users, 
