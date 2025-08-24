@@ -2,6 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
+// src/components/Admin/AdminTab.js
+import React, { useState } from 'react';
+import { Check } from 'lucide-react';
+import ScoreChallengesSection from './ScoreChallengesSection';
+
+
+
 // Component imports
 import AuthScreen from './components/Auth/AuthScreen';
 import Header from './components/Layout/Header';
@@ -12,6 +19,8 @@ import AvailabilityTab from './components/Availability/AvailabilityTab';
 import AdminTab from './components/Admin/AdminTab';
 import ScheduleModal from './components/Modals/ScheduleModal';
 import ScoreModal from './components/Modals/ScoreModal';
+import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
+import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/scoreSubmission';
 
 const TennisLadderApp = () => {
   // State variables
