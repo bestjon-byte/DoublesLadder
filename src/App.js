@@ -1,4 +1,4 @@
-// src/App.js - FIXED password reset handling
+// src/App.js - FIXED password reset handling v2
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
@@ -32,6 +32,9 @@ const TennisLadderApp = () => {
 
   // Check for password reset on mount
   useEffect(() => {
+    console.log('🚀 APP.JS VERSION 2.0 - PASSWORD RESET FIX');
+    let isInPasswordResetMode = false;
+    
     const checkForPasswordReset = async () => {
       console.log('🔍 Checking for password reset tokens...');
       
@@ -42,6 +45,7 @@ const TennisLadderApp = () => {
       
       if (type === 'recovery' && accessToken) {
         console.log('🔑 Password reset detected!');
+        isInPasswordResetMode = true;
         setIsPasswordReset(true);
         setLoading(false);
         // Don't try to load normal session data
@@ -79,30 +83,46 @@ const TennisLadderApp = () => {
       
       if (event === 'PASSWORD_RECOVERY') {
         console.log('🔑 Password recovery mode');
+        isInPasswordResetMode = true;
         setIsPasswordReset(true);
         setCurrentUser(null);
         setLoading(false);
       } else if (event === 'SIGNED_IN' && session) {
         // Check if this is a recovery session
-        if (session.user?.recovery_sent_at) {
+        if (session.user?.recovery_sent_at || isInPasswordResetMode) {
           console.log('🔑 Recovery session detected');
+          isInPasswordResetMode = true;
           setIsPasswordReset(true);
           setCurrentUser(null);
           setLoading(false);
         } else {
           console.log('✅ Normal sign in');
+          isInPasswordResetMode = false;
           setIsPasswordReset(false);
           await fetchUserProfile(session.user.id);
         }
       } else if (event === 'SIGNED_OUT') {
         console.log('👋 User signed out');
         setCurrentUser(null);
+        isInPasswordResetMode = false;
         setIsPasswordReset(false);
         setLoading(false);
       } else if (event === 'USER_UPDATED') {
-        console.log('👤 User updated');
-        // Don't fetch profile if we're in password reset mode
-        if (!isPasswordReset && session && !session.user?.recovery_sent_at) {
+        console.log('🔔 USER_UPDATED EVENT FIRED');
+        console.log('🔍 Password reset mode check:', { isInPasswordResetMode });
+        console.log('🔍 URL hash:', window.location.hash);
+        console.log('🔍 Session recovery timestamp:', session?.user?.recovery_sent_at);
+        
+        // DO NOT FETCH PROFILE DURING PASSWORD RESET
+        if (isInPasswordResetMode || 
+            window.location.hash.includes('recovery') || 
+            session?.user?.recovery_sent_at) {
+          console.log('🛑 BLOCKING PROFILE FETCH - PASSWORD RESET IN PROGRESS');
+          return;
+        }
+        
+        console.log('✅ Safe to fetch profile - not in password reset mode');
+        if (session) {
           await fetchUserProfile(session.user.id);
         }
       }
@@ -113,19 +133,11 @@ const TennisLadderApp = () => {
 
   const fetchUserProfile = async (userId) => {
     try {
-      console.log('👤 Fetching profile for:', userId);
+      console.log('📱 fetchUserProfile called for:', userId);
       
-      // Double-check we're not in recovery mode
-      if (window.location.hash.includes('type=recovery')) {
-        console.log('⚠️ ABORT: Recovery URL detected, not fetching profile');
-        setLoading(false);
-        return;
-      }
-      
-      // Check if we're in a recovery session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.recovery_sent_at) {
-        console.log('⚠️ ABORT: Recovery session detected, not fetching profile');
+      // FINAL SAFETY CHECK
+      if (window.location.hash.includes('recovery')) {
+        console.log('🛑 EMERGENCY STOP: Recovery hash detected in fetchUserProfile');
         setLoading(false);
         return;
       }
@@ -138,11 +150,6 @@ const TennisLadderApp = () => {
 
       if (error) {
         console.error('❌ Error fetching profile:', error);
-        // If we can't fetch the profile during password reset, that's expected
-        if (error.message?.includes('JWT') || error.message?.includes('token') || error.code === 'PGRST301') {
-          console.log('⚠️ Token/permission issue - likely in password reset mode');
-          setIsPasswordReset(true);
-        }
         setLoading(false);
         return;
       }
