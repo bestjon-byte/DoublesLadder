@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import ScoreChallengesSection from './ScoreChallengesSection';
 
-
 const AdminTab = ({ 
   users, 
+  currentUser,
   currentSeason,
   approveUser, 
   addToLadder, 
@@ -46,6 +46,15 @@ const AdminTab = ({
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
+      
+      {/* Score Challenges and Conflicts Management - THIS IS THE NEW SECTION */}
+      <ScoreChallengesSection 
+        currentUser={currentUser}
+        onDataRefresh={() => {
+          // Refresh parent data when scores are updated
+          if (fetchUsers) fetchUsers();
+        }}
+      />
       
       {/* Pending Approvals */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -145,7 +154,7 @@ const AdminTab = ({
         </div>
       )}
 
-      {/* Availability Management */}
+      {/* Availability Overview */}
       {currentSeason?.matches && (
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">Availability Overview</h3>
