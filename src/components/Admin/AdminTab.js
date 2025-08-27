@@ -1,7 +1,9 @@
-// src/components/Admin/AdminTab.js
+// src/components/Admin/AdminTab.js - DEBUG VERSION
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
-import ScoreChallengesSection from './ScoreChallengesSection';
+
+// COMMENT OUT THIS LINE TO TEST IF IT'S THE IMPORT CAUSING ISSUES
+// import ScoreChallengesSection from './ScoreChallengesSection';
 
 const AdminTab = ({ 
   users, 
@@ -19,42 +21,36 @@ const AdminTab = ({
 }) => {
   const [loading, setLoading] = useState(false);
 
-  const handleApproveUser = async (userId) => {
-    setLoading(true);
-    await approveUser(userId);
-    setLoading(false);
-  };
-
-  const handleAddToLadder = async (userId, rank) => {
-    setLoading(true);
-    await addToLadder(userId, rank);
-    setLoading(false);
-  };
-
-  // Helper to check if a match is complete
-  const isMatchComplete = (matchId) => {
-    const matchGameFixtures = matchFixtures?.filter(f => f.match_id === matchId) || [];
-    if (matchGameFixtures.length === 0) return false;
-    
-    const completedGames = matchGameFixtures.filter(fixture => 
-      matchResults?.some(result => result.fixture_id === fixture.id)
-    ).length;
-    
-    return completedGames === matchGameFixtures.length && matchGameFixtures.length > 0;
-  };
+  console.log('🔍 DEBUG AdminTab props:', {
+    usersCount: users?.length,
+    currentUser: currentUser?.name,
+    currentSeason: currentSeason?.name,
+    matchResults: matchResults?.length,
+    matchFixtures: matchFixtures?.length
+  });
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
       
-      {/* Score Challenges and Conflicts Management - THIS IS THE NEW SECTION */}
-      <ScoreChallengesSection 
-        currentUser={currentUser}
-        onDataRefresh={() => {
-          // Refresh parent data when scores are updated
-          if (fetchUsers) fetchUsers();
-        }}
-      />
+      {/* DEBUG SECTION - Should always show */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-blue-800">🔧 DEBUG INFO</h3>
+        <p>Users: {users?.length || 0}</p>
+        <p>Current User: {currentUser?.name || 'None'}</p>
+        <p>Match Results: {matchResults?.length || 0}</p>
+        <p>Match Fixtures: {matchFixtures?.length || 0}</p>
+        <p>Admin Role: {currentUser?.role === 'admin' ? 'YES' : 'NO'}</p>
+      </div>
+
+      {/* TEMP PLACEHOLDER FOR SCORE MANAGEMENT */}
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-red-800">📊 Score Management (PLACEHOLDER)</h3>
+        <p>This is where ScoreChallengesSection should appear</p>
+        <p>If you see this, the AdminTab is loading correctly</p>
+      </div>
+
+      {/* Rest of your existing AdminTab content... */}
       
       {/* Pending Approvals */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -68,7 +64,11 @@ const AdminTab = ({
                   <p className="text-sm text-gray-600">{user.email}</p>
                 </div>
                 <button
-                  onClick={() => handleApproveUser(user.id)}
+                  onClick={async () => {
+                    setLoading(true);
+                    await approveUser(user.id);
+                    setLoading(false);
+                  }}
                   disabled={loading}
                   className="bg-[#5D1F1F] text-white px-3 py-1 rounded text-sm hover:bg-[#4A1818] disabled:opacity-50"
                 >
@@ -82,183 +82,23 @@ const AdminTab = ({
         )}
       </div>
 
-      {/* Player Availability Management */}
-      {currentSeason?.matches && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Set Player Availability</h3>
-          <p className="text-sm text-gray-600 mb-4">Set availability on behalf of players</p>
-          
-          {currentSeason.matches.map((match) => {
-            const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
-            const matchComplete = isMatchComplete(match.id);
-            
-            return (
-              <div key={match.id} className="mb-6 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium mb-3">
-                  Week {match.week_number} - {new Date(match.match_date).toLocaleDateString('en-GB')}
-                  {matchComplete && (
-                    <span className="ml-2 text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                      ✅ Completed
-                    </span>
-                  )}
-                </h4>
-                {matchComplete ? (
-                  <div className="text-sm text-gray-600 italic">
-                    All results have been entered for this match. Availability cannot be changed.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {ladderPlayers.map(player => {
-                      const playerAvailability = getPlayerAvailability(player.id, match.id);
-                      return (
-                        <div key={player.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <span className="text-sm font-medium">{player.name}</span>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => setPlayerAvailability(match.id, true, player.id)}
-                              className={`px-2 py-1 text-xs rounded transition-colors ${
-                                playerAvailability === true
-                                  ? 'bg-green-600 text-white'
-                                  : 'bg-gray-200 text-gray-700 hover:bg-green-100'
-                              }`}
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={() => setPlayerAvailability(match.id, false, player.id)}
-                              className={`px-2 py-1 text-xs rounded transition-colors ${
-                                playerAvailability === false
-                                  ? 'bg-red-600 text-white'
-                                  : 'bg-gray-200 text-gray-700 hover:bg-red-100'
-                              }`}
-                            >
-                              ✗
-                            </button>
-                            {playerAvailability !== undefined && (
-                              <button
-                                onClick={() => setPlayerAvailability(match.id, undefined, player.id)}
-                                className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-                              >
-                                Clear
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Availability Overview */}
-      {currentSeason?.matches && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Availability Overview</h3>
-          
-          <div className="space-y-4">
-            {currentSeason.matches.map((match) => {
-              const stats = getAvailabilityStats(match.id);
-              const matchComplete = isMatchComplete(match.id);
-              const matchDate = new Date(match.match_date);
-              const isPast = matchDate < new Date();
-              
-              return (
-                <div key={match.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium">Week {match.week_number} - {matchDate.toLocaleDateString('en-GB')}</h4>
-                      <div className="mt-2 space-y-1 text-sm text-gray-600">
-                        <div>Available: <span className="font-medium text-green-600">{stats.available}</span></div>
-                        <div>Responded: <span className="font-medium">{stats.responded}/{stats.total}</span></div>
-                        <div>Pending: <span className="font-medium text-orange-600">{stats.pending}</span></div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {matchComplete ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                          ✅ Match Completed
-                        </span>
-                      ) : isPast ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
-                          Match Date Passed
-                        </span>
-                      ) : stats.available >= 4 ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                          Ready to Schedule
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
-                          Need More Players
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Add Players to Ladder */}
+      {/* Simple test of match results display */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Add Players to Ladder</h3>
-        {users.filter(u => u.status === 'approved' && !u.in_ladder).length > 0 ? (
-          <div className="space-y-3">
-            {users.filter(u => u.status === 'approved' && !u.in_ladder).map(user => {
-              const maxRank = users.filter(u => u.in_ladder && u.status === 'approved').length + 1;
-              return (
-                <div key={user.id} className="flex justify-between items-center p-3 border border-gray-200 rounded">
-                  <p className="font-medium">{user.name}</p>
-                  <div className="flex items-center space-x-2">
-                    <select 
-                      id={`rank-${user.id}`}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm"
-                      defaultValue={maxRank}
-                    >
-                      {Array.from({length: maxRank}, (_, i) => i + 1).map(rank => (
-                        <option key={rank} value={rank}>Rank {rank}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => {
-                        const selectedRank = document.getElementById(`rank-${user.id}`).value;
-                        console.log(`Adding user ${user.name} to ladder at rank ${selectedRank}`);
-                        handleAddToLadder(user.id, selectedRank);
-                      }}
-                      disabled={loading}
-                      className="bg-[#5D1F1F] text-white px-3 py-1 rounded text-sm hover:bg-[#4A1818] disabled:opacity-50"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+        <h3 className="text-lg font-semibold mb-4">🎾 Recent Match Results (TEST)</h3>
+        {matchResults && matchResults.length > 0 ? (
+          <div className="space-y-2">
+            {matchResults.slice(0, 5).map((result, index) => (
+              <div key={index} className="p-2 border border-gray-200 rounded">
+                <span className="font-bold">{result.pair1_score} - {result.pair2_score}</span>
+                <span className="text-xs text-gray-500 ml-2">
+                  {new Date(result.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
           </div>
         ) : (
-          <p className="text-gray-500">No approved players waiting to join ladder</p>
+          <p className="text-gray-500">No match results found (matchResults: {matchResults?.length || 0})</p>
         )}
-      </div>
-
-      {/* Debug/Maintenance Section */}
-      <div className="bg-red-50 border border-red-200 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4 text-red-800">⚠️ Admin Maintenance</h3>
-        <p className="text-sm text-red-600 mb-4">Use these tools carefully - they will delete data permanently!</p>
-        <button
-          onClick={() => {
-            if (window.confirm('This will delete ALL matches, fixtures, results, and availability data. Are you absolutely sure?')) {
-              clearOldMatches();
-            }
-          }}
-          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
-        >
-          Clear All Match Data
-        </button>
       </div>
     </div>
   );
