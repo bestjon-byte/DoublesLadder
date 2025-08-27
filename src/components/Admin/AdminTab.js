@@ -51,8 +51,11 @@ const AdminTab = ({
       <ScoreChallengesSection 
         currentUser={currentUser}
         onDataRefresh={() => {
-          // Refresh parent data when scores are updated
+          // Refresh ALL parent data when scores are updated
+          console.log('🔄 Admin score updated, refreshing all data...');
           if (fetchUsers) fetchUsers();
+          // We need to call the parent's fetchMatchResults function too
+          window.dispatchEvent(new CustomEvent('refreshMatchData'));
         }}
       />
       
