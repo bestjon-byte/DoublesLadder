@@ -22,11 +22,10 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
       console.log('📊 Fetching match results...');
       setDebugInfo('Fetching results...');
       
-      // First, let's try a simple query
+      // First, let's try a simple query WITHOUT ordering by created_at
       const { data: simpleResults, error: simpleError } = await supabase
         .from('match_results')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
       console.log('Simple results query:', { simpleResults, simpleError });
 
@@ -38,14 +37,15 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
       }
 
       console.log('✅ Found results (simple):', simpleResults?.length || 0);
-      setDebugInfo(`Found ${simpleResults?.length || 0} results (simple query)`);
+      console.log('Sample result structure:', simpleResults?.[0]);
+      setDebugInfo(`Found ${simpleResults?.length || 0} results (simple query). Sample columns: ${Object.keys(simpleResults?.[0] || {}).join(', ')}`);
 
       if (!simpleResults || simpleResults.length === 0) {
         setAllResults([]);
         return;
       }
 
-      // Now try with fixture joins
+      // Now try with fixture joins - but don't order by created_at yet
       const { data: complexResults, error: complexError } = await supabase
         .from('match_results')
         .select(`
@@ -57,10 +57,8 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
             player2:player2_id(name),
             player3:player3_id(name),
             player4:player4_id(name)
-          ),
-          submitted_by_user:submitted_by(name)
-        `)
-        .order('created_at', { ascending: false });
+          )
+        `);
 
       console.log('Complex results query:', { complexResults, complexError });
 
@@ -236,7 +234,7 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
                             </span>
                           </div>
                           <span className="text-xs text-gray-500">
-                            {result.created_at ? new Date(result.created_at).toLocaleDateString('en-GB') : 'Unknown date'}
+                            Result ID: {result.id.substring(0, 8)}...
                           </span>
                         </div>
                       )}
