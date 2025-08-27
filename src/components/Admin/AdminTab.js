@@ -1,7 +1,7 @@
-// src/components/Admin/AdminTab.js - FIXED VERSION
+// src/components/Admin/AdminTab.js - COMPLETE VERSION
 import React, { useState } from 'react';
-import { Check, Edit, X } from 'lucide-react';
-import { supabase } from '../../supabaseClient';
+import { Check } from 'lucide-react';
+import ScoreChallengesSection from './ScoreChallengesSection';
 
 const AdminTab = ({ 
   users, 
@@ -18,8 +18,6 @@ const AdminTab = ({
   matchResults
 }) => {
   const [loading, setLoading] = useState(false);
-  const [editingScore, setEditingScore] = useState(null);
-  const [editForm, setEditForm] = useState({ pair1_score: '', pair2_score: '' });
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -31,69 +29,6 @@ const AdminTab = ({
     setLoading(true);
     await addToLadder(userId, rank);
     setLoading(false);
-  };
-
-  const handleEditScore = (result) => {
-    console.log('✏️ Starting score edit for:', result.id);
-    setEditingScore(result.id);
-    setEditForm({
-      pair1_score: result.pair1_score.toString(),
-      pair2_score: result.pair2_score.toString()
-    });
-  };
-
-  const handleSaveEdit = async (resultId) => {
-    setLoading(true);
-    try {
-      console.log('💾 Saving score edit:', { resultId, editForm });
-      
-      if (!editForm.pair1_score || !editForm.pair2_score) {
-        alert('Please enter both scores');
-        setLoading(false);
-        return;
-      }
-
-      const newPair1Score = parseInt(editForm.pair1_score);
-      const newPair2Score = parseInt(editForm.pair2_score);
-
-      console.log('🎯 About to update with scores:', { newPair1Score, newPair2Score });
-
-      const { data, error } = await supabase
-        .from('match_results')
-        .update({
-          pair1_score: newPair1Score,
-          pair2_score: newPair2Score
-        })
-        .eq('id', resultId)
-        .select(); // This returns the updated data
-
-      if (error) {
-        console.error('❌ Database update failed:', error);
-        alert('Failed to update score: ' + error.message);
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ Database update successful:', data);
-
-      // Clear the edit state
-      setEditingScore(null);
-      setEditForm({ pair1_score: '', pair2_score: '' });
-      
-      // Show success message without refresh
-      alert('Score updated successfully! Navigate away and back to see the updated score.');
-      
-    } catch (error) {
-      console.error('💥 Unexpected error updating score:', error);
-      alert('Unexpected error: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingScore(null);
-    setEditForm({ pair1_score: '', pair2_score: '' });
   };
 
   // Helper to check if a match is complete
@@ -112,134 +47,15 @@ const AdminTab = ({
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
       
-      {/* Recent Match Results - Admin Edit */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">🎾 Recent Match Results - Admin Edit ({matchResults?.length || 0})</h3>
-        {matchResults && matchResults.length > 0 ? (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {matchResults.slice(0, 15).map((result) => {
-              // Find the fixture to get player names
-              const fixture = matchFixtures?.find(f => f.id === result.fixture_id);
-              
-              return (
-                <div key={result.id} className="border border-gray-200 rounded p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      {/* Match context - who was playing */}
-                      {fixture ? (
-                        <div className="mb-2">
-                          <p className="font-medium text-sm text-gray-800">
-                            {fixture.player1?.name || 'Player 1'} & {fixture.player2?.name || 'Player 2'} 
-                            <span className="text-gray-500 mx-2">vs</span>
-                            {fixture.player3?.name || 'Player 3'} & {fixture.player4?.name || 'Player 4'}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Week {fixture.match?.week_number || '?'} - Court {fixture.court_number || '?'}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="mb-2">
-                          <p className="text-sm text-gray-500 italic">Match details unavailable</p>
-                        </div>
-                      )}
-                      
-                      {/* Score editing */}
-                      <div className="flex items-center space-x-4">
-                        {editingScore === result.id ? (
-                          // Edit mode
-                          <div className="flex items-center space-x-2">
-                            <div className="flex items-center space-x-1">
-                              <span className="text-sm text-gray-600">Score:</span>
-                              <input
-                                type="number"
-                                min="0"
-                                max="20"
-                                value={editForm.pair1_score}
-                                onChange={(e) => setEditForm({...editForm, pair1_score: e.target.value})}
-                                className="w-14 p-2 border border-gray-300 rounded text-center font-semibold"
-                                disabled={loading}
-                                placeholder="0"
-                              />
-                              <span className="text-gray-500 font-bold">-</span>
-                              <input
-                                type="number"
-                                min="0"
-                                max="20"
-                                value={editForm.pair2_score}
-                                onChange={(e) => setEditForm({...editForm, pair2_score: e.target.value})}
-                                className="w-14 p-2 border border-gray-300 rounded text-center font-semibold"
-                                disabled={loading}
-                                placeholder="0"
-                              />
-                            </div>
-                            <button
-                              onClick={() => handleSaveEdit(result.id)}
-                              disabled={loading || !editForm.pair1_score || !editForm.pair2_score}
-                              className="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50 flex items-center"
-                            >
-                              <Check className="w-4 h-4 mr-1" />
-                              Save
-                            </button>
-                            <button
-                              onClick={cancelEdit}
-                              disabled={loading}
-                              className="bg-gray-500 text-white px-3 py-2 rounded text-sm hover:bg-gray-600 disabled:opacity-50 flex items-center"
-                            >
-                              <X className="w-4 h-4 mr-1" />
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          // Display mode
-                          <div className="flex items-center space-x-4">
-                            <div className="bg-gray-100 px-4 py-2 rounded-lg">
-                              <span className="text-lg font-bold text-gray-800">
-                                {result.pair1_score} - {result.pair2_score}
-                              </span>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              Submitted: {result.created_at ? new Date(result.created_at).toLocaleDateString('en-GB', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              }) : 'Unknown date'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {editingScore !== result.id && (
-                      <button 
-                        onClick={() => handleEditScore(result)}
-                        disabled={loading}
-                        className="bg-[#5D1F1F] text-white px-3 py-2 rounded text-sm hover:bg-[#4A1818] disabled:opacity-50 flex items-center"
-                        title="Edit this score"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Show who submitted this score */}
-                  <div className="text-xs text-gray-400 mt-2 pt-2 border-t border-gray-100">
-                    Result ID: {result.id} | Submitted by: User {result.submitted_by}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No match results found</p>
-            <p className="text-xs text-gray-400 mt-1">Total results: {matchResults?.length || 0}</p>
-          </div>
-        )}
-      </div>
-
+      {/* Score Challenges and Conflicts Management - THE MAIN NEW FEATURE */}
+      <ScoreChallengesSection 
+        currentUser={currentUser}
+        onDataRefresh={() => {
+          // Refresh parent data when scores are updated
+          if (fetchUsers) fetchUsers();
+        }}
+      />
+      
       {/* Pending Approvals */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4">Pending Approvals</h3>
@@ -265,6 +81,128 @@ const AdminTab = ({
           <p className="text-gray-500">No pending approvals</p>
         )}
       </div>
+
+      {/* Player Availability Management */}
+      {currentSeason?.matches && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Set Player Availability</h3>
+          <p className="text-sm text-gray-600 mb-4">Set availability on behalf of players</p>
+          
+          {currentSeason.matches.map((match) => {
+            const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
+            const matchComplete = isMatchComplete(match.id);
+            
+            return (
+              <div key={match.id} className="mb-6 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium mb-3">
+                  Week {match.week_number} - {new Date(match.match_date).toLocaleDateString('en-GB')}
+                  {matchComplete && (
+                    <span className="ml-2 text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                      ✅ Completed
+                    </span>
+                  )}
+                </h4>
+                {matchComplete ? (
+                  <div className="text-sm text-gray-600 italic">
+                    All results have been entered for this match. Availability cannot be changed.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {ladderPlayers.map(player => {
+                      const playerAvailability = getPlayerAvailability(player.id, match.id);
+                      return (
+                        <div key={player.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <span className="text-sm font-medium">{player.name}</span>
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => setPlayerAvailability(match.id, true, player.id)}
+                              className={`px-2 py-1 text-xs rounded transition-colors ${
+                                playerAvailability === true
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-green-100'
+                              }`}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => setPlayerAvailability(match.id, false, player.id)}
+                              className={`px-2 py-1 text-xs rounded transition-colors ${
+                                playerAvailability === false
+                                  ? 'bg-red-600 text-white'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-red-100'
+                              }`}
+                            >
+                              ✗
+                            </button>
+                            {playerAvailability !== undefined && (
+                              <button
+                                onClick={() => setPlayerAvailability(match.id, undefined, player.id)}
+                                className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Availability Overview */}
+      {currentSeason?.matches && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Availability Overview</h3>
+          
+          <div className="space-y-4">
+            {currentSeason.matches.map((match) => {
+              const stats = getAvailabilityStats(match.id);
+              const matchComplete = isMatchComplete(match.id);
+              const matchDate = new Date(match.match_date);
+              const isPast = matchDate < new Date();
+              
+              return (
+                <div key={match.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">Week {match.week_number} - {matchDate.toLocaleDateString('en-GB')}</h4>
+                      <div className="mt-2 space-y-1 text-sm text-gray-600">
+                        <div>Available: <span className="font-medium text-green-600">{stats.available}</span></div>
+                        <div>Responded: <span className="font-medium">{stats.responded}/{stats.total}</span></div>
+                        <div>Pending: <span className="font-medium text-orange-600">{stats.pending}</span></div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {matchComplete ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                          ✅ Match Completed
+                        </span>
+                      ) : isPast ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
+                          Match Date Passed
+                        </span>
+                      ) : stats.available >= 4 ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                          Ready to Schedule
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
+                          Need More Players
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Add Players to Ladder */}
       <div className="bg-white rounded-lg shadow p-6">
