@@ -80,9 +80,8 @@ const AdminTab = ({
       setEditingScore(null);
       setEditForm({ pair1_score: '', pair2_score: '' });
       
-      // Force a page refresh to see the changes (temporary solution)
-      alert('Score updated successfully! Refreshing page to show changes...');
-      window.location.reload();
+      // Show success message without refresh
+      alert('Score updated successfully! Navigate away and back to see the updated score.');
       
     } catch (error) {
       console.error('💥 Unexpected error updating score:', error);
