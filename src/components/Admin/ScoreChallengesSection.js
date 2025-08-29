@@ -67,42 +67,79 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
     return data || [];
   };
 
-  const resolveChallenge = async (challengeId, decision, newScore = null) => {
+ const resolveChallenge = async (challengeId, decision, newScore = null) => {
     setLoading(true);
     try {
       console.log(`🏆 Resolving challenge ${challengeId} with decision: ${decision}`);
       
       if (decision === 'approved' && newScore) {
-        // Update the original result with the challenged score
+        // First, update the original result with the challenged score
         const challenge = challenges.find(c => c.id === challengeId);
         
-        await supabase
-          .from('match_results')
-          .update({
-            pair1_score: newScore.pair1_score,
-            pair2_score: newScore.pair2_score
-          })
-          .eq('id', challenge.original_result_id);
+        if (challenge?.original_result_id) {
+          console.log('📝 Updating original score...');
+          const { error: scoreError } = await supabase
+            .from('match_results')
+            .update({
+              pair1_score: newScore.pair1_score,
+              pair2_score: newScore.pair2_score
+            })
+            .eq('id', challenge.original_result_id);
+            
+          if (scoreError) {
+            console.error('❌ Error updating score:', scoreError);
+            alert('Error updating score: ' + scoreError.message);
+            return;
+          }
+          console.log('✅ Score updated successfully');
+        }
       }
       
-      // Update the challenge status
-      await supabase
-        .from('score_challenges')
-        .update({
-          status: decision,
-          resolved_by: currentUser.id,
-          resolved_at: new Date().toISOString(),
-          admin_decision: decision === 'approved' ? 'Challenge upheld - score corrected' : 'Challenge rejected - original score stands'
-        })
-        .eq('id', challengeId);
+      // Update the challenge status with minimal fields first
+      console.log('🔄 Updating challenge status...');
+      const updateData = {
+        status: decision,
+        resolved_by: currentUser.id,
+        resolved_at: new Date().toISOString()
+      };
       
-      alert(`Challenge ${decision}!`);
+      // Add admin decision separately to avoid potential issues
+      if (decision === 'approved') {
+        updateData.admin_decision = 'Challenge upheld - score corrected';
+      } else {
+        updateData.admin_decision = 'Challenge rejected - original score stands';
+      }
+      
+      console.log('📤 Sending update:', updateData);
+      
+      const { data: updateResult, error: challengeError } = await supabase
+        .from('score_challenges')
+        .update(updateData)
+        .eq('id', challengeId)
+        .select(); // Add select to see what was updated
+      
+      if (challengeError) {
+        console.error('❌ Challenge update error:', challengeError);
+        console.error('Error details:', {
+          code: challengeError.code,
+          message: challengeError.message,
+          details: challengeError.details,
+          hint: challengeError.hint
+        });
+        alert(`Error resolving challenge: ${challengeError.message}\n\nDetails: ${challengeError.details || 'None'}`);
+        return;
+      }
+      
+      console.log('✅ Challenge updated successfully:', updateResult);
+      alert(`Challenge ${decision} successfully!`);
+      
+      // Refresh all data
       await fetchAllData();
       if (onDataRefresh) onDataRefresh();
       
     } catch (error) {
-      console.error('❌ Error resolving challenge:', error);
-      alert('Error resolving challenge: ' + error.message);
+      console.error('💥 Unexpected error resolving challenge:', error);
+      alert('Unexpected error resolving challenge: ' + error.message);
     } finally {
       setLoading(false);
     }
