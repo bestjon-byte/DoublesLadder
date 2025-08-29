@@ -1,4 +1,4 @@
-// src/App.js - FIXED AUTH SYSTEM
+// src/App.js - FIXED WITH ENHANCED SCORE MODAL
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
@@ -11,10 +11,12 @@ import MatchesTab from './components/Matches/MatchesTab';
 import AvailabilityTab from './components/Availability/AvailabilityTab';
 import AdminTab from './components/Admin/AdminTab';
 import ScheduleModal from './components/Modals/ScheduleModal';
-import ScoreModal from './components/Modals/ScoreModal';
+import EnhancedScoreModal from './components/Modals/EnhancedScoreModal'; // CHANGED: Using enhanced modal
+// Import the score submission utilities
+import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/scoreSubmission';
 
 const TennisLadderApp = () => {
-  // State variables
+  // State variables (same as before)
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [seasons, setSeasons] = useState([]);
@@ -25,19 +27,38 @@ const TennisLadderApp = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ladder');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [showScoreModal, setShowScoreModal] = useState(false);
+  const [showScoreModal, setShowScoreModal] = useState(false); // ENHANCED modal
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
-  const [authMode, setAuthMode] = useState('normal'); // 'normal' | 'reset'
+  const [authMode, setAuthMode] = useState('normal');
 
+  // All your existing useEffect and initialization code stays the same...
   useEffect(() => {
     console.log('🚀 App starting - initializing auth...');
     initializeAuth();
   }, []);
+useEffect(() => {
+    // Listen for custom events to refresh data (used by admin score edits)
+    const handleRefreshMatchData = () => {
+      console.log('📡 Received refresh event, reloading match data...');
+      Promise.all([
+        fetchMatchResults(),
+        fetchMatchFixtures(),
+        fetchSeasons()
+      ]);
+    };
+
+    window.addEventListener('refreshMatchData', handleRefreshMatchData);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('refreshMatchData', handleRefreshMatchData);
+    };
+  }, []);
+  // END OF NEW useEffect 👆
 
   const initializeAuth = async () => {
     try {
-      // Check for password reset first
       const isPasswordReset = checkForPasswordReset();
       
       if (isPasswordReset) {
@@ -47,7 +68,6 @@ const TennisLadderApp = () => {
         return;
       }
 
-      // Normal session check
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -64,7 +84,6 @@ const TennisLadderApp = () => {
         setLoading(false);
       }
 
-      // Set up auth listener
       setupAuthListener();
       
     } catch (error) {
@@ -103,7 +122,6 @@ const TennisLadderApp = () => {
           break;
           
         default:
-          // Handle other events if needed
           break;
       }
     });
@@ -130,7 +148,6 @@ const TennisLadderApp = () => {
       setCurrentUser(profile);
       console.log('✅ Profile loaded:', profile.name);
 
-      // Load all app data in parallel
       await Promise.all([
         fetchUsers(),
         fetchSeasons(),
@@ -161,13 +178,12 @@ const TennisLadderApp = () => {
   const handlePasswordResetComplete = () => {
     console.log('✅ Password reset complete');
     setAuthMode('normal');
-    // Clear any reset tokens from URL
     if (window.location.hash) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   };
 
-  // Data fetching functions (unchanged from original)
+  // All your existing data fetching functions stay the same...
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
@@ -285,7 +301,57 @@ const TennisLadderApp = () => {
     }
   };
 
-  // All other functions remain the same...
+  // ENHANCED SCORE SUBMISSION with conflict handling
+  const submitScore = async (pair1Score, pair2Score) => {
+    if (!selectedMatch) return;
+    
+    try {
+      console.log('🎾 Attempting enhanced score submission...');
+      
+      const result = await submitScoreWithConflictHandling(
+        selectedMatch.fixtureId,
+        pair1Score,
+        pair2Score,
+        currentUser.id
+      );
+      
+      // Refresh data regardless of outcome
+      await Promise.all([
+        fetchMatchResults(),
+        fetchSeasons()
+      ]);
+      
+      return result; // Return result so modal can handle conflicts
+      
+    } catch (error) {
+      console.error('💥 Score submission failed:', error);
+      throw error;
+    }
+  };
+
+  // Handle score challenges
+  const handleScoreChallenge = async (challengeData) => {
+    try {
+      console.log('🚩 Submitting score challenge...');
+      
+      await submitScoreChallenge({
+        ...challengeData,
+        challengerId: currentUser.id
+      });
+      
+      // Refresh data
+      await Promise.all([
+        fetchMatchResults(),
+        fetchSeasons()
+      ]);
+      
+    } catch (error) {
+      console.error('💥 Challenge submission failed:', error);
+      throw error;
+    }
+  };
+
+  // All your other existing functions remain the same...
   const addMatchToSeason = async () => {
     if (!newMatchDate) {
       alert('Please select a date for the match');
@@ -479,7 +545,6 @@ const TennisLadderApp = () => {
 
     const courts = [];
 
-    // Group players intelligently
     if (numPlayers % 4 === 0) {
       for (let i = 0; i < numPlayers; i += 4) {
         courts.push(availablePlayers.slice(i, i + 4));
@@ -581,32 +646,6 @@ const TennisLadderApp = () => {
   const openScoreModal = (matchData) => {
     setSelectedMatch(matchData);
     setShowScoreModal(true);
-  };
-
-  const submitScore = async (pair1Score, pair2Score) => {
-    if (!selectedMatch) return;
-    
-    try {
-      const { error } = await supabase
-        .from('match_results')
-        .insert({
-          fixture_id: selectedMatch.fixtureId,
-          pair1_score: parseInt(pair1Score),
-          pair2_score: parseInt(pair2Score),
-          submitted_by: currentUser.id
-        });
-      
-      if (!error) {
-        await Promise.all([
-          fetchMatchResults(),
-          fetchSeasons()
-        ]);
-        setShowScoreModal(false);
-        setSelectedMatch(null);
-      }
-    } catch (error) {
-      alert('Error: ' + error.message);
-    }
   };
 
   const getMatchScore = (fixtureId) => {
@@ -730,7 +769,6 @@ const TennisLadderApp = () => {
     );
   }
 
-  // Show auth screen for password reset or no user
   if (authMode === 'reset' || !currentUser) {
     return (
       <AuthScreen 
@@ -787,6 +825,7 @@ const TennisLadderApp = () => {
         {activeTab === 'admin' && currentUser?.role === 'admin' && (
           <AdminTab 
             users={users}
+            currentUser={currentUser}
             currentSeason={currentSeason}
             approveUser={approveUser}
             addToLadder={addToLadder}
@@ -809,12 +848,16 @@ const TennisLadderApp = () => {
         addMatchToSeason={addMatchToSeason}
       />
 
-      <ScoreModal 
+      {/* CHANGED: Using EnhancedScoreModal with challenge functionality */}
+      <EnhancedScoreModal 
         showModal={showScoreModal}
         setShowModal={setShowScoreModal}
         selectedMatch={selectedMatch}
         setSelectedMatch={setSelectedMatch}
         submitScore={submitScore}
+        currentUser={currentUser}
+        getMatchScore={getMatchScore}
+        onChallengeScore={handleScoreChallenge}
       />
     </div>
   );
