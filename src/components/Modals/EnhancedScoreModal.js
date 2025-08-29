@@ -1,4 +1,4 @@
-// src/components/Modals/EnhancedScoreModal.js
+// src/components/Modals/EnhancedScoreModal.js - FIXED
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Flag, Eye } from 'lucide-react';
 
@@ -12,24 +12,6 @@ const EnhancedScoreModal = ({
   getMatchScore,
   onChallengeScore 
 }) => {
-
-  // TEMPORARY DEBUG - add this after line 14 in EnhancedScoreModal.js
-console.log('🐛 DEBUG INFO:', {
-  selectedMatch,
-  currentUser: currentUser?.name,
-  existingScore: !!existingScore,
-  showChallenge,
-  canUserEnterScore
-});
-
-if (selectedMatch) {
-  console.log('🎾 Match players:', {
-    pair1: selectedMatch.pair1,
-    pair2: selectedMatch.pair2,
-    currentUserName: currentUser?.name,
-    isUserInMatch: [selectedMatch.pair1, selectedMatch.pair2].flat().includes(currentUser?.name)
-  });
-}
   const [pair1Score, setPair1Score] = useState('');
   const [pair2Score, setPair2Score] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,6 +25,23 @@ if (selectedMatch) {
       setExistingScore(score);
     }
   }, [selectedMatch, getMatchScore]);
+
+  // TEMPORARY DEBUG - MOVED TO AFTER STATE DECLARATIONS
+  console.log('🐛 DEBUG INFO:', {
+    selectedMatch,
+    currentUser: currentUser?.name,
+    existingScore: !!existingScore,
+    showChallenge
+  });
+
+  if (selectedMatch) {
+    console.log('🎾 Match players:', {
+      pair1: selectedMatch.pair1,
+      pair2: selectedMatch.pair2,
+      currentUserName: currentUser?.name,
+      isUserInMatch: [selectedMatch.pair1, selectedMatch.pair2].flat().includes(currentUser?.name)
+    });
+  }
 
   const handleSubmit = async () => {
     if (!pair1Score || !pair2Score) {
@@ -123,6 +122,8 @@ if (selectedMatch) {
   const canUserEnterScore = currentUser?.role === 'admin' || 
     [selectedMatch.pair1, selectedMatch.pair2].flat().includes(currentUser?.name);
 
+  console.log('🔍 Can user enter score?', canUserEnterScore);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -160,7 +161,7 @@ if (selectedMatch) {
                   </div>
                 </div>
                 <p className="text-xs text-gray-600 mt-2">
-                  Submitted: {new Date(existingScore.created_at).toLocaleString()}
+                  Submitted: {existingScore.submitted_at ? new Date(existingScore.submitted_at).toLocaleString() : 'Unknown'}
                 </p>
               </div>
             ) : null}
@@ -268,6 +269,17 @@ if (selectedMatch) {
                     Only players in this match can enter scores or challenge results.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* DEBUG INFO */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs">
+                <p><strong>Debug:</strong></p>
+                <p>User: {currentUser?.name}</p>
+                <p>Can enter: {canUserEnterScore ? 'Yes' : 'No'}</p>
+                <p>Existing score: {existingScore ? 'Yes' : 'No'}</p>
+                <p>Show challenge: {showChallenge ? 'Yes' : 'No'}</p>
               </div>
             )}
           </div>
