@@ -1,7 +1,8 @@
-// src/components/Admin/ScoreChallengesSection.js - DEBUG VERSION
+// src/components/Admin/ScoreChallengesSection.js - ENHANCED WITH CHALLENGE REVIEW
 import React, { useState, useEffect } from 'react';
-import { Flag, Check, X, Edit, AlertTriangle } from 'lucide-react';
+import { Flag, Check, X, Edit, AlertTriangle, Clock } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
+import { fetchScoreChallenges, fetchScoreConflicts } from '../../utils/scoreSubmission';
 
 const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
   const [challenges, setChallenges] = useState([]);
@@ -10,71 +11,100 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
   const [loading, setLoading] = useState(false);
   const [editingScore, setEditingScore] = useState(null);
   const [editForm, setEditForm] = useState({ pair1_score: '', pair2_score: '' });
-  const [debugInfo, setDebugInfo] = useState('');
+  const [activeTab, setActiveTab] = useState('challenges'); // challenges, conflicts, results
 
   useEffect(() => {
-    console.log('🔍 ScoreChallengesSection mounted, fetching data...');
-    fetchAllResults();
+    console.log('🔍 ScoreChallengesSection mounted, fetching all data...');
+    fetchAllData();
   }, []);
 
-  const fetchAllResults = async () => {
+  const fetchAllData = async () => {
     try {
-      console.log('📊 Fetching match results...');
-      setDebugInfo('Fetching results...');
+      setLoading(true);
       
-      // First, let's try a simple query WITHOUT ordering by created_at
-      const { data: simpleResults, error: simpleError } = await supabase
-        .from('match_results')
-        .select('*');
-
-      console.log('Simple results query:', { simpleResults, simpleError });
-
-      if (simpleError) {
-        console.error('❌ Error fetching simple results:', simpleError);
-        setDebugInfo(`Error fetching simple results: ${simpleError.message}`);
-        setAllResults([]);
-        return;
-      }
-
-      console.log('✅ Found results (simple):', simpleResults?.length || 0);
-      console.log('Sample result structure:', simpleResults?.[0]);
-      setDebugInfo(`Found ${simpleResults?.length || 0} results (simple query). Sample columns: ${Object.keys(simpleResults?.[0] || {}).join(', ')}`);
-
-      if (!simpleResults || simpleResults.length === 0) {
-        setAllResults([]);
-        return;
-      }
-
-      // Now try with fixture joins - but don't order by created_at yet
-      const { data: complexResults, error: complexError } = await supabase
-        .from('match_results')
-        .select(`
-          *,
-          fixture:fixture_id(
-            *,
-            match:match_id(week_number, match_date),
-            player1:player1_id(name),
-            player2:player2_id(name),
-            player3:player3_id(name),
-            player4:player4_id(name)
-          )
-        `);
-
-      console.log('Complex results query:', { complexResults, complexError });
-
-      if (complexError) {
-        console.error('❌ Error fetching complex results:', complexError);
-        setDebugInfo(`Complex query failed: ${complexError.message}. Using simple results.`);
-        setAllResults(simpleResults);
-      } else {
-        console.log('✅ Complex query successful:', complexResults?.length || 0);
-        setDebugInfo(`Successfully fetched ${complexResults?.length || 0} results with player data`);
-        setAllResults(complexResults || []);
-      }
+      // Fetch challenges, conflicts, and results in parallel
+      const [challengesData, conflictsData, resultsData] = await Promise.all([
+        fetchScoreChallenges(),
+        fetchScoreConflicts(), 
+        fetchMatchResults()
+      ]);
+      
+      console.log('✅ Fetched data:', {
+        challenges: challengesData?.length || 0,
+        conflicts: conflictsData?.length || 0,
+        results: resultsData?.length || 0
+      });
+      
+      setChallenges(challengesData || []);
+      setConflicts(conflictsData || []);
+      setAllResults(resultsData || []);
+      
     } catch (error) {
-      console.error('💥 Error in fetchAllResults:', error);
-      setDebugInfo(`Unexpected error: ${error.message}`);
-      setAllResults([]);
+      console.error('❌ Error fetching data:', error);
+      alert('Error loading challenges: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMatchResults = async () => {
+    const { data, error } = await supabase
+      .from('match_results')
+      .select(`
+        *,
+        fixture:fixture_id(
+          *,
+          match:match_id(week_number, match_date),
+          player1:player1_id(name),
+          player2:player2_id(name),
+          player3:player3_id(name),
+          player4:player4_id(name)
+        )
+      `)
+      .order('submitted_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  };
+
+  const resolveChallenge = async (challengeId, decision, newScore = null) => {
+    setLoading(true);
+    try {
+      console.log(`🏆 Resolving challenge ${challengeId} with decision: ${decision}`);
+      
+      if (decision === 'approved' && newScore) {
+        // Update the original result with the challenged score
+        const challenge = challenges.find(c => c.id === challengeId);
+        
+        await supabase
+          .from('match_results')
+          .update({
+            pair1_score: newScore.pair1_score,
+            pair2_score: newScore.pair2_score
+          })
+          .eq('id', challenge.original_result_id);
+      }
+      
+      // Update the challenge status
+      await supabase
+        .from('score_challenges')
+        .update({
+          status: decision,
+          resolved_by: currentUser.id,
+          resolved_at: new Date().toISOString(),
+          admin_decision: decision === 'approved' ? 'Challenge upheld - score corrected' : 'Challenge rejected - original score stands'
+        })
+        .eq('id', challengeId);
+      
+      alert(`Challenge ${decision}!`);
+      await fetchAllData();
+      if (onDataRefresh) onDataRefresh();
+      
+    } catch (error) {
+      console.error('❌ Error resolving challenge:', error);
+      alert('Error resolving challenge: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,24 +127,23 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
         return;
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('match_results')
         .update({
           pair1_score: parseInt(editForm.pair1_score),
           pair2_score: parseInt(editForm.pair2_score)
         })
-        .eq('id', resultId)
-        .select();
+        .eq('id', resultId);
 
       if (error) {
         console.error('❌ Error updating score:', error);
         alert('Error updating score: ' + error.message);
       } else {
-        console.log('✅ Score updated successfully:', data);
+        console.log('✅ Score updated successfully');
         alert('Score updated successfully!');
         setEditingScore(null);
         setEditForm({ pair1_score: '', pair2_score: '' });
-        await fetchAllResults();
+        await fetchAllData();
         if (onDataRefresh) onDataRefresh();
       }
     } catch (error) {
@@ -130,136 +159,304 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
     setEditForm({ pair1_score: '', pair2_score: '' });
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-gray-500">Loading challenges...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <h3 className="text-lg font-semibold">Score Management</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Score Management & Challenges</h3>
+        <button 
+          onClick={fetchAllData}
+          className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
+        >
+          🔄 Refresh
+        </button>
       </div>
       
-      {/* DEBUG INFO */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-800 mb-2">🔧 Debug Info</h4>
-        <p className="text-sm text-blue-700">{debugInfo}</p>
-        <p className="text-xs text-blue-600 mt-2">
-          Current User: {currentUser?.name || 'None'} | Role: {currentUser?.role || 'None'}
-        </p>
+      {/* Tab Navigation */}
+      <div className="flex rounded-lg bg-gray-100 p-1">
+        <button
+          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'challenges' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
+          }`}
+          onClick={() => setActiveTab('challenges')}
+        >
+          <Flag className="w-4 h-4 inline mr-2" />
+          Challenges ({challenges.filter(c => c.status === 'pending').length})
+        </button>
+        <button
+          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'conflicts' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
+          }`}
+          onClick={() => setActiveTab('conflicts')}
+        >
+          <AlertTriangle className="w-4 h-4 inline mr-2" />
+          Conflicts ({conflicts.filter(c => !c.resolved).length})
+        </button>
+        <button
+          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            activeTab === 'results' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
+          }`}
+          onClick={() => setActiveTab('results')}
+        >
+          <Edit className="w-4 h-4 inline mr-2" />
+          Edit Results ({allResults.length})
+        </button>
       </div>
 
-      {/* Match Results */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h4 className="font-semibold mb-4 flex items-center">
-          <Edit className="w-5 h-5 mr-2" />
-          Recent Match Results - Admin Edit ({allResults.length})
-        </h4>
-        
-        {allResults.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No results to display</p>
-            <button 
-              onClick={fetchAllResults}
-              className="mt-2 bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
-            >
-              🔄 Refresh Results
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {allResults.slice(0, 20).map((result) => (
-              <div key={result.id} className="border border-gray-200 rounded p-3 hover:bg-gray-50 transition-colors">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    {/* Match context */}
-                    {result.fixture ? (
-                      <div className="mb-2">
-                        <p className="font-medium text-sm text-gray-800">
-                          {result.fixture.player1?.name || 'Player 1'} & {result.fixture.player2?.name || 'Player 2'} 
-                          <span className="text-gray-500 mx-2">vs</span>
-                          {result.fixture.player3?.name || 'Player 3'} & {result.fixture.player4?.name || 'Player 4'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Week {result.fixture.match?.week_number || '?'} - Court {result.fixture.court_number || '?'}
-                        </p>
+      {/* Challenges Tab */}
+      {activeTab === 'challenges' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h4 className="font-semibold mb-4 flex items-center">
+            <Flag className="w-5 h-5 mr-2 text-orange-500" />
+            Score Challenges ({challenges.length})
+          </h4>
+          
+          {challenges.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No score challenges yet</p>
+          ) : (
+            <div className="space-y-4">
+              {challenges.map((challenge) => (
+                <div key={challenge.id} className={`border rounded-lg p-4 ${
+                  challenge.status === 'pending' ? 'border-orange-200 bg-orange-50' : 'border-gray-200'
+                }`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${
+                          challenge.status === 'pending' 
+                            ? 'bg-orange-100 text-orange-800' 
+                            : challenge.status === 'approved'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {challenge.status.toUpperCase()}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          by {challenge.challenger?.name || 'Unknown'}
+                        </span>
                       </div>
-                    ) : (
-                      <div className="mb-2">
-                        <p className="text-sm text-gray-500 italic">Match details loading...</p>
-                        <p className="text-xs text-gray-400">Fixture ID: {result.fixture_id}</p>
-                      </div>
-                    )}
-                    
-                    {/* Score editing */}
-                    <div className="flex items-center space-x-4">
-                      {editingScore === result.id ? (
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">Score:</span>
-                          <input
-                            type="number"
-                            min="0"
-                            max="20"
-                            value={editForm.pair1_score}
-                            onChange={(e) => setEditForm({...editForm, pair1_score: e.target.value})}
-                            className="w-14 p-2 border border-gray-300 rounded text-center"
-                            disabled={loading}
-                          />
-                          <span className="text-gray-500">-</span>
-                          <input
-                            type="number"
-                            min="0"
-                            max="20"
-                            value={editForm.pair2_score}
-                            onChange={(e) => setEditForm({...editForm, pair2_score: e.target.value})}
-                            className="w-14 p-2 border border-gray-300 rounded text-center"
-                            disabled={loading}
-                          />
-                          <button
-                            onClick={() => handleSaveEdit(result.id)}
-                            disabled={loading || !editForm.pair1_score || !editForm.pair2_score}
-                            className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            disabled={loading}
-                            className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                      
+                      {challenge.fixture && (
+                        <div className="mb-2">
+                          <p className="font-medium text-sm">
+                            {challenge.fixture.player1?.name} & {challenge.fixture.player2?.name} 
+                            <span className="text-gray-500 mx-2">vs</span>
+                            {challenge.fixture.player3?.name} & {challenge.fixture.player4?.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Week {challenge.fixture.match?.week_number} - Court {challenge.fixture.court_number}
+                          </p>
                         </div>
-                      ) : (
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-gray-100 px-3 py-1 rounded">
-                            <span className="font-bold text-lg text-gray-800">
-                              {result.pair1_score} - {result.pair2_score}
-                            </span>
-                          </div>
-                          <span className="text-xs text-gray-500">
-                            Result ID: {result.id.substring(0, 8)}...
-                          </span>
+                      )}
+                      
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div className="bg-red-50 p-2 rounded">
+                          <p className="text-xs text-red-600 font-medium">Original Score:</p>
+                          <p className="font-bold text-red-800">
+                            {challenge.original_result?.pair1_score} - {challenge.original_result?.pair2_score}
+                          </p>
+                        </div>
+                        <div className="bg-blue-50 p-2 rounded">
+                          <p className="text-xs text-blue-600 font-medium">Challenged Score:</p>
+                          <p className="font-bold text-blue-800">
+                            {challenge.challenged_pair1_score} - {challenge.challenged_pair2_score}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 p-2 rounded">
+                        <p className="text-xs text-gray-600 font-medium">Reason:</p>
+                        <p className="text-sm">{challenge.challenge_reason}</p>
+                      </div>
+                      
+                      {challenge.admin_decision && (
+                        <div className="mt-2 bg-yellow-50 p-2 rounded">
+                          <p className="text-xs text-yellow-600 font-medium">Admin Decision:</p>
+                          <p className="text-sm">{challenge.admin_decision}</p>
                         </div>
                       )}
                     </div>
+                    
+                    {challenge.status === 'pending' && (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => resolveChallenge(challenge.id, 'approved', {
+                            pair1_score: challenge.challenged_pair1_score,
+                            pair2_score: challenge.challenged_pair2_score
+                          })}
+                          disabled={loading}
+                          className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+                          title="Approve challenge and update score"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => resolveChallenge(challenge.id, 'rejected')}
+                          disabled={loading}
+                          className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 disabled:opacity-50"
+                          title="Reject challenge and keep original score"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                   
-                  {editingScore !== result.id && (
-                    <button 
-                      onClick={() => handleEditScore(result)}
-                      disabled={loading}
-                      className="bg-[#5D1F1F] text-white p-1 rounded text-xs hover:bg-[#4A1818]"
-                    >
-                      <Edit className="w-3 h-3" />
-                    </button>
-                  )}
+                  <div className="text-xs text-gray-400">
+                    Submitted: {new Date(challenge.created_at).toLocaleString()}
+                    {challenge.resolved_at && (
+                      <span> • Resolved: {new Date(challenge.resolved_at).toLocaleString()}</span>
+                    )}
+                  </div>
                 </div>
-                
-                <div className="text-xs text-gray-400 mt-1 pt-1 border-t border-gray-100">
-                  ID: {result.id.substring(0, 8)}... | Submitted: {result.submitted_by || 'Unknown'}
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Conflicts Tab */}
+      {activeTab === 'conflicts' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h4 className="font-semibold mb-4 flex items-center">
+            <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
+            Score Conflicts ({conflicts.length})
+          </h4>
+          
+          {conflicts.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No score conflicts detected</p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Conflicts occur when two players submit different scores for the same match simultaneously.
+              </p>
+              {conflicts.map((conflict) => (
+                <div key={conflict.id} className="border border-red-200 bg-red-50 rounded-lg p-4">
+                  <p className="text-sm text-red-800">
+                    Conflict detected for fixture {conflict.fixture_id}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {new Date(conflict.created_at).toLocaleString()}
+                  </p>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Results Tab */}
+      {activeTab === 'results' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h4 className="font-semibold mb-4 flex items-center">
+            <Edit className="w-5 h-5 mr-2" />
+            Edit Match Results ({allResults.length})
+          </h4>
+          
+          {allResults.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No results to display</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {allResults.slice(0, 20).map((result) => (
+                <div key={result.id} className="border border-gray-200 rounded p-3 hover:bg-gray-50 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      {result.fixture ? (
+                        <div className="mb-2">
+                          <p className="font-medium text-sm text-gray-800">
+                            {result.fixture.player1?.name || 'Player 1'} & {result.fixture.player2?.name || 'Player 2'} 
+                            <span className="text-gray-500 mx-2">vs</span>
+                            {result.fixture.player3?.name || 'Player 3'} & {result.fixture.player4?.name || 'Player 4'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Week {result.fixture.match?.week_number || '?'} - Court {result.fixture.court_number || '?'}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="mb-2">
+                          <p className="text-sm text-gray-500 italic">Match details loading...</p>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center space-x-4">
+                        {editingScore === result.id ? (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-gray-600">Score:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="20"
+                              value={editForm.pair1_score}
+                              onChange={(e) => setEditForm({...editForm, pair1_score: e.target.value})}
+                              className="w-14 p-2 border border-gray-300 rounded text-center"
+                              disabled={loading}
+                            />
+                            <span className="text-gray-500">-</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="20"
+                              value={editForm.pair2_score}
+                              onChange={(e) => setEditForm({...editForm, pair2_score: e.target.value})}
+                              className="w-14 p-2 border border-gray-300 rounded text-center"
+                              disabled={loading}
+                            />
+                            <button
+                              onClick={() => handleSaveEdit(result.id)}
+                              disabled={loading || !editForm.pair1_score || !editForm.pair2_score}
+                              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              disabled={loading}
+                              className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-4">
+                            <div className="bg-gray-100 px-3 py-1 rounded">
+                              <span className="font-bold text-lg text-gray-800">
+                                {result.pair1_score} - {result.pair2_score}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {editingScore !== result.id && (
+                      <button 
+                        onClick={() => handleEditScore(result)}
+                        disabled={loading}
+                        className="bg-[#5D1F1F] text-white p-1 rounded text-xs hover:bg-[#4A1818]"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="text-xs text-gray-400 mt-1 pt-1 border-t border-gray-100">
+                    Submitted: {result.submitted_at ? new Date(result.submitted_at).toLocaleString() : 'Unknown'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
