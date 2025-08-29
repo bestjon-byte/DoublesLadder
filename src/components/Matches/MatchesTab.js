@@ -261,29 +261,33 @@ const MatchesTab = ({
                                       )}
                                     </div>
                                     
-                                    {/* Score Entry Button */}
-                                    {!existingScore && canEnterScore && matchStatus !== 'future-no-fixtures' && (
-                                      <button 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openScoreModal({
-                                            fixtureId: fixture.id,
-                                            pair1: pair1Names,
-                                            pair2: pair2Names
-                                          });
-                                        }}
-                                        className="text-xs bg-[#5D1F1F] text-white px-3 py-1 rounded hover:bg-[#4A1818]"
-                                      >
-                                        Enter Score
-                                      </button>
-                                    )}
-                                    
-                                    {/* Score Status */}
-                                    {existingScore && (
-                                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                        Complete
-                                      </span>
-                                    )}
+                                    {/* Score Entry/View Button - UPDATED */}
+{canEnterScore && matchStatus !== 'future-no-fixtures' && (
+  <button 
+    onClick={(e) => {
+      e.stopPropagation();
+      openScoreModal({
+        fixtureId: fixture.id,
+        pair1: pair1Names,
+        pair2: pair2Names
+      });
+    }}
+    className={`text-xs px-3 py-1 rounded transition-colors ${
+      existingScore 
+        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+        : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
+    }`}
+  >
+    {existingScore ? 'View/Challenge' : 'Enter Score'}
+  </button>
+)}
+
+{/* Score Status for non-players */}
+{existingScore && !canEnterScore && (
+  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+    Complete
+  </span>
+)}
                                   </div>
                                 );
                               })}
