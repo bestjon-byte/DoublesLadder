@@ -12,6 +12,24 @@ const EnhancedScoreModal = ({
   getMatchScore,
   onChallengeScore 
 }) => {
+
+  // TEMPORARY DEBUG - add this after line 14 in EnhancedScoreModal.js
+console.log('🐛 DEBUG INFO:', {
+  selectedMatch,
+  currentUser: currentUser?.name,
+  existingScore: !!existingScore,
+  showChallenge,
+  canUserEnterScore
+});
+
+if (selectedMatch) {
+  console.log('🎾 Match players:', {
+    pair1: selectedMatch.pair1,
+    pair2: selectedMatch.pair2,
+    currentUserName: currentUser?.name,
+    isUserInMatch: [selectedMatch.pair1, selectedMatch.pair2].flat().includes(currentUser?.name)
+  });
+}
   const [pair1Score, setPair1Score] = useState('');
   const [pair2Score, setPair2Score] = useState('');
   const [loading, setLoading] = useState(false);
