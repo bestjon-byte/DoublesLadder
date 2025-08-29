@@ -1,10 +1,6 @@
-// src/App.js - FIXED password reset handling v2
+// src/App.js - FIXED AUTH SYSTEM
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-
-// src/components/Admin/AdminTab.js
-
-import { Check } from 'lucide-react';
 
 // Component imports
 import AuthScreen from './components/Auth/AuthScreen';
@@ -16,9 +12,6 @@ import AvailabilityTab from './components/Availability/AvailabilityTab';
 import AdminTab from './components/Admin/AdminTab';
 import ScheduleModal from './components/Modals/ScheduleModal';
 import ScoreModal from './components/Modals/ScoreModal';
-import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
-import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/scoreSubmission';
-import ScoreChallengesSection from './components/Admin/ScoreChallengesSection';
 
 const TennisLadderApp = () => {
   // State variables
@@ -35,153 +28,146 @@ const TennisLadderApp = () => {
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
-  const [isPasswordReset, setIsPasswordReset] = useState(false);
+  const [authMode, setAuthMode] = useState('normal'); // 'normal' | 'reset'
 
-  // Check for password reset on mount
   useEffect(() => {
-    console.log('🚀 APP.JS VERSION 2.0 - PASSWORD RESET FIX');
-    let isInPasswordResetMode = false;
-    
-    const checkForPasswordReset = async () => {
-      console.log('🔍 Checking for password reset tokens...');
+    console.log('🚀 App starting - initializing auth...');
+    initializeAuth();
+  }, []);
+
+  const initializeAuth = async () => {
+    try {
+      // Check for password reset first
+      const isPasswordReset = checkForPasswordReset();
       
-      // Check URL hash for recovery tokens
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const type = hashParams.get('type');
-      const accessToken = hashParams.get('access_token');
-      
-      if (type === 'recovery' && accessToken) {
-        console.log('🔑 Password reset detected!');
-        isInPasswordResetMode = true;
-        setIsPasswordReset(true);
+      if (isPasswordReset) {
+        console.log('🔑 Password reset mode detected');
+        setAuthMode('reset');
         setLoading(false);
-        // Don't try to load normal session data
         return;
       }
 
       // Normal session check
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ Error getting session:', error);
-          setLoading(false);
-          return;
-        }
-        
-        if (session && !session.user?.recovery_sent_at) {
-          console.log('✅ Normal session found for:', session.user.email);
-          await fetchUserProfile(session.user.id);
-        } else {
-          console.log('ℹ️ No session found');
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('💥 Unexpected error:', err);
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('❌ Session error:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (session) {
+        console.log('✅ Valid session found');
+        await loadUserAndData(session.user.id);
+      } else {
+        console.log('ℹ️ No session - showing login');
         setLoading(false);
       }
-    };
 
-    checkForPasswordReset();
-
-    // Set up auth listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth event:', event, session?.user?.email);
+      // Set up auth listener
+      setupAuthListener();
       
-      if (event === 'PASSWORD_RECOVERY') {
-        console.log('🔑 Password recovery mode');
-        isInPasswordResetMode = true;
-        setIsPasswordReset(true);
-        setCurrentUser(null);
-        setLoading(false);
-      } else if (event === 'SIGNED_IN' && session) {
-        // Check if this is a recovery session
-        if (session.user?.recovery_sent_at || isInPasswordResetMode) {
-          console.log('🔑 Recovery session detected');
-          isInPasswordResetMode = true;
-          setIsPasswordReset(true);
+    } catch (error) {
+      console.error('💥 Auth initialization failed:', error);
+      setLoading(false);
+    }
+  };
+
+  const checkForPasswordReset = () => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    return hashParams.get('type') === 'recovery' && hashParams.get('access_token');
+  };
+
+  const setupAuthListener = () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Auth event:', event);
+      
+      switch (event) {
+        case 'SIGNED_IN':
+          if (session && !checkForPasswordReset()) {
+            console.log('✅ User signed in');
+            await loadUserAndData(session.user.id);
+          }
+          break;
+          
+        case 'SIGNED_OUT':
+          console.log('👋 User signed out');
+          resetAppState();
+          break;
+          
+        case 'PASSWORD_RECOVERY':
+          console.log('🔑 Password recovery triggered');
+          setAuthMode('reset');
           setCurrentUser(null);
           setLoading(false);
-        } else {
-          console.log('✅ Normal sign in');
-          isInPasswordResetMode = false;
-          setIsPasswordReset(false);
-          await fetchUserProfile(session.user.id);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        console.log('👋 User signed out');
-        setCurrentUser(null);
-        isInPasswordResetMode = false;
-        setIsPasswordReset(false);
-        setLoading(false);
-      } else if (event === 'USER_UPDATED') {
-        console.log('🔔 USER_UPDATED EVENT FIRED');
-        console.log('🔍 Password reset mode check:', { isInPasswordResetMode });
-        console.log('🔍 URL hash:', window.location.hash);
-        console.log('🔍 Session recovery timestamp:', session?.user?.recovery_sent_at);
-        
-        // DO NOT FETCH PROFILE DURING PASSWORD RESET
-        if (isInPasswordResetMode || 
-            window.location.hash.includes('recovery') || 
-            session?.user?.recovery_sent_at) {
-          console.log('🛑 BLOCKING PROFILE FETCH - PASSWORD RESET IN PROGRESS');
-          return;
-        }
-        
-        console.log('✅ Safe to fetch profile - not in password reset mode');
-        if (session) {
-          await fetchUserProfile(session.user.id);
-        }
+          break;
+          
+        default:
+          // Handle other events if needed
+          break;
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  };
 
-  const fetchUserProfile = async (userId) => {
+  const loadUserAndData = async (userId) => {
     try {
-      console.log('📱 fetchUserProfile called for:', userId);
+      console.log('📱 Loading user profile and data...');
       
-      // FINAL SAFETY CHECK
-      if (window.location.hash.includes('recovery')) {
-        console.log('🛑 EMERGENCY STOP: Recovery hash detected in fetchUserProfile');
-        setLoading(false);
-        return;
-      }
-      
-      const { data, error } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
       if (error) {
-        console.error('❌ Error fetching profile:', error);
+        console.error('❌ Profile error:', error);
         setLoading(false);
         return;
       }
 
-      if (data) {
-        console.log('✅ Profile loaded:', data.name);
-        setCurrentUser(data);
-        
-        // Load all app data
-        await Promise.all([
-          fetchUsers(),
-          fetchSeasons(),
-          fetchAvailability(),
-          fetchMatchFixtures(),
-          fetchMatchResults()
-        ]);
-      }
+      setCurrentUser(profile);
+      console.log('✅ Profile loaded:', profile.name);
+
+      // Load all app data in parallel
+      await Promise.all([
+        fetchUsers(),
+        fetchSeasons(),
+        fetchAvailability(),
+        fetchMatchFixtures(),
+        fetchMatchResults()
+      ]);
+      
     } catch (error) {
-      console.error('💥 Error in fetchUserProfile:', error);
-      setLoading(false);
+      console.error('💥 Data loading failed:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const resetAppState = () => {
+    setCurrentUser(null);
+    setUsers([]);
+    setSeasons([]);
+    setCurrentSeason(null);
+    setAvailability([]);
+    setMatchFixtures([]);
+    setMatchResults([]);
+    setAuthMode('normal');
+    setLoading(false);
+  };
+
+  const handlePasswordResetComplete = () => {
+    console.log('✅ Password reset complete');
+    setAuthMode('normal');
+    // Clear any reset tokens from URL
+    if (window.location.hash) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  };
+
+  // Data fetching functions (unchanged from original)
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
@@ -265,9 +251,7 @@ const TennisLadderApp = () => {
 
   const fetchAvailability = async () => {
     try {
-      const { data } = await supabase
-        .from('availability')
-        .select('*');
+      const { data } = await supabase.from('availability').select('*');
       if (data) setAvailability(data);
     } catch (error) {
       console.error('Error fetching availability:', error);
@@ -294,15 +278,14 @@ const TennisLadderApp = () => {
 
   const fetchMatchResults = async () => {
     try {
-      const { data } = await supabase
-        .from('match_results')
-        .select('*');
+      const { data } = await supabase.from('match_results').select('*');
       if (data) setMatchResults(data);
     } catch (error) {
       console.error('Error fetching results:', error);
     }
   };
 
+  // All other functions remain the same...
   const addMatchToSeason = async () => {
     if (!newMatchDate) {
       alert('Please select a date for the match');
@@ -738,14 +721,7 @@ const TennisLadderApp = () => {
     await supabase.auth.signOut();
   };
 
-  const handlePasswordResetComplete = () => {
-    console.log('✅ Password reset complete, returning to normal');
-    setIsPasswordReset(false);
-    // Force a fresh start
-    window.location.href = '/';
-  };
-
-  // Loading state
+  // Render logic
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -754,20 +730,15 @@ const TennisLadderApp = () => {
     );
   }
 
-  // Password reset mode - show auth screen in special mode
-  if (isPasswordReset) {
+  // Show auth screen for password reset or no user
+  if (authMode === 'reset' || !currentUser) {
     return (
       <AuthScreen 
         onAuthChange={setCurrentUser}
-        isPasswordReset={true}
+        isPasswordReset={authMode === 'reset'}
         onPasswordResetComplete={handlePasswordResetComplete}
       />
     );
-  }
-
-  // Not logged in - show normal auth
-  if (!currentUser) {
-    return <AuthScreen onAuthChange={setCurrentUser} />;
   }
 
   // Main app

@@ -1,4 +1,4 @@
-// src/components/Auth/AuthScreen.js - FIXED password reset handling
+// src/components/Auth/AuthScreen.js - SIMPLIFIED AND FIXED
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import PasswordReset from './PasswordReset';
@@ -14,14 +14,14 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
   });
 
   useEffect(() => {
-    // If we're in password reset mode, show the update form
     if (isPasswordReset) {
       console.log('🔑 AuthScreen: Password reset mode activated');
       setAuthMode('update');
     }
   }, [isPasswordReset]);
 
-  const handleAuth = async () => {
+  const handleAuth = async (e) => {
+    e.preventDefault();
     setLoading(true);
     
     try {
@@ -47,7 +47,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
           onAuthChange(profile);
         }
       } else if (authMode === 'register') {
-        console.log('📝 Attempting registration');
+        console.log('📝 Attempting registration for:', authForm.email);
         
         const { data, error } = await supabase.auth.signUp({
           email: authForm.email,
@@ -66,6 +66,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
           console.log('✅ Registration successful');
           alert('Registration successful! Please wait for admin approval.');
           setAuthMode('login');
+          setAuthForm({ email: '', password: '', name: '' });
         }
       }
     } catch (err) {
@@ -73,7 +74,6 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
       alert('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
-      setAuthForm({ email: '', password: '', name: '' });
     }
   };
 
@@ -124,24 +124,28 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
 
         <div className="flex rounded-lg bg-gray-100 p-1 mb-6">
           <button
+            type="button"
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               authMode === 'login' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
             }`}
             onClick={() => setAuthMode('login')}
+            disabled={loading}
           >
             Sign In
           </button>
           <button
+            type="button"
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
               authMode === 'register' ? 'bg-white text-gray-900 shadow' : 'text-gray-600'
             }`}
             onClick={() => setAuthMode('register')}
+            disabled={loading}
           >
             Sign Up
           </button>
         </div>
 
-        <div className="space-y-4">
+        <form onSubmit={handleAuth} className="space-y-4">
           {authMode === 'register' && (
             <input
               type="text"
@@ -172,17 +176,18 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
             disabled={loading}
           />
           <button
-            onClick={handleAuth}
+            type="submit"
             disabled={loading}
             className="w-full bg-[#5D1F1F] text-white py-3 rounded-md hover:bg-[#4A1818] transition-colors font-medium disabled:opacity-50"
           >
             {loading ? 'Loading...' : (authMode === 'login' ? 'Sign In' : 'Sign Up')}
           </button>
-        </div>
+        </form>
 
         {authMode === 'login' && (
           <div className="mt-4 text-center">
             <button
+              type="button"
               onClick={() => setAuthMode('reset')}
               className="text-[#5D1F1F] hover:text-[#4A1818] text-sm transition-colors"
               disabled={loading}
