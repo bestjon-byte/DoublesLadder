@@ -1,4 +1,4 @@
-// src/App.js - FIXED VERSION (Hooks called before any returns)
+// src/App.js - PRODUCTION VERSION
 import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useApp } from './hooks/useApp';
@@ -14,27 +14,12 @@ import AvailabilityTab from './components/Availability/AvailabilityTab';
 import AdminTab from './components/Admin/AdminTab';
 import ScheduleModal from './components/Modals/ScheduleModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
-
-// TEMPORARY: Simple fallback components if the shared ones don't exist yet
-const LoadingScreen = () => (
-  <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center">
-    <div className="bg-white rounded-lg shadow-xl p-8">
-      <h2 className="text-xl font-semibold text-gray-800 mb-2">Loading...</h2>
-    </div>
-  </div>
-);
-
-const ErrorBoundary = ({ children }) => children;
+import LoadingScreen from './components/shared/LoadingScreen';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 
 const TennisLadderApp = () => {
-  console.log('🚀 App.js starting...');
-  
-  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONS OR RETURNS
-  
   // Authentication hook
   const authData = useAuth();
-  
-  // Extract auth data with defaults
   const { 
     user = null, 
     loading: authLoading = true, 
@@ -42,10 +27,8 @@ const TennisLadderApp = () => {
     actions: authActions = {}
   } = authData || {};
   
-  // App data hook - ALWAYS call it, even if user is null
+  // App data hook
   const appData = useApp(user?.id);
-  
-  // Extract app data with defaults
   const {
     users = [],
     currentSeason = null,
@@ -59,31 +42,20 @@ const TennisLadderApp = () => {
     refetch = {}
   } = appData || {};
 
-  // UI State - ALL useState hooks called unconditionally
+  // UI State
   const [activeTab, setActiveTab] = useState('ladder');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
 
-  // Debug logging AFTER all hooks are called
-  console.log('✅ Auth data received:', authData);
-  console.log('👤 User:', user);
-  console.log('⏳ Auth loading:', authLoading);
-  console.log('✅ App data received:', appData);
-  console.log('👥 Users count:', users.length);
-  console.log('📅 Current season:', currentSeason);
-  console.log('⏳ Data loading:', dataLoading);
-
-  // Check for hook failures AFTER calling all hooks
+  // Check for hook failures
   if (!authData) {
-    console.error('❌ useAuth returned undefined or null!');
-    return <div className="p-4 bg-red-100">Error: useAuth hook failed</div>;
+    return <div className="p-4 bg-red-100">Error: Authentication service unavailable</div>;
   }
   
   if (!appData) {
-    console.error('❌ useApp returned undefined or null!');
-    return <div className="p-4 bg-red-100">Error: useApp hook failed</div>;
+    return <div className="p-4 bg-red-100">Error: Application data service unavailable</div>;
   }
 
   // Score submission handler
@@ -91,8 +63,6 @@ const TennisLadderApp = () => {
     if (!selectedMatch) return;
     
     try {
-      console.log('🎾 Submitting score...');
-      
       const result = await submitScoreWithConflictHandling(
         selectedMatch.fixtureId,
         pair1Score,
@@ -106,7 +76,6 @@ const TennisLadderApp = () => {
       
       return result;
     } catch (error) {
-      console.error('💥 Score submission failed:', error);
       throw error;
     }
   };
@@ -114,8 +83,6 @@ const TennisLadderApp = () => {
   // Score challenge handler
   const handleScoreChallenge = async (challengeData) => {
     try {
-      console.log('🚩 Submitting challenge...');
-      
       await submitScoreChallenge({
         ...challengeData,
         challengerId: user.id
@@ -126,7 +93,6 @@ const TennisLadderApp = () => {
       
       return { success: true };
     } catch (error) {
-      console.error('💥 Challenge submission failed:', error);
       throw error;
     }
   };
@@ -149,18 +115,14 @@ const TennisLadderApp = () => {
 
   // Loading state
   if (authLoading || dataLoading?.initial) {
-    console.log('🔄 Showing loading screen...');
     return <LoadingScreen />;
   }
 
   // Password reset mode
   if (authMode === 'reset') {
-    console.log('🔑 Password reset mode');
     return (
       <AuthScreen 
-        onAuthChange={(profile) => {
-          console.log('Auth change:', profile);
-        }}
+        onAuthChange={() => {}}
         isPasswordReset={true}
         onPasswordResetComplete={() => {
           if (authActions?.setAuthMode) {
@@ -173,17 +135,8 @@ const TennisLadderApp = () => {
 
   // Not authenticated
   if (!user) {
-    console.log('🔒 Not authenticated, showing login');
-    return (
-      <AuthScreen 
-        onAuthChange={(profile) => {
-          console.log('Auth change:', profile);
-        }}
-      />
-    );
+    return <AuthScreen onAuthChange={() => {}} />;
   }
-
-  console.log('✨ Rendering main app');
 
   // Main app
   return (
@@ -191,7 +144,7 @@ const TennisLadderApp = () => {
       <div className="min-h-screen bg-gray-50">
         <Header 
           currentUser={user} 
-          onSignOut={authActions?.signOut || (() => console.log('Sign out not available'))} 
+          onSignOut={authActions?.signOut || (() => {})} 
         />
         
         <Navigation 
@@ -201,7 +154,6 @@ const TennisLadderApp = () => {
         />
         
         <main className="max-w-7xl mx-auto px-4 py-6">
-          {/* Ladder Tab */}
           {activeTab === 'ladder' && (
             <LadderTab 
               currentUser={user}
@@ -210,7 +162,6 @@ const TennisLadderApp = () => {
             />
           )}
 
-          {/* Matches Tab */}
           {activeTab === 'matches' && (
             <MatchesTab 
               currentUser={user}
@@ -227,7 +178,6 @@ const TennisLadderApp = () => {
             />
           )}
 
-          {/* Availability Tab */}
           {activeTab === 'availability' && (
             <AvailabilityTab 
               currentUser={user}
@@ -244,7 +194,6 @@ const TennisLadderApp = () => {
             />
           )}
 
-          {/* Admin Tab */}
           {activeTab === 'admin' && user?.role === 'admin' && (
             <AdminTab 
               users={users}
@@ -252,7 +201,7 @@ const TennisLadderApp = () => {
               currentSeason={currentSeason}
               approveUser={actions?.approveUser || (() => alert('Approve user not available'))}
               addToLadder={actions?.addToLadder || (() => alert('Add to ladder not available'))}
-              fetchUsers={refetch?.users || (() => console.log('Fetch users not available'))}
+              fetchUsers={refetch?.users || (() => {})}
               setPlayerAvailability={actions?.setPlayerAvailability || (() => {})}
               getPlayerAvailability={helpers?.getPlayerAvailability || (() => undefined)}
               getAvailabilityStats={helpers?.getAvailabilityStats || (() => ({ total: 0, available: 0, responded: 0, pending: 0 }))}
