@@ -1,4 +1,4 @@
-// src/components/Matches/MatchesTab.js
+// src/components/Matches/MatchesTab.js - FIXED for today's dates
 import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -29,7 +29,10 @@ const MatchesTab = ({
   // Helper function to determine match status
   const getMatchStatus = (match) => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
+    
     const matchDate = new Date(match.match_date);
+    matchDate.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
     
     const hasFixtures = matchFixtures.some(f => f.match_id === match.id);
     
@@ -117,6 +120,13 @@ const MatchesTab = ({
             const shouldStartCollapsed = isCompleted || matchStatus === 'past-no-fixtures';
             const actuallyExpanded = expandedMatches[match.id] ?? !shouldStartCollapsed;
             
+            // Updated date comparison for status display
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const matchDate = new Date(match.match_date);
+            matchDate.setHours(0, 0, 0, 0);
+            const isPastDate = matchDate < today;
+            
             return (
               <div key={match.id} className="bg-white rounded-lg shadow">
                 {/* Collapsible Header */}
@@ -132,7 +142,14 @@ const MatchesTab = ({
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
                         <h3 className="text-lg font-semibold">Week {match.week_number}</h3>
-                        <p className="text-gray-600">{new Date(match.match_date).toLocaleDateString('en-GB')}</p>
+                        <p className="text-gray-600">{matchDate.toLocaleDateString('en-GB')}</p>
+                        
+                        {/* Updated status indicators to show "Today" specially */}
+                        {matchDate.getTime() === today.getTime() && (
+                          <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                            📅 Today
+                          </span>
+                        )}
                         
                         {/* Match Status Indicator */}
                         {matchStatus === 'completed' && (
@@ -166,7 +183,7 @@ const MatchesTab = ({
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      {/* Admin Controls - Always visible */}
+                      {/* Admin Controls - Always visible - FIXED: Allow today's matches */}
                       {isAdmin && matchStatus === 'future-no-fixtures' && stats.available >= 4 && (
                         <button
                           onClick={(e) => {
@@ -199,6 +216,11 @@ const MatchesTab = ({
                           <div>Availability: {stats.available} available, {stats.pending} pending response</div>
                           {isAdmin && stats.available < 4 && (
                             <div className="text-red-600 mt-1">Need at least 4 players to generate matches</div>
+                          )}
+                          {isAdmin && stats.available >= 4 && (
+                            <div className="text-green-600 mt-1 font-medium">
+                              Ready to generate matches! {matchDate.getTime() === today.getTime() ? '(Today\'s match)' : ''}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -261,33 +283,33 @@ const MatchesTab = ({
                                       )}
                                     </div>
                                     
-                                    {/* Score Entry/View Button - UPDATED */}
-{canEnterScore && matchStatus !== 'future-no-fixtures' && (
-  <button 
-    onClick={(e) => {
-      e.stopPropagation();
-      openScoreModal({
-        fixtureId: fixture.id,
-        pair1: pair1Names,
-        pair2: pair2Names
-      });
-    }}
-    className={`text-xs px-3 py-1 rounded transition-colors ${
-      existingScore 
-        ? 'bg-blue-600 text-white hover:bg-blue-700' 
-        : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
-    }`}
-  >
-    {existingScore ? 'View/Challenge' : 'Enter Score'}
-  </button>
-)}
+                                    {/* Score Entry/View Button */}
+                                    {canEnterScore && matchStatus !== 'future-no-fixtures' && (
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openScoreModal({
+                                            fixtureId: fixture.id,
+                                            pair1: pair1Names,
+                                            pair2: pair2Names
+                                          });
+                                        }}
+                                        className={`text-xs px-3 py-1 rounded transition-colors ${
+                                          existingScore 
+                                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                            : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
+                                        }`}
+                                      >
+                                        {existingScore ? 'View/Challenge' : 'Enter Score'}
+                                      </button>
+                                    )}
 
-{/* Score Status for non-players */}
-{existingScore && !canEnterScore && (
-  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-    Complete
-  </span>
-)}
+                                    {/* Score Status for non-players */}
+                                    {existingScore && !canEnterScore && (
+                                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                        Complete
+                                      </span>
+                                    )}
                                   </div>
                                 );
                               })}

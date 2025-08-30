@@ -1,4 +1,4 @@
-// src/components/Admin/AdminTab.js - COMPLETE VERSION
+// src/components/Admin/AdminTab.js - COMPLETE FIXED VERSION
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import ScoreChallengesSection from './ScoreChallengesSection';
@@ -157,7 +157,7 @@ const AdminTab = ({
         </div>
       )}
 
-      {/* Availability Overview */}
+      {/* Availability Overview - FIXED DATE LOGIC */}
       {currentSeason?.matches && (
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">Availability Overview</h3>
@@ -166,14 +166,28 @@ const AdminTab = ({
             {currentSeason.matches.map((match) => {
               const stats = getAvailabilityStats(match.id);
               const matchComplete = isMatchComplete(match.id);
+              
+              // FIXED: Proper date comparison that treats today as valid
+              const today = new Date();
+              today.setHours(0, 0, 0, 0); // Reset to start of day
               const matchDate = new Date(match.match_date);
-              const isPast = matchDate < new Date();
+              matchDate.setHours(0, 0, 0, 0); // Reset to start of day
+              const isPast = matchDate < today; // Now only truly past dates are considered "past"
+              
+              const isToday = matchDate.getTime() === today.getTime();
               
               return (
                 <div key={match.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-medium">Week {match.week_number} - {matchDate.toLocaleDateString('en-GB')}</h4>
+                      <h4 className="font-medium flex items-center space-x-2">
+                        <span>Week {match.week_number} - {matchDate.toLocaleDateString('en-GB')}</span>
+                        {isToday && (
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-normal">
+                            📅 Today
+                          </span>
+                        )}
+                      </h4>
                       <div className="mt-2 space-y-1 text-sm text-gray-600">
                         <div>Available: <span className="font-medium text-green-600">{stats.available}</span></div>
                         <div>Responded: <span className="font-medium">{stats.responded}/{stats.total}</span></div>
@@ -191,7 +205,7 @@ const AdminTab = ({
                         </span>
                       ) : stats.available >= 4 ? (
                         <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                          Ready to Schedule
+                          {isToday ? '🎾 Ready to Schedule (Today!)' : 'Ready to Schedule'}
                         </span>
                       ) : (
                         <span className="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
