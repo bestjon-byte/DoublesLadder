@@ -1,4 +1,4 @@
-// src/App.js - DEBUG VERSION TO FIND THE ERROR
+// src/App.js - FIXED VERSION (Hooks called before any returns)
 import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useApp } from './hooks/useApp';
@@ -27,41 +27,25 @@ const LoadingScreen = () => (
 const ErrorBoundary = ({ children }) => children;
 
 const TennisLadderApp = () => {
-  // DEBUG: Log everything to find the error
   console.log('🚀 App.js starting...');
   
-  // Authentication - with debug logging
-  console.log('📍 Calling useAuth...');
+  // ALL HOOKS MUST BE CALLED BEFORE ANY CONDITIONS OR RETURNS
+  
+  // Authentication hook
   const authData = useAuth();
-  console.log('✅ Auth data received:', authData);
   
-  // Check if auth hook returned something
-  if (!authData) {
-    console.error('❌ useAuth returned undefined or null!');
-    return <div className="p-4 bg-red-100">Error: useAuth hook failed</div>;
-  }
-  
+  // Extract auth data with defaults
   const { 
     user = null, 
     loading: authLoading = true, 
     authMode = 'normal', 
     actions: authActions = {}
-  } = authData;
+  } = authData || {};
   
-  console.log('👤 User:', user);
-  console.log('⏳ Auth loading:', authLoading);
-  
-  // App data and business logic - with debug logging
-  console.log('📍 Calling useApp with userId:', user?.id);
+  // App data hook - ALWAYS call it, even if user is null
   const appData = useApp(user?.id);
-  console.log('✅ App data received:', appData);
   
-  // Check if app hook returned something
-  if (!appData) {
-    console.error('❌ useApp returned undefined or null!');
-    return <div className="p-4 bg-red-100">Error: useApp hook failed</div>;
-  }
-  
+  // Extract app data with defaults
   const {
     users = [],
     currentSeason = null,
@@ -73,18 +57,34 @@ const TennisLadderApp = () => {
     actions = {},
     helpers = {},
     refetch = {}
-  } = appData;
-  
-  console.log('👥 Users count:', users.length);
-  console.log('📅 Current season:', currentSeason);
-  console.log('⏳ Data loading:', dataLoading);
+  } = appData || {};
 
-  // UI State
+  // UI State - ALL useState hooks called unconditionally
   const [activeTab, setActiveTab] = useState('ladder');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
+
+  // Debug logging AFTER all hooks are called
+  console.log('✅ Auth data received:', authData);
+  console.log('👤 User:', user);
+  console.log('⏳ Auth loading:', authLoading);
+  console.log('✅ App data received:', appData);
+  console.log('👥 Users count:', users.length);
+  console.log('📅 Current season:', currentSeason);
+  console.log('⏳ Data loading:', dataLoading);
+
+  // Check for hook failures AFTER calling all hooks
+  if (!authData) {
+    console.error('❌ useAuth returned undefined or null!');
+    return <div className="p-4 bg-red-100">Error: useAuth hook failed</div>;
+  }
+  
+  if (!appData) {
+    console.error('❌ useApp returned undefined or null!');
+    return <div className="p-4 bg-red-100">Error: useApp hook failed</div>;
+  }
 
   // Score submission handler
   const submitScore = async (pair1Score, pair2Score) => {
