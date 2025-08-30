@@ -1,7 +1,8 @@
-// src/App.js - PRODUCTION VERSION
+// src/App.js - PRODUCTION VERSION WITH MULTI-SEASON
 import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useApp } from './hooks/useApp';
+import { useSeasonManager } from './hooks/useSeasonManager';
 import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/scoreSubmission';
 
 // Components
@@ -16,6 +17,7 @@ import ScheduleModal from './components/Modals/ScheduleModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
+import SeasonSelector from './components/Season/SeasonSelector';
 
 const TennisLadderApp = () => {
   // Authentication hook
@@ -27,10 +29,21 @@ const TennisLadderApp = () => {
     actions: authActions = {}
   } = authData || {};
   
-  // App data hook
-  const appData = useApp(user?.id);
+  // NEW: Season management hook
+  const seasonData = useSeasonManager();
   const {
-    users = [],
+    seasons = [],
+    activeSeason = null,
+    selectedSeason = null,
+    loading: seasonLoading = true,
+    actions: seasonActions = {}
+  } = seasonData || {};
+  
+  // App data hook - NOW INCLUDES selectedSeason.id
+  const appData = useApp(user?.id, selectedSeason?.id);
+  const {
+    ladderPlayers = [], // NEW: Season-specific players for ladder
+    allUsers = [], // NEW: All users for admin management
     currentSeason = null,
     availability = [],
     matchFixtures = [],
@@ -50,12 +63,8 @@ const TennisLadderApp = () => {
   const [newMatchDate, setNewMatchDate] = useState('');
 
   // Check for hook failures
-  if (!authData) {
-    return <div className="p-4 bg-red-100">Error: Authentication service unavailable</div>;
-  }
-  
-  if (!appData) {
-    return <div className="p-4 bg-red-100">Error: Application data service unavailable</div>;
+  if (!authData || !seasonData || !appData) {
+    return <div className="p-4 bg-red-100">Error: Service unavailable</div>;
   }
 
   // Score submission handler
@@ -114,7 +123,7 @@ const TennisLadderApp = () => {
   };
 
   // Loading state
-  if (authLoading || dataLoading?.initial) {
+  if (authLoading || seasonLoading || dataLoading?.initial) {
     return <LoadingScreen />;
   }
 
@@ -142,10 +151,48 @@ const TennisLadderApp = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
-        <Header 
-          currentUser={user} 
-          onSignOut={authActions?.signOut || (() => {})} 
-        />
+        {/* UPDATED Header with SeasonSelector */}
+        <header className="bg-[#5D1F1F] text-white shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-3">
+                  <img 
+                    src="/club-logo.png" 
+                    alt="Cawood Tennis Club" 
+                    className="w-10 h-10 rounded-full bg-white p-0.5 shadow object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                  <div className="w-10 h-10 bg-[#4A1818] rounded-full flex items-center justify-center shadow" style={{display: 'none'}}>
+                    <span className="text-white font-bold text-lg">C</span>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold">Cawood Tennis Club</h1>
+                    <p className="text-red-100 text-sm">Welcome, {user?.name}</p>
+                  </div>
+                </div>
+
+                {/* NEW: Season Selector */}
+                <SeasonSelector 
+                  seasons={seasons}
+                  selectedSeason={selectedSeason}
+                  onSeasonSelect={seasonActions?.setSelectedSeason}
+                  loading={seasonLoading}
+                />
+              </div>
+              
+              <button
+                onClick={authActions?.signOut || (() => {})}
+                className="text-red-100 hover:text-white text-sm transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </header>
         
         <Navigation 
           activeTab={activeTab} 
@@ -157,20 +204,21 @@ const TennisLadderApp = () => {
           {activeTab === 'ladder' && (
             <LadderTab 
               currentUser={user}
-              users={users}
+              users={ladderPlayers} // CHANGED: Use ladderPlayers
               updateRankings={actions?.updateRankings || (() => alert('Update rankings not available'))}
+              selectedSeason={selectedSeason} // NEW: Pass selected season
             />
           )}
 
           {activeTab === 'matches' && (
             <MatchesTab 
               currentUser={user}
-              currentSeason={currentSeason}
+              currentSeason={selectedSeason} // CHANGED: Use selectedSeason
               setShowScheduleModal={setShowScheduleModal}
               matchFixtures={matchFixtures}
               matchResults={matchResults}
               availability={availability}
-              users={users}
+              users={allUsers} // CHANGED: Use allUsers for match generation
               generateMatches={actions?.generateMatches || (() => alert('Generate matches not available'))}
               openScoreModal={openScoreModal}
               getAvailabilityStats={helpers?.getAvailabilityStats || (() => ({ total: 0, available: 0, responded: 0, pending: 0 }))}
@@ -181,7 +229,7 @@ const TennisLadderApp = () => {
           {activeTab === 'availability' && (
             <AvailabilityTab 
               currentUser={user}
-              currentSeason={currentSeason}
+              currentSeason={selectedSeason} // CHANGED: Use selectedSeason
               getPlayerAvailability={helpers?.getPlayerAvailability || (() => undefined)}
               setPlayerAvailability={(matchId, available) => {
                 if (actions?.setPlayerAvailability) {
@@ -196,9 +244,9 @@ const TennisLadderApp = () => {
 
           {activeTab === 'admin' && user?.role === 'admin' && (
             <AdminTab 
-              users={users}
+              users={allUsers} // CHANGED: Use allUsers
               currentUser={user}
-              currentSeason={currentSeason}
+              currentSeason={selectedSeason} // CHANGED: Use selectedSeason
               approveUser={actions?.approveUser || (() => alert('Approve user not available'))}
               addToLadder={actions?.addToLadder || (() => alert('Add to ladder not available'))}
               fetchUsers={refetch?.users || (() => {})}
@@ -208,6 +256,10 @@ const TennisLadderApp = () => {
               clearOldMatches={actions?.clearOldMatches || (() => alert('Clear matches not available'))}
               matchFixtures={matchFixtures}
               matchResults={matchResults}
+              // NEW: Season management props
+              activeSeason={activeSeason}
+              selectedSeason={selectedSeason}
+              seasonActions={seasonActions}
             />
           )}
         </main>
