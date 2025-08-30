@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useApp } from './hooks/useApp';
 import { useSeasonManager } from './hooks/useSeasonManager';
-
-console.log('useSeasonManager imported:', useSeasonManager);
+console.log('useSeasonManager imported:', useSeasonManager); // Add this line
 
 import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/scoreSubmission';
 
