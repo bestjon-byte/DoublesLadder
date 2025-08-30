@@ -3,8 +3,6 @@ import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useApp } from './hooks/useApp';
 import { useSeasonManager } from './hooks/useSeasonManager';
-console.log('useSeasonManager imported:', useSeasonManager); // Add this line
-
 import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/scoreSubmission';
 
 // Components
@@ -20,6 +18,8 @@ import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import SeasonSelector from './components/Season/SeasonSelector';
+
+console.log('useSeasonManager imported:', useSeasonManager); // Debug line
 
 const TennisLadderApp = () => {
   // Authentication hook
