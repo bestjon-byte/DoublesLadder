@@ -19,8 +19,6 @@ import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import SeasonSelector from './components/Season/SeasonSelector';
 
-console.log('useSeasonManager imported:', useSeasonManager); // Debug line
-
 const TennisLadderApp = () => {
   // Authentication hook
   const authData = useAuth();

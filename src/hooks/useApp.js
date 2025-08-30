@@ -72,7 +72,7 @@ export const useApp = (userId, selectedSeasonId) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('rank', { ascending: true, nullsLast: true });
+        .order('name', { ascending: true }); // Changed from rank to name
 
       if (error) throw error;
       updateData('users', data || []);
@@ -343,32 +343,48 @@ export const useApp = (userId, selectedSeasonId) => {
       return { success: false };
     }
     
-    if (!state.currentSeason) {
+    // Find current active season
+    const { data: activeSeason } = await supabase
+      .from('seasons')
+      .select('*')
+      .eq('status', 'active')
+      .single();
+    
+    if (!activeSeason) {
       alert('No active season found');
       return { success: false };
     }
     
     try {
-      const weekNumber = (state.currentSeason?.matches?.length || 0) + 1;
+      // Get existing matches for this season to calculate week number
+      const { data: existingMatches } = await supabase
+        .from('matches')
+        .select('week_number')
+        .eq('season_id', activeSeason.id)
+        .order('week_number', { ascending: false })
+        .limit(1);
+      
+      const weekNumber = (existingMatches?.[0]?.week_number || 0) + 1;
       
       const { error } = await supabase
         .from('matches')
         .insert({
-          season_id: state.currentSeason.id,
+          season_id: activeSeason.id,
           week_number: weekNumber,
           match_date: matchDate
-        })
-        .select();
+        });
 
       if (error) throw error;
-      await fetchSeasons();
+      
+      await fetchSeasons(); // Refresh season data
+      alert(`Match created for Week ${weekNumber}`);
       return { success: true };
     } catch (error) {
       console.error('Error adding match:', error);
       alert('Error: ' + error.message);
       return { success: false, error };
     }
-  }, [state.currentSeason, fetchSeasons]);
+  }, [fetchSeasons]);
 
   const generateMatches = useCallback(async (matchId) => {
     const match = state.currentSeason?.matches?.find(m => m.id === matchId);
