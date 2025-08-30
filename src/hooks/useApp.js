@@ -1,6 +1,4 @@
-// src/hooks/useApp.js
-// This hook extracts ALL the data fetching logic from App.js
-
+// src/hooks/useApp.js - FIXED VERSION
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 
@@ -39,32 +37,9 @@ export const useApp = (userId) => {
     }));
   }, []);
 
-  // ====================
-  // Data Fetching Methods
-  // ====================
-
-  const fetchUsers = useCallback(async () => {
-    setLoading('users', true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('rank', { ascending: true, nullsLast: true });
-
-      if (error) throw error;
-      updateData('users', data || []);
-      return data;
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      updateData('error', error);
-    } finally {
-      setLoading('users', false);
-    }
-  }, []);
-
+  // Create default season
   const createDefaultSeason = useCallback(async () => {
     try {
-      // Deactivate all existing seasons
       await supabase
         .from('seasons')
         .update({ is_active: false })
@@ -87,6 +62,26 @@ export const useApp = (userId) => {
       return null;
     }
   }, []);
+
+  // Fetch functions
+  const fetchUsers = useCallback(async () => {
+    setLoading('users', true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('rank', { ascending: true, nullsLast: true });
+
+      if (error) throw error;
+      updateData('users', data || []);
+      return data;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      updateData('error', error);
+    } finally {
+      setLoading('users', false);
+    }
+  }, [setLoading, updateData]);
 
   const fetchSeasons = useCallback(async () => {
     setLoading('seasons', true);
@@ -126,7 +121,7 @@ export const useApp = (userId) => {
     } finally {
       setLoading('seasons', false);
     }
-  }, [createDefaultSeason]);
+  }, [setLoading, updateData, createDefaultSeason]);
 
   const fetchAvailability = useCallback(async () => {
     setLoading('availability', true);
@@ -143,7 +138,7 @@ export const useApp = (userId) => {
     } finally {
       setLoading('availability', false);
     }
-  }, []);
+  }, [setLoading, updateData]);
 
   const fetchMatchFixtures = useCallback(async () => {
     setLoading('fixtures', true);
@@ -167,7 +162,7 @@ export const useApp = (userId) => {
     } finally {
       setLoading('fixtures', false);
     }
-  }, []);
+  }, [setLoading, updateData]);
 
   const fetchMatchResults = useCallback(async () => {
     setLoading('results', true);
@@ -184,18 +179,15 @@ export const useApp = (userId) => {
     } finally {
       setLoading('results', false);
     }
-  }, []);
+  }, [setLoading, updateData]);
 
-  // ====================
-  // Business Logic Methods
-  // ====================
-
-  const approveUser = useCallback(async (userId) => {
+  // Business logic functions
+  const approveUser = useCallback(async (userIdToApprove) => {
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ status: 'approved' })
-        .eq('id', userId);
+        .eq('id', userIdToApprove);
 
       if (error) throw error;
       await fetchUsers();
@@ -206,11 +198,10 @@ export const useApp = (userId) => {
     }
   }, [fetchUsers]);
 
-  const addToLadder = useCallback(async (userId, rank) => {
+  const addToLadder = useCallback(async (userIdToAdd, rank) => {
     try {
       const targetRank = parseInt(rank);
       
-      // Get players that need to shift
       const { data: playersToShift, error: getError } = await supabase
         .from('profiles')
         .select('id, rank')
@@ -220,7 +211,6 @@ export const useApp = (userId) => {
 
       if (getError) throw getError;
 
-      // Shift players down
       if (playersToShift?.length > 0) {
         for (const player of playersToShift) {
           await supabase
@@ -230,14 +220,13 @@ export const useApp = (userId) => {
         }
       }
 
-      // Add player to ladder
       const { error } = await supabase
         .from('profiles')
         .update({ 
           in_ladder: true, 
           rank: targetRank
         })
-        .eq('id', userId);
+        .eq('id', userIdToAdd);
 
       if (error) throw error;
       await fetchUsers();
@@ -257,14 +246,12 @@ export const useApp = (userId) => {
       const matchDate = match.match_date;
       
       if (available === undefined) {
-        // Remove availability record
         await supabase
           .from('availability')
           .delete()
           .eq('player_id', playerId)
           .eq('match_date', matchDate);
       } else {
-        // Check if record exists
         const { data: existing } = await supabase
           .from('availability')
           .select('*')
@@ -273,14 +260,12 @@ export const useApp = (userId) => {
           .maybeSingle();
         
         if (existing) {
-          // Update existing
           await supabase
             .from('availability')
             .update({ is_available: available })
             .eq('player_id', playerId)
             .eq('match_date', matchDate);
         } else {
-          // Insert new
           await supabase
             .from('availability')
             .insert({
@@ -301,8 +286,15 @@ export const useApp = (userId) => {
   }, [state.currentSeason, fetchAvailability]);
 
   const addMatchToSeason = useCallback(async (matchDate) => {
-    if (!matchDate) throw new Error('Match date required');
-    if (!state.currentSeason) throw new Error('No active season');
+    if (!matchDate) {
+      alert('Please select a date for the match');
+      return { success: false };
+    }
+    
+    if (!state.currentSeason) {
+      alert('No active season found');
+      return { success: false };
+    }
     
     try {
       const weekNumber = (state.currentSeason?.matches?.length || 0) + 1;
@@ -333,7 +325,6 @@ export const useApp = (userId) => {
       return { success: false };
     }
     
-    // Get available players
     const availablePlayers = state.users.filter(user => {
       if (!user.in_ladder || user.status !== 'approved') return false;
       const userAvailability = state.availability.find(
@@ -351,7 +342,6 @@ export const useApp = (userId) => {
 
     const courts = [];
 
-    // Court allocation logic
     if (numPlayers % 4 === 0) {
       for (let i = 0; i < numPlayers; i += 4) {
         courts.push(availablePlayers.slice(i, i + 4));
@@ -382,7 +372,6 @@ export const useApp = (userId) => {
         let gameNumber = 1;
 
         if (courtPlayers.length === 5) {
-          // 5-player rotation
           const rotations = [
             { pair1: [0, 1], pair2: [2, 3], sitting: 4 },
             { pair1: [0, 2], pair2: [1, 4], sitting: 3 },
@@ -408,7 +397,6 @@ export const useApp = (userId) => {
             });
           });
         } else if (courtPlayers.length === 4) {
-          // Standard 4-player format
           const rotations = [
             { pair1: [0, 3], pair2: [1, 2] },
             { pair1: [0, 2], pair2: [1, 3] },
@@ -458,7 +446,6 @@ export const useApp = (userId) => {
     try {
       console.log('Updating rankings...');
       
-      // Get all match results with fixture data
       const { data: resultsData, error } = await supabase
         .from('match_results')
         .select(`
@@ -474,11 +461,9 @@ export const useApp = (userId) => {
 
       if (error) throw error;
 
-      // Calculate stats for each ladder player
       const ladderPlayers = state.users.filter(u => u.in_ladder && u.status === 'approved');
       const playerStats = {};
       
-      // Initialize stats
       ladderPlayers.forEach(player => {
         playerStats[player.id] = {
           name: player.name,
@@ -490,7 +475,6 @@ export const useApp = (userId) => {
         };
       });
 
-      // Process results
       resultsData.forEach(result => {
         const fixture = result.fixture;
         const players = [fixture.player1, fixture.player2, fixture.player3, fixture.player4];
@@ -511,13 +495,11 @@ export const useApp = (userId) => {
         });
       });
 
-      // Calculate win percentages
       Object.values(playerStats).forEach(stats => {
         stats.winPercentage = stats.gamesPlayed > 0 ? 
           Math.round((stats.gamesWon / stats.gamesPlayed) * 100 * 10) / 10 : 0;
       });
 
-      // Sort players
       const sortedPlayers = ladderPlayers
         .map(player => ({
           ...player,
@@ -538,7 +520,6 @@ export const useApp = (userId) => {
           return a.name.localeCompare(b.name);
         });
 
-      // Update database
       for (let i = 0; i < sortedPlayers.length; i++) {
         const player = sortedPlayers[i];
         const stats = player.calculatedStats;
@@ -585,16 +566,13 @@ export const useApp = (userId) => {
     }
   }, [fetchSeasons]);
 
-  // ====================
-  // Helper Methods
-  // ====================
-
-  const getPlayerAvailability = useCallback((userId, matchId) => {
+  // Helper functions
+  const getPlayerAvailability = useCallback((userIdToCheck, matchId) => {
     const match = state.currentSeason?.matches?.find(m => m.id === matchId);
     if (!match) return undefined;
     
     const userAvailability = state.availability.find(
-      a => a.player_id === userId && a.match_date === match.match_date
+      a => a.player_id === userIdToCheck && a.match_date === match.match_date
     );
     return userAvailability?.is_available;
   }, [state.currentSeason, state.availability]);
@@ -623,10 +601,7 @@ export const useApp = (userId) => {
     return state.matchResults.find(r => r.fixture_id === fixtureId);
   }, [state.matchResults]);
 
-  // ====================
-  // Initial Load
-  // ====================
-
+  // Initial load effect
   useEffect(() => {
     if (!userId) {
       setLoading('initial', false);
@@ -638,13 +613,11 @@ export const useApp = (userId) => {
       setLoading('initial', true);
       
       try {
-        // Load critical data first (what user sees immediately)
         await Promise.all([
           fetchUsers(),
           fetchSeasons(),
         ]);
         
-        // Then load secondary data in parallel
         await Promise.all([
           fetchAvailability(),
           fetchMatchFixtures(),
@@ -659,7 +632,8 @@ export const useApp = (userId) => {
     };
 
     loadInitialData();
-  }, [userId]); // Only reload when userId changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // Listen for refresh events
   useEffect(() => {
@@ -676,11 +650,9 @@ export const useApp = (userId) => {
     return () => window.removeEventListener('refreshMatchData', handleRefreshMatchData);
   }, [fetchMatchResults, fetchMatchFixtures, fetchSeasons]);
 
+  // Return everything
   return {
-    // State
     ...state,
-    
-    // Actions
     actions: {
       approveUser,
       addToLadder,
@@ -690,15 +662,11 @@ export const useApp = (userId) => {
       updateRankings,
       clearOldMatches,
     },
-    
-    // Helpers
     helpers: {
       getPlayerAvailability,
       getAvailabilityStats,
       getMatchScore,
     },
-    
-    // Refetch functions
     refetch: {
       users: fetchUsers,
       seasons: fetchSeasons,
