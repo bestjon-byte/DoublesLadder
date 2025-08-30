@@ -3,6 +3,9 @@ import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useApp } from './hooks/useApp';
 import { useSeasonManager } from './hooks/useSeasonManager';
+
+console.log('useSeasonManager imported:', useSeasonManager);
+
 import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/scoreSubmission';
 
 // Components
