@@ -136,10 +136,11 @@ export const useApp = (userId, selectedSeasonId) => {
   const fetchSeasons = useCallback(async () => {
     setLoading('seasons', true);
     try {
+      // Get the active season
       const { data: activeSeasons, error } = await supabase
         .from('seasons')
         .select('*')
-        .eq('is_active', true)
+        .eq('status', 'active')
         .limit(1);
       
       if (error) throw error;
@@ -152,6 +153,7 @@ export const useApp = (userId, selectedSeasonId) => {
         if (!activeSeason) return;
       }
       
+      // Get matches for this season
       const { data: matches } = await supabase
         .from('matches')
         .select('*')
@@ -343,12 +345,17 @@ export const useApp = (userId, selectedSeasonId) => {
       return { success: false };
     }
     
-    // Find current active season
-    const { data: activeSeason } = await supabase
-      .from('seasons')
-      .select('*')
-      .eq('status', 'active')
-      .single();
+    // Use current season from state, or fetch active season
+    let activeSeason = state.currentSeason;
+    
+    if (!activeSeason) {
+      const { data: season } = await supabase
+        .from('seasons')
+        .select('*')
+        .eq('status', 'active')
+        .single();
+      activeSeason = season;
+    }
     
     if (!activeSeason) {
       alert('No active season found');
@@ -384,7 +391,7 @@ export const useApp = (userId, selectedSeasonId) => {
       alert('Error: ' + error.message);
       return { success: false, error };
     }
-  }, [fetchSeasons]);
+  }, [state.currentSeason, fetchSeasons]);
 
   const generateMatches = useCallback(async (matchId) => {
     const match = state.currentSeason?.matches?.find(m => m.id === matchId);
