@@ -4,7 +4,7 @@ import { Flag, Check, X, Edit, AlertTriangle, Clock } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { fetchScoreChallenges, fetchScoreConflicts } from '../../utils/scoreSubmission';
 
-const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
+const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) => {
   const [challenges, setChallenges] = useState([]);
   const [conflicts, setConflicts] = useState([]);
   const [allResults, setAllResults] = useState([]);
@@ -16,7 +16,7 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
   useEffect(() => {
     console.log('🔍 ScoreChallengesSection mounted, fetching all data...');
     fetchAllData();
-  }, []);
+  }, [currentSeason?.id]); // Re-fetch when season changes
 
   const fetchAllData = async () => {
     try {
@@ -24,8 +24,8 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
       
       // Fetch challenges, conflicts, and results in parallel
       const [challengesData, conflictsData, resultsData] = await Promise.all([
-        fetchScoreChallenges(),
-        fetchScoreConflicts(), 
+        fetchScoreChallenges(currentSeason?.id),
+        fetchScoreConflicts(currentSeason?.id), 
         fetchMatchResults()
       ]);
       

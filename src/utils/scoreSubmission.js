@@ -147,7 +147,7 @@ export const submitScoreChallenge = async (challengeData) => {
   }
 };
 
-export const fetchScoreChallenges = async () => {
+export const fetchScoreChallenges = async (seasonId = null) => {
   try {
     // Fetch score challenges without relationships first
     const { data: challenges, error } = await supabase
@@ -176,7 +176,7 @@ export const fetchScoreChallenges = async () => {
       .from('match_fixtures')
       .select(`
         *,
-        match:match_id(week_number, match_date),
+        match:match_id(week_number, match_date, season_id),
         player1:player1_id(name),
         player2:player2_id(name),
         player3:player3_id(name),
@@ -205,14 +205,19 @@ export const fetchScoreChallenges = async () => {
       resolver: users?.find(u => u.id === challenge.resolved_by) || null
     }));
 
-    return enrichedChallenges;
+    // Filter by season if provided
+    const filteredChallenges = seasonId 
+      ? enrichedChallenges.filter(challenge => challenge.fixture?.match?.season_id === seasonId)
+      : enrichedChallenges;
+
+    return filteredChallenges;
   } catch (error) {
     console.error('Error in fetchScoreChallenges:', error);
     throw error;
   }
 };
 
-export const fetchScoreConflicts = async () => {
+export const fetchScoreConflicts = async (seasonId = null) => {
   try {
     // Fetch score conflicts without relationships first
     const { data: conflicts, error } = await supabase
@@ -241,7 +246,7 @@ export const fetchScoreConflicts = async () => {
       .from('match_fixtures')
       .select(`
         *,
-        match:match_id(week_number, match_date),
+        match:match_id(week_number, match_date, season_id),
         player1:player1_id(name),
         player2:player2_id(name),
         player3:player3_id(name),
@@ -270,7 +275,12 @@ export const fetchScoreConflicts = async () => {
       resolver: users?.find(u => u.id === conflict.resolved_by) || null
     }));
 
-    return enrichedConflicts;
+    // Filter by season if provided
+    const filteredConflicts = seasonId 
+      ? enrichedConflicts.filter(conflict => conflict.fixture?.match?.season_id === seasonId)
+      : enrichedConflicts;
+
+    return filteredConflicts;
   } catch (error) {
     console.error('Error in fetchScoreConflicts:', error);
     throw error;

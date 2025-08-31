@@ -271,8 +271,6 @@ const TennisLadderApp = () => {
               getPlayerAvailability={helpers?.getPlayerAvailability || (() => undefined)}
               getAvailabilityStats={helpers?.getAvailabilityStats || (() => ({ total: 0, available: 0, responded: 0, pending: 0 }))}
               clearOldMatches={actions?.clearOldMatches || (() => alert('Clear matches not available'))}
-              createNewSeason={actions?.createNewSeason || (() => alert('Create season not available'))}
-              completeCurrentSeason={actions?.completeCurrentSeason || (() => alert('Complete season not available'))}
               matchFixtures={matchFixtures}
               matchResults={matchResults}
               // NEW: Season management props

@@ -15,10 +15,9 @@ const AdminTab = ({
   getPlayerAvailability,
   getAvailabilityStats,
   clearOldMatches,
-  createNewSeason,
-  completeCurrentSeason,
   matchFixtures,
-  matchResults
+  matchResults,
+  seasonActions
 }) => {
   const [loading, setLoading] = useState(false);
   const [showCreateSeason, setShowCreateSeason] = useState(false);
@@ -44,11 +43,17 @@ const AdminTab = ({
     }
     
     setLoading(true);
-    const result = await createNewSeason(newSeasonName.trim(), newSeasonStartDate);
+    const result = await seasonActions.createNewSeason({
+      name: newSeasonName.trim(),
+      start_date: newSeasonStartDate,
+      carryOverPlayers: false // Start with empty ladder
+    });
+    
     if (result.success) {
       setShowCreateSeason(false);
       setNewSeasonName('');
       setNewSeasonStartDate('');
+      alert(`New season "${newSeasonName}" created successfully!`);
     }
     setLoading(false);
   };
@@ -59,7 +64,10 @@ const AdminTab = ({
     }
     
     setLoading(true);
-    await completeCurrentSeason();
+    const result = await seasonActions.completeSeason(currentSeason.id);
+    if (result.success) {
+      alert('Season completed successfully!');
+    }
     setLoading(false);
   };
 
@@ -171,6 +179,7 @@ const AdminTab = ({
       {/* Score Challenges and Conflicts Management - THE MAIN NEW FEATURE */}
       <ScoreChallengesSection 
         currentUser={currentUser}
+        currentSeason={currentSeason}
         onDataRefresh={() => {
           // Refresh ALL parent data when scores are updated
           console.log('🔄 Admin score updated, refreshing all data...');
