@@ -8,6 +8,7 @@ const AdminTab = ({
   ladderPlayers = [], // NEW: Current season players
   currentUser,
   currentSeason,
+  activeSeason, // NEW: Active season for admin controls
   approveUser, 
   addToLadder, 
   fetchUsers,

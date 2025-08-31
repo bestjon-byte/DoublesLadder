@@ -268,6 +268,7 @@ const TennisLadderApp = () => {
               ladderPlayers={ladderPlayers} // NEW: Add ladder players for filtering
               currentUser={user}
               currentSeason={selectedSeasonData || selectedSeason} // CHANGED: Use selected season data
+              activeSeason={activeSeason} // NEW: Pass active season for admin controls
               approveUser={actions?.approveUser || (() => alert('Approve user not available'))}
               addToLadder={actions?.addToLadder || (() => alert('Add to ladder not available'))}
               fetchUsers={refetch?.users || (() => {})}
@@ -278,7 +279,6 @@ const TennisLadderApp = () => {
               matchFixtures={matchFixtures}
               matchResults={matchResults}
               // NEW: Season management props
-              activeSeason={activeSeason}
               selectedSeason={selectedSeason}
               seasonActions={seasonActions}
             />
