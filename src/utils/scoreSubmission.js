@@ -149,29 +149,63 @@ export const submitScoreChallenge = async (challengeData) => {
 
 export const fetchScoreChallenges = async () => {
   try {
-    const { data, error } = await supabase
+    // Fetch score challenges without relationships first
+    const { data: challenges, error } = await supabase
       .from('score_challenges')
-      .select(`
-        *,
-        challenger:challenger_id(name),
-        fixture:fixture_id(
-          *,
-          match:match_id(week_number, match_date),
-          player1:player1_id(name),
-          player2:player2_id(name),
-          player3:player3_id(name),
-          player4:player4_id(name)
-        ),
-        original_result:original_result_id(*),
-        resolver:resolved_by(name)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
       throw new Error(`Error fetching challenges: ${error.message}`);
     }
 
-    return data || [];
+    if (!challenges || challenges.length === 0) {
+      return [];
+    }
+
+    // Manually fetch related data
+    const fixtureIds = [...new Set(challenges.map(c => c.fixture_id).filter(Boolean))];
+    const resultIds = [...new Set(challenges.map(c => c.original_result_id).filter(Boolean))];
+    const userIds = [...new Set([
+      ...challenges.map(c => c.challenger_id).filter(Boolean),
+      ...challenges.map(c => c.resolved_by).filter(Boolean)
+    ])];
+
+    // Fetch fixtures with their related data
+    const { data: fixtures } = await supabase
+      .from('match_fixtures')
+      .select(`
+        *,
+        match:match_id(week_number, match_date),
+        player1:player1_id(name),
+        player2:player2_id(name),
+        player3:player3_id(name),
+        player4:player4_id(name)
+      `)
+      .in('id', fixtureIds);
+
+    // Fetch results
+    const { data: results } = await supabase
+      .from('match_results')
+      .select('*')
+      .in('id', resultIds);
+
+    // Fetch users
+    const { data: users } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .in('id', userIds);
+
+    // Combine the data
+    const enrichedChallenges = challenges.map(challenge => ({
+      ...challenge,
+      fixture: fixtures?.find(f => f.id === challenge.fixture_id) || null,
+      original_result: results?.find(r => r.id === challenge.original_result_id) || null,
+      challenger: users?.find(u => u.id === challenge.challenger_id) || null,
+      resolver: users?.find(u => u.id === challenge.resolved_by) || null
+    }));
+
+    return enrichedChallenges;
   } catch (error) {
     console.error('Error in fetchScoreChallenges:', error);
     throw error;
@@ -180,29 +214,63 @@ export const fetchScoreChallenges = async () => {
 
 export const fetchScoreConflicts = async () => {
   try {
-    const { data, error } = await supabase
+    // Fetch score conflicts without relationships first
+    const { data: conflicts, error } = await supabase
       .from('score_conflicts')
-      .select(`
-        *,
-        fixture:fixture_id(
-          *,
-          match:match_id(week_number, match_date),
-          player1:player1_id(name),
-          player2:player2_id(name),
-          player3:player3_id(name),
-          player4:player4_id(name)
-        ),
-        first_submission:first_submission_id(*),
-        conflicting_user:conflicting_user_id(name),
-        resolver:resolved_by(name)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
       throw new Error(`Error fetching conflicts: ${error.message}`);
     }
 
-    return data || [];
+    if (!conflicts || conflicts.length === 0) {
+      return [];
+    }
+
+    // Manually fetch related data
+    const fixtureIds = [...new Set(conflicts.map(c => c.fixture_id).filter(Boolean))];
+    const resultIds = [...new Set(conflicts.map(c => c.first_submission_id).filter(Boolean))];
+    const userIds = [...new Set([
+      ...conflicts.map(c => c.conflicting_user_id).filter(Boolean),
+      ...conflicts.map(c => c.resolved_by).filter(Boolean)
+    ])];
+
+    // Fetch fixtures with their related data
+    const { data: fixtures } = await supabase
+      .from('match_fixtures')
+      .select(`
+        *,
+        match:match_id(week_number, match_date),
+        player1:player1_id(name),
+        player2:player2_id(name),
+        player3:player3_id(name),
+        player4:player4_id(name)
+      `)
+      .in('id', fixtureIds);
+
+    // Fetch results
+    const { data: results } = await supabase
+      .from('match_results')
+      .select('*')
+      .in('id', resultIds);
+
+    // Fetch users
+    const { data: users } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .in('id', userIds);
+
+    // Combine the data
+    const enrichedConflicts = conflicts.map(conflict => ({
+      ...conflict,
+      fixture: fixtures?.find(f => f.id === conflict.fixture_id) || null,
+      first_submission: results?.find(r => r.id === conflict.first_submission_id) || null,
+      conflicting_user: users?.find(u => u.id === conflict.conflicting_user_id) || null,
+      resolver: users?.find(u => u.id === conflict.resolved_by) || null
+    }));
+
+    return enrichedConflicts;
   } catch (error) {
     console.error('Error in fetchScoreConflicts:', error);
     throw error;
