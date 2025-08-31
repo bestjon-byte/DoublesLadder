@@ -18,7 +18,7 @@ import ScheduleModal from './components/Modals/ScheduleModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
-import SeasonSelector from './components/season/SeasonSelector';
+import SeasonSelector from './components/Season/SeasonSelector';
 
 const TennisLadderApp = () => {
   // Authentication hook
