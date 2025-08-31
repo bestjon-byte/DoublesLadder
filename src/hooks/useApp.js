@@ -41,17 +41,17 @@ export const useApp = (userId, selectedSeasonId) => {
   // Create default season
   const createDefaultSeason = useCallback(async () => {
     try {
+      // Set all existing active seasons to completed
       await supabase
         .from('seasons')
-        .update({ is_active: false })
-        .eq('is_active', true);
+        .update({ status: 'completed' })
+        .eq('status', 'active');
       
       const { data: newSeason, error } = await supabase
         .from('seasons')
         .insert({
           name: `Season ${new Date().getFullYear()}`,
           start_date: new Date().toISOString().split('T')[0],
-          is_active: true,
           status: 'active'
         })
         .select()
@@ -743,9 +743,16 @@ export const useApp = (userId, selectedSeasonId) => {
       await supabase.from('ladders').delete().neq('id', 0);
       
       console.log('✅ All season and match data cleared successfully!');
-      alert('All season and match data cleared! Users have been preserved.');
       
-      // Refresh all data
+      // Clear local state first
+      updateData('currentSeason', null);
+      updateData('selectedSeason', null);
+      updateData('seasonPlayers', []);
+      updateData('availability', []);
+      updateData('matchFixtures', []);
+      updateData('matchResults', []);
+      
+      // Refresh all data - this will create a new default season if needed
       await Promise.all([
         fetchUsers(),
         fetchSeasons(),
@@ -753,6 +760,12 @@ export const useApp = (userId, selectedSeasonId) => {
         fetchMatchFixtures(),
         fetchMatchResults()
       ]);
+      
+      // Also trigger a global refresh event
+      window.dispatchEvent(new CustomEvent('refreshSeasonData'));
+      window.dispatchEvent(new CustomEvent('refreshMatchData'));
+      
+      alert('All season and match data cleared! Users have been preserved.');
       
       return { success: true };
     } catch (error) {
