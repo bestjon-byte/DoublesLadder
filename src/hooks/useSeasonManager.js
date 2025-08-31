@@ -17,18 +17,25 @@ export const useSeasonManager = () => {
         .select(`
           *,
           season_players(count),
-          matches(count)
+          matches(*)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Process the data to add counts
+      // Process the data to add counts and matches
       const processedSeasons = data?.map(season => ({
         ...season,
         player_count: season.season_players?.[0]?.count || 0,
-        match_count: season.matches?.[0]?.count || 0
+        match_count: season.matches?.length || 0,
+        matches: season.matches || [] // Include actual matches data
       })) || [];
+
+      console.log('📊 Processed seasons data:', processedSeasons.map(s => ({ 
+        id: s.id, 
+        name: s.name, 
+        matchCount: s.matches?.length 
+      })));
 
       setSeasons(processedSeasons);
       
@@ -158,7 +165,9 @@ export const useSeasonManager = () => {
   useEffect(() => {
     const handleRefreshSeasonData = () => {
       console.log('🔄 Refreshing season data...');
-      fetchSeasons();
+      fetchSeasons().then(() => {
+        console.log('✅ Season data refreshed');
+      });
     };
 
     window.addEventListener('refreshSeasonData', handleRefreshSeasonData);
