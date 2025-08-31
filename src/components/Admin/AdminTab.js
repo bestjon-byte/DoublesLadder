@@ -99,7 +99,7 @@ const AdminTab = ({
             return (
               <div key={match.id} className="mb-6 border border-gray-200 rounded-lg p-4">
                 <h4 className="font-medium mb-3">
-                  Week {match.week_number} - {new Date(match.match_date).toLocaleDateString('en-GB')}
+                  Week {match.week_number} - {match.match_date ? new Date(match.match_date).toLocaleDateString('en-GB') : 'No date set'}
                   {matchComplete && (
                     <span className="ml-2 text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
                       ✅ Completed
@@ -171,18 +171,25 @@ const AdminTab = ({
               // FIXED: Proper date comparison that treats today as valid
               const today = new Date();
               today.setHours(0, 0, 0, 0); // Reset to start of day
-              const matchDate = new Date(match.match_date);
-              matchDate.setHours(0, 0, 0, 0); // Reset to start of day
-              const isPast = matchDate < today; // Now only truly past dates are considered "past"
               
-              const isToday = matchDate.getTime() === today.getTime();
+              let matchDate, isPast, isToday;
+              if (match.match_date) {
+                matchDate = new Date(match.match_date);
+                matchDate.setHours(0, 0, 0, 0); // Reset to start of day
+                isPast = matchDate < today; // Now only truly past dates are considered "past"
+                isToday = matchDate.getTime() === today.getTime();
+              } else {
+                matchDate = null;
+                isPast = false;
+                isToday = false;
+              }
               
               return (
                 <div key={match.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div>
                       <h4 className="font-medium flex items-center space-x-2">
-                        <span>Week {match.week_number} - {matchDate.toLocaleDateString('en-GB')}</span>
+                        <span>Week {match.week_number} - {matchDate ? matchDate.toLocaleDateString('en-GB') : 'No date set'}</span>
                         {isToday && (
                           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-normal">
                             📅 Today

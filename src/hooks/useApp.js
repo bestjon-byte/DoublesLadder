@@ -401,7 +401,13 @@ export const useApp = (userId, selectedSeasonId) => {
       if (error) throw error;
       
       console.log('✅ Match created successfully for week', weekNumber);
+      
+      // Refresh both useApp seasons AND useSeasonManager data
       await fetchSeasons(); // Refresh season data
+      
+      // Also trigger a custom event to refresh season manager
+      window.dispatchEvent(new CustomEvent('refreshSeasonData'));
+      
       alert(`Match created for Week ${weekNumber}`);
       return { success: true };
     } catch (error) {

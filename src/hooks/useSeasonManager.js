@@ -154,6 +154,17 @@ export const useSeasonManager = () => {
     fetchSeasons();
   }, [fetchSeasons]);
 
+  // Listen for refresh events from other components
+  useEffect(() => {
+    const handleRefreshSeasonData = () => {
+      console.log('🔄 Refreshing season data...');
+      fetchSeasons();
+    };
+
+    window.addEventListener('refreshSeasonData', handleRefreshSeasonData);
+    return () => window.removeEventListener('refreshSeasonData', handleRefreshSeasonData);
+  }, [fetchSeasons]);
+
   return {
     seasons,
     activeSeason,
