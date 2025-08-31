@@ -323,7 +323,9 @@ export const useApp = (userId, selectedSeasonId) => {
 
   const setPlayerAvailability = useCallback(async (matchId, available, playerId) => {
     try {
-      const match = state.currentSeason?.matches?.find(m => m.id === matchId);
+      // Look in selected season data first, fallback to currentSeason
+      const match = state.selectedSeason?.matches?.find(m => m.id === matchId) || 
+                    state.currentSeason?.matches?.find(m => m.id === matchId);
       if (!match) throw new Error('Match not found');
       
       const matchDate = match.match_date;
@@ -366,7 +368,7 @@ export const useApp = (userId, selectedSeasonId) => {
       alert('Error: ' + error.message);
       return { success: false, error };
     }
-  }, [state.currentSeason, fetchAvailability]);
+  }, [state.selectedSeason, state.currentSeason, fetchAvailability]);
 
   const addMatchToSeason = useCallback(async (matchDate) => {
     console.log('🗓️ addMatchToSeason called with:', { matchDate, selectedSeasonId });
@@ -429,7 +431,10 @@ export const useApp = (userId, selectedSeasonId) => {
       console.log('✅ Match created successfully for week', weekNumber);
       
       // Refresh both useApp seasons AND useSeasonManager data
-      await fetchSeasons(); // Refresh season data
+      await fetchSeasons(); // Refresh active season data
+      
+      // CRITICAL: Also refresh the selected season data which is what Matches tab uses
+      await fetchSelectedSeasonData(selectedSeasonId);
       
       // Also trigger a custom event to refresh season manager
       window.dispatchEvent(new CustomEvent('refreshSeasonData'));
@@ -441,10 +446,12 @@ export const useApp = (userId, selectedSeasonId) => {
       alert('Error: ' + error.message);
       return { success: false, error };
     }
-  }, [selectedSeasonId, fetchSeasons]);
+  }, [selectedSeasonId, fetchSeasons, fetchSelectedSeasonData]);
 
   const generateMatches = useCallback(async (matchId) => {
-    const match = state.currentSeason?.matches?.find(m => m.id === matchId);
+    // Look in selected season data first, fallback to currentSeason
+    const match = state.selectedSeason?.matches?.find(m => m.id === matchId) || 
+                  state.currentSeason?.matches?.find(m => m.id === matchId);
     if (!match) {
       alert('Match not found');
       return { success: false };
@@ -560,7 +567,8 @@ export const useApp = (userId, selectedSeasonId) => {
 
       await Promise.all([
         fetchMatchFixtures(),
-        fetchSeasons()
+        fetchSeasons(),
+        fetchSelectedSeasonData(selectedSeasonId) // CRITICAL: Refresh selected season data
       ]);
 
       alert(`Matches generated! Created ${courts.length} court(s) with ${numPlayers} players.`);
@@ -570,7 +578,7 @@ export const useApp = (userId, selectedSeasonId) => {
       alert('Error: ' + error.message);
       return { success: false, error };
     }
-  }, [state.currentSeason, state.seasonPlayers, state.users, state.availability, selectedSeasonId, fetchMatchFixtures, fetchSeasons]);
+  }, [state.selectedSeason, state.currentSeason, state.seasonPlayers, state.users, state.availability, selectedSeasonId, fetchMatchFixtures, fetchSeasons, fetchSelectedSeasonData]);
 
   // Updated ranking system for season-based stats
   const updateRankings = useCallback(async () => {
@@ -734,17 +742,21 @@ export const useApp = (userId, selectedSeasonId) => {
 
   // Helper functions
   const getPlayerAvailability = useCallback((userIdToCheck, matchId) => {
-    const match = state.currentSeason?.matches?.find(m => m.id === matchId);
+    // Look in selected season data first, fallback to currentSeason
+    const match = state.selectedSeason?.matches?.find(m => m.id === matchId) || 
+                  state.currentSeason?.matches?.find(m => m.id === matchId);
     if (!match) return undefined;
     
     const userAvailability = state.availability.find(
       a => a.player_id === userIdToCheck && a.match_date === match.match_date
     );
     return userAvailability?.is_available;
-  }, [state.currentSeason, state.availability]);
+  }, [state.selectedSeason, state.currentSeason, state.availability]);
 
   const getAvailabilityStats = useCallback((matchId) => {
-    const match = state.currentSeason?.matches?.find(m => m.id === matchId);
+    // Look in selected season data first, fallback to currentSeason
+    const match = state.selectedSeason?.matches?.find(m => m.id === matchId) || 
+                  state.currentSeason?.matches?.find(m => m.id === matchId);
     if (!match) return { total: 0, available: 0, responded: 0, pending: 0 };
     
     const ladderPlayers = state.seasonPlayers.length > 0 ? state.seasonPlayers : state.users.filter(u => u.in_ladder && u.status === 'approved');
@@ -761,7 +773,7 @@ export const useApp = (userId, selectedSeasonId) => {
       responded: respondedCount,
       pending: ladderPlayers.length - respondedCount
     };
-  }, [state.currentSeason, state.seasonPlayers, state.users, state.availability]);
+  }, [state.selectedSeason, state.currentSeason, state.seasonPlayers, state.users, state.availability]);
 
   const getMatchScore = useCallback((fixtureId) => {
     const fixtureResults = state.matchResults.filter(r => r.fixture_id === fixtureId);
