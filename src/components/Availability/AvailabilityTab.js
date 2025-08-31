@@ -113,7 +113,7 @@ const AvailabilityTab = ({
                     ) : (
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => setPlayerAvailability(match.id, true)}
+                          onClick={() => setPlayerAvailability(match.id, true, currentUser.id)}
                           className={`px-4 py-2 rounded-md transition-colors ${
                             userAvailability === true
                               ? 'bg-green-600 text-white'
@@ -123,7 +123,7 @@ const AvailabilityTab = ({
                           Available
                         </button>
                         <button
-                          onClick={() => setPlayerAvailability(match.id, false)}
+                          onClick={() => setPlayerAvailability(match.id, false, currentUser.id)}
                           className={`px-4 py-2 rounded-md transition-colors ${
                             userAvailability === false
                               ? 'bg-red-600 text-white'
@@ -134,7 +134,7 @@ const AvailabilityTab = ({
                         </button>
                         {userAvailability !== undefined && (
                           <button
-                            onClick={() => setPlayerAvailability(match.id, undefined)}
+                            onClick={() => setPlayerAvailability(match.id, undefined, currentUser.id)}
                             className="px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
                           >
                             Clear

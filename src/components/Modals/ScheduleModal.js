@@ -45,7 +45,7 @@ const ScheduleModal = ({
             
             <div className="flex space-x-3 pt-4">
               <button
-                onClick={addMatchToSeason}
+                onClick={() => addMatchToSeason(newMatchDate)}
                 disabled={!newMatchDate}
                 className="flex-1 bg-[#5D1F1F] text-white py-2 px-4 rounded-md hover:bg-[#4A1818] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
