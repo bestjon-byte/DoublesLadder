@@ -624,7 +624,7 @@ export const useApp = (userId, selectedSeasonId) => {
 
       const fixtureIds = seasonFixtures.map(f => f.id);
 
-      // Get all match results for these fixtures
+      // Get all verified match results for these fixtures (to avoid double-counting challenges)
       const { data: resultsData, error } = await supabase
         .from('match_results')
         .select(`
@@ -637,7 +637,8 @@ export const useApp = (userId, selectedSeasonId) => {
             player4:player4_id(id, name)
           )
         `)
-        .in('fixture_id', fixtureIds);
+        .in('fixture_id', fixtureIds)
+        .neq('verified', false); // Only include verified results (excludes superseded results)
 
       if (error) throw error;
 

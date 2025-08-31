@@ -59,7 +59,8 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
         fixture_id: fixtureId,
         pair1_score: parseInt(pair1Score),
         pair2_score: parseInt(pair2Score),
-        submitted_by: currentUserId
+        submitted_by: currentUserId,
+        verified: true // Mark new scores as verified by default
       })
       .select()
       .single();
