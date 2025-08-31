@@ -110,16 +110,27 @@ export const useAuth = () => {
 
   // Sign out
   const signOut = useCallback(async () => {
+    setLoading(true);
     try {
       console.log('👋 Signing out...');
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('❌ Supabase signout error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Successfully signed out from Supabase');
       setUser(null);
       setAuthMode('normal');
+      setError(null);
       return { success: true };
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('❌ Error signing out:', error);
       setError(error);
       return { success: false, error };
+    } finally {
+      setLoading(false);
     }
   }, []);
 

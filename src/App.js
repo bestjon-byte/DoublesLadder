@@ -190,7 +190,18 @@ const TennisLadderApp = () => {
               </div>
               
               <button
-                onClick={authActions?.signOut || (() => {})}
+                onClick={async () => {
+                  if (authActions?.signOut) {
+                    try {
+                      console.log('🚪 Logout button clicked');
+                      await authActions.signOut();
+                      console.log('✅ Logout completed successfully');
+                    } catch (error) {
+                      console.error('❌ Logout failed:', error);
+                      alert('Error signing out. Please try again.');
+                    }
+                  }
+                }}
                 className="text-red-100 hover:text-white text-sm transition-colors"
               >
                 Sign Out
