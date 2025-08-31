@@ -11,13 +11,14 @@ import Header from './components/Layout/Header';
 import Navigation from './components/Layout/Navigation';
 import LadderTab from './components/Ladder/LadderTab';
 import MatchesTab from './components/Matches/MatchesTab';
+import ProfileTab from './components/Profile/ProfileTab';
 import AvailabilityTab from './components/Availability/AvailabilityTab';
 import AdminTab from './components/Admin/AdminTab';
 import ScheduleModal from './components/Modals/ScheduleModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
-import SeasonSelector from './components/Season/SeasonSelector';
+import SeasonSelector from './components/season/SeasonSelector';
 
 const TennisLadderApp = () => {
   // Authentication hook
@@ -242,6 +243,15 @@ const TennisLadderApp = () => {
               openScoreModal={openScoreModal}
               getAvailabilityStats={helpers?.getAvailabilityStats || (() => ({ total: 0, available: 0, responded: 0, pending: 0 }))}
               getMatchScore={helpers?.getMatchScore || (() => null)}
+            />
+          )}
+
+          {activeTab === 'profile' && (
+            <ProfileTab 
+              currentUser={user}
+              seasons={seasons}
+              selectedSeason={selectedSeason}
+              allUsers={allUsers}
             />
           )}
 
