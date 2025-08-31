@@ -4,19 +4,38 @@ import React from 'react';
 const AvailabilityTab = ({ 
   currentUser, 
   currentSeason, 
+  selectedSeason,
+  ladderPlayers,
   getPlayerAvailability, 
   setPlayerAvailability, 
   matchFixtures, 
   matchResults, 
   getMatchScore 
 }) => {
-  if (!currentUser?.in_ladder) {
+  // Check if user is in the selected season's ladder
+  const userInSeason = ladderPlayers?.find(player => player.id === currentUser.id);
+  
+  if (!userInSeason) {
     return (
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-900">Match Availability</h2>
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
           <p className="text-yellow-800">
-            You need to be added to the ladder before you can set your availability for matches.
+            You need to be added to the {selectedSeason?.name || 'current season'} ladder before you can set your availability for matches.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show read-only message for completed seasons
+  if (selectedSeason?.status === 'completed') {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-gray-900">Match Availability</h2>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <p className="text-blue-800">
+            This season ({selectedSeason.name}) has been completed. Availability cannot be modified.
           </p>
         </div>
       </div>

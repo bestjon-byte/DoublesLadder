@@ -44,7 +44,8 @@ const TennisLadderApp = () => {
   const {
     ladderPlayers = [], // NEW: Season-specific players for ladder
     allUsers = [], // NEW: All users for admin management
-    currentSeason = null,
+    currentSeason = null, // Active season (for admin functions)
+    selectedSeason: selectedSeasonData = null, // Selected season data with matches
     availability = [],
     matchFixtures = [],
     matchResults = [],
@@ -229,7 +230,8 @@ const TennisLadderApp = () => {
           {activeTab === 'matches' && (
             <MatchesTab 
               currentUser={user}
-              currentSeason={currentSeason} // CHANGED: Use currentSeason (has matches data)
+              currentSeason={selectedSeasonData || selectedSeason} // CHANGED: Use selected season data with matches
+              selectedSeason={selectedSeason} // NEW: Pass selected season for read-only checks
               setShowScheduleModal={setShowScheduleModal}
               matchFixtures={matchFixtures}
               matchResults={matchResults}
@@ -245,7 +247,9 @@ const TennisLadderApp = () => {
           {activeTab === 'availability' && (
             <AvailabilityTab 
               currentUser={user}
-              currentSeason={currentSeason} // CHANGED: Use currentSeason (has matches data)
+              currentSeason={selectedSeasonData || selectedSeason} // CHANGED: Use selected season data with matches
+              selectedSeason={selectedSeason} // NEW: Pass selected season for status checks
+              ladderPlayers={ladderPlayers} // NEW: Pass ladder players to check membership
               getPlayerAvailability={helpers?.getPlayerAvailability || (() => undefined)}
               setPlayerAvailability={(matchId, available) => {
                 if (actions?.setPlayerAvailability) {
@@ -263,7 +267,7 @@ const TennisLadderApp = () => {
               users={allUsers} // CHANGED: Use allUsers
               ladderPlayers={ladderPlayers} // NEW: Add ladder players for filtering
               currentUser={user}
-              currentSeason={currentSeason} // CHANGED: Use currentSeason from useApp (has matches data)
+              currentSeason={selectedSeasonData || selectedSeason} // CHANGED: Use selected season data
               approveUser={actions?.approveUser || (() => alert('Approve user not available'))}
               addToLadder={actions?.addToLadder || (() => alert('Add to ladder not available'))}
               fetchUsers={refetch?.users || (() => {})}

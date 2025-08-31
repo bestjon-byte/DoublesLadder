@@ -132,6 +132,45 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [setLoading, updateData]);
 
+  // Fetch data for the selected season (not just active season)
+  const fetchSelectedSeasonData = useCallback(async (seasonId) => {
+    if (!seasonId) return null;
+    
+    setLoading('seasons', true);
+    try {
+      // Get the selected season
+      const { data: season, error } = await supabase
+        .from('seasons')
+        .select('*')
+        .eq('id', seasonId)
+        .single();
+      
+      if (error) throw error;
+      
+      // Get matches for this specific season
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('season_id', seasonId)
+        .order('week_number', { ascending: true });
+      
+      const seasonWithMatches = {
+        ...season,
+        matches: matches || []
+      };
+      
+      updateData('selectedSeason', seasonWithMatches);
+      return seasonWithMatches;
+    } catch (error) {
+      console.error('Error fetching selected season data:', error);
+      updateData('error', error);
+      return null;
+    } finally {
+      setLoading('seasons', false);
+    }
+  }, [setLoading, updateData]);
+
+  // Keep the original fetchSeasons for backward compatibility but simplify it
   const fetchSeasons = useCallback(async () => {
     setLoading('seasons', true);
     try {
@@ -152,20 +191,8 @@ export const useApp = (userId, selectedSeasonId) => {
         if (!activeSeason) return;
       }
       
-      // Get matches for this season
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('season_id', activeSeason.id)
-        .order('week_number', { ascending: true });
-      
-      const seasonWithMatches = {
-        ...activeSeason,
-        matches: matches || []
-      };
-      
-      updateData('currentSeason', seasonWithMatches);
-      return seasonWithMatches;
+      updateData('currentSeason', activeSeason);
+      return activeSeason;
     } catch (error) {
       console.error('Error fetching seasons:', error);
       updateData('error', error);
@@ -555,23 +582,54 @@ export const useApp = (userId, selectedSeasonId) => {
     try {
       console.log('Updating rankings for season:', selectedSeasonId);
       
-      // Get all match results for this season
+      // Get all fixtures for this season first, then get their results
+      const { data: seasonFixtures, error: fixturesError } = await supabase
+        .from('match_fixtures')
+        .select(`
+          id,
+          match:match_id!inner (
+            id,
+            season_id
+          )
+        `)
+        .eq('match.season_id', selectedSeasonId);
+
+      if (fixturesError) throw fixturesError;
+
+      if (!seasonFixtures || seasonFixtures.length === 0) {
+        console.log('No fixtures found for season:', selectedSeasonId);
+        // Still need to reset player stats
+        await supabase
+          .from('season_players')
+          .update({
+            matches_played: 0,
+            matches_won: 0,
+            games_played: 0,
+            games_won: 0
+          })
+          .eq('season_id', selectedSeasonId);
+        
+        await fetchSeasonPlayers(selectedSeasonId);
+        alert('Rankings updated successfully (no matches yet)!');
+        return { success: true };
+      }
+
+      const fixtureIds = seasonFixtures.map(f => f.id);
+
+      // Get all match results for these fixtures
       const { data: resultsData, error } = await supabase
         .from('match_results')
         .select(`
           *,
           fixture:fixture_id (
             *,
-            match:match_id (
-              season_id
-            ),
             player1:player1_id(id, name),
             player2:player2_id(id, name),
             player3:player3_id(id, name),
             player4:player4_id(id, name)
           )
         `)
-        .eq('fixture.match.season_id', selectedSeasonId);
+        .in('fixture_id', fixtureIds);
 
       if (error) throw error;
 
@@ -728,12 +786,13 @@ export const useApp = (userId, selectedSeasonId) => {
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }, [state.matchResults]);
 
-  // Load season players when selectedSeasonId changes
+  // Load season players and season data when selectedSeasonId changes
   useEffect(() => {
     if (selectedSeasonId) {
       fetchSeasonPlayers(selectedSeasonId);
+      fetchSelectedSeasonData(selectedSeasonId);
     }
-  }, [selectedSeasonId, fetchSeasonPlayers]);
+  }, [selectedSeasonId, fetchSeasonPlayers, fetchSelectedSeasonData]);
 
   // Initial load effect
   useEffect(() => {
@@ -807,6 +866,7 @@ export const useApp = (userId, selectedSeasonId) => {
     refetch: {
       users: fetchUsers,
       seasons: fetchSeasons,
+      selectedSeasonData: () => fetchSelectedSeasonData(selectedSeasonId),
       availability: fetchAvailability,
       fixtures: fetchMatchFixtures,
       results: fetchMatchResults,
@@ -817,6 +877,7 @@ export const useApp = (userId, selectedSeasonId) => {
         fetchAvailability(),
         fetchMatchFixtures(),
         fetchMatchResults(),
+        selectedSeasonId ? fetchSelectedSeasonData(selectedSeasonId) : Promise.resolve()
       ])
     }
   };

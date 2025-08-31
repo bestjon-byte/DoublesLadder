@@ -116,8 +116,9 @@ const AdminTab = ({
             )}
             <button
               onClick={() => setShowCreateSeason(true)}
-              disabled={loading}
+              disabled={loading || (activeSeason && activeSeason.status === 'active')}
               className="bg-[#5D1F1F] text-white px-3 py-2 rounded-md hover:bg-[#4A1818] disabled:opacity-50 transition-colors text-sm"
+              title={activeSeason?.status === 'active' ? 'Complete the current season before creating a new one' : ''}
             >
               Create New Season
             </button>

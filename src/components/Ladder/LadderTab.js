@@ -2,20 +2,35 @@
 import React from 'react';
 import { getLadderData, getRankMovementDisplay } from '../../utils/helpers';
 
-const LadderTab = ({ currentUser, users, updateRankings }) => {
+const LadderTab = ({ currentUser, users, updateRankings, selectedSeason }) => {
   const ladderData = getLadderData(users);
+  const isSeasonCompleted = selectedSeason?.status === 'completed';
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Current Ladder</h2>
-        {currentUser?.role === 'admin' && (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {selectedSeason?.name || 'Current'} Ladder
+          </h2>
+          {isSeasonCompleted && (
+            <p className="text-sm text-blue-600 mt-1">
+              🏆 This season has been completed
+            </p>
+          )}
+        </div>
+        {currentUser?.role === 'admin' && !isSeasonCompleted && (
           <button 
             onClick={updateRankings}
             className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors"
           >
             Update Rankings
           </button>
+        )}
+        {currentUser?.role === 'admin' && isSeasonCompleted && (
+          <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-md">
+            Season Completed
+          </div>
         )}
       </div>
       

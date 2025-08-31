@@ -5,6 +5,7 @@ import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 const MatchesTab = ({ 
   currentUser, 
   currentSeason, 
+  selectedSeason,
   setShowScheduleModal,
   matchFixtures,
   matchResults,
@@ -87,11 +88,22 @@ const MatchesTab = ({
     }));
   };
 
+  const isSeasonCompleted = selectedSeason?.status === 'completed';
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Match Schedule</h2>
-        {currentUser?.role === 'admin' && (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {selectedSeason?.name || 'Current'} Match Schedule
+          </h2>
+          {isSeasonCompleted && (
+            <p className="text-sm text-blue-600 mt-1">
+              🏆 This season has been completed - no modifications allowed
+            </p>
+          )}
+        </div>
+        {currentUser?.role === 'admin' && !isSeasonCompleted && (
           <button
             onClick={() => setShowScheduleModal(true)}
             className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors"
@@ -99,6 +111,11 @@ const MatchesTab = ({
             <Plus className="w-4 h-4 inline mr-2" />
             Add Match
           </button>
+        )}
+        {currentUser?.role === 'admin' && isSeasonCompleted && (
+          <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-md">
+            Season Completed
+          </div>
         )}
       </div>
       
@@ -184,7 +201,7 @@ const MatchesTab = ({
                     
                     <div className="flex items-center space-x-2">
                       {/* Admin Controls - Always visible - FIXED: Allow today's matches */}
-                      {isAdmin && matchStatus === 'future-no-fixtures' && stats.available >= 4 && (
+                      {isAdmin && !isSeasonCompleted && matchStatus === 'future-no-fixtures' && stats.available >= 4 && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
