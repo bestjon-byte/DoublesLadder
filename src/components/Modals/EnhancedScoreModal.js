@@ -161,7 +161,7 @@ const EnhancedScoreModal = ({
                   </div>
                 </div>
                 <p className="text-xs text-gray-600 mt-2">
-                  Submitted: {existingScore.submitted_at ? new Date(existingScore.submitted_at).toLocaleString() : 'Unknown'}
+                  Submitted: {existingScore.created_at ? new Date(existingScore.created_at).toLocaleString() : 'Unknown'}
                 </p>
               </div>
             ) : null}

@@ -61,7 +61,7 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
           player4:player4_id(name)
         )
       `)
-      .order('submitted_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -486,7 +486,7 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
                   </div>
                   
                   <div className="text-xs text-gray-400 mt-1 pt-1 border-t border-gray-100">
-                    Submitted: {result.submitted_at ? new Date(result.submitted_at).toLocaleString() : 'Unknown'}
+                    Submitted: {result.created_at ? new Date(result.created_at).toLocaleString() : 'Unknown'}
                   </div>
                 </div>
               ))}
