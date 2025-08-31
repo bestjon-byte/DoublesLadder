@@ -15,10 +15,15 @@ const AdminTab = ({
   getPlayerAvailability,
   getAvailabilityStats,
   clearOldMatches,
+  createNewSeason,
+  completeCurrentSeason,
   matchFixtures,
   matchResults
 }) => {
   const [loading, setLoading] = useState(false);
+  const [showCreateSeason, setShowCreateSeason] = useState(false);
+  const [newSeasonName, setNewSeasonName] = useState('');
+  const [newSeasonStartDate, setNewSeasonStartDate] = useState('');
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -29,6 +34,32 @@ const AdminTab = ({
   const handleAddToLadder = async (userId, rank) => {
     setLoading(true);
     await addToLadder(userId, rank);
+    setLoading(false);
+  };
+
+  const handleCreateSeason = async () => {
+    if (!newSeasonName.trim() || !newSeasonStartDate) {
+      alert('Please provide both season name and start date');
+      return;
+    }
+    
+    setLoading(true);
+    const result = await createNewSeason(newSeasonName.trim(), newSeasonStartDate);
+    if (result.success) {
+      setShowCreateSeason(false);
+      setNewSeasonName('');
+      setNewSeasonStartDate('');
+    }
+    setLoading(false);
+  };
+
+  const handleCompleteSeason = async () => {
+    if (!window.confirm(`Are you sure you want to complete the current season "${currentSeason?.name}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    setLoading(true);
+    await completeCurrentSeason();
     setLoading(false);
   };
 
@@ -47,6 +78,95 @@ const AdminTab = ({
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
+      
+      {/* Season Management */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">Season Management</h3>
+        
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-sm text-gray-600">
+              Current Season: <span className="font-medium">{currentSeason?.name || 'No Active Season'}</span>
+            </p>
+            {currentSeason && (
+              <p className="text-xs text-gray-500">
+                Status: {currentSeason.status} • Started: {new Date(currentSeason.start_date).toLocaleDateString()}
+                {currentSeason.end_date && ` • Ended: ${new Date(currentSeason.end_date).toLocaleDateString()}`}
+              </p>
+            )}
+          </div>
+          
+          <div className="flex space-x-2">
+            {currentSeason?.status === 'active' && (
+              <button
+                onClick={handleCompleteSeason}
+                disabled={loading}
+                className="bg-orange-600 text-white px-3 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50 transition-colors text-sm"
+              >
+                Complete Season
+              </button>
+            )}
+            <button
+              onClick={() => setShowCreateSeason(true)}
+              disabled={loading}
+              className="bg-[#5D1F1F] text-white px-3 py-2 rounded-md hover:bg-[#4A1818] disabled:opacity-50 transition-colors text-sm"
+            >
+              Create New Season
+            </button>
+          </div>
+        </div>
+        
+        {showCreateSeason && (
+          <div className="border-t pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Season Name
+                </label>
+                <input
+                  type="text"
+                  value={newSeasonName}
+                  onChange={(e) => setNewSeasonName(e.target.value)}
+                  placeholder="e.g., Spring 2025"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={newSeasonStartDate}
+                  onChange={(e) => setNewSeasonStartDate(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+                />
+              </div>
+              
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleCreateSeason}
+                  disabled={loading || !newSeasonName.trim() || !newSeasonStartDate}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                >
+                  Create
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateSeason(false);
+                    setNewSeasonName('');
+                    setNewSeasonStartDate('');
+                  }}
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* Score Challenges and Conflicts Management - THE MAIN NEW FEATURE */}
       <ScoreChallengesSection 

@@ -673,6 +673,92 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [fetchSeasons]);
 
+  // Season Management Functions
+  const createNewSeason = useCallback(async (seasonName, startDate) => {
+    try {
+      console.log('🌟 Creating new season:', { seasonName, startDate });
+      
+      // First, close any active seasons
+      const { error: closeError } = await supabase
+        .from('seasons')
+        .update({ 
+          status: 'completed',
+          end_date: new Date().toISOString().split('T')[0] // Today's date
+        })
+        .eq('status', 'active');
+      
+      if (closeError) {
+        console.error('❌ Error closing active seasons:', closeError);
+        throw closeError;
+      }
+      
+      // Create new season
+      const { data: newSeason, error: createError } = await supabase
+        .from('seasons')
+        .insert({
+          name: seasonName,
+          start_date: startDate,
+          status: 'active'
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('❌ Error creating season:', createError);
+        throw createError;
+      }
+      
+      console.log('✅ New season created:', newSeason);
+      
+      // Refresh season data
+      await fetchSeasons();
+      
+      alert(`New season "${seasonName}" created successfully! All previous seasons have been completed.`);
+      return { success: true, season: newSeason };
+    } catch (error) {
+      console.error('💥 Error creating season:', error);
+      alert('Error creating season: ' + error.message);
+      return { success: false, error };
+    }
+  }, [fetchSeasons]);
+
+  const completeCurrentSeason = useCallback(async () => {
+    try {
+      console.log('🏁 Completing current season');
+      
+      if (!selectedSeasonId) {
+        alert('No season selected to complete');
+        return { success: false };
+      }
+      
+      // Update season status to completed
+      const { error } = await supabase
+        .from('seasons')
+        .update({ 
+          status: 'completed',
+          end_date: new Date().toISOString().split('T')[0] // Today's date
+        })
+        .eq('id', selectedSeasonId);
+      
+      if (error) {
+        console.error('❌ Error completing season:', error);
+        throw error;
+      }
+      
+      console.log('✅ Season completed successfully');
+      
+      // Refresh season data
+      await fetchSeasons();
+      
+      alert('Season completed successfully! Create a new season to continue.');
+      return { success: true };
+    } catch (error) {
+      console.error('💥 Error completing season:', error);
+      alert('Error completing season: ' + error.message);
+      return { success: false, error };
+    }
+  }, [selectedSeasonId, fetchSeasons]);
+
   // Helper functions
   const getPlayerAvailability = useCallback((userIdToCheck, matchId) => {
     const match = state.currentSeason?.matches?.find(m => m.id === matchId);
@@ -796,6 +882,8 @@ export const useApp = (userId, selectedSeasonId) => {
       generateMatches,
       updateRankings,
       clearOldMatches,
+      createNewSeason,
+      completeCurrentSeason,
     },
     helpers: {
       getPlayerAvailability,
