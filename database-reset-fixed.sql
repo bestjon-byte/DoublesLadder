@@ -1,12 +1,9 @@
 -- =====================================================
--- SIMPLIFIED TENNIS LADDER DATABASE RESET 
--- This version avoids RLS policy conflicts during setup
+-- TENNIS LADDER DATABASE RESET - FIXED UUID VERSION
+-- Fixes PostgreSQL UUID validation errors
 -- =====================================================
 
--- First, clean up existing data and tables
--- =====================================================
-
--- Drop all tables in reverse dependency order
+-- Drop existing tables
 DROP TABLE IF EXISTS match_results CASCADE;
 DROP TABLE IF EXISTS match_fixtures CASCADE; 
 DROP TABLE IF EXISTS availability CASCADE;
@@ -15,11 +12,7 @@ DROP TABLE IF EXISTS season_players CASCADE;
 DROP TABLE IF EXISTS seasons CASCADE;
 DROP TABLE IF EXISTS profiles CASCADE;
 
--- =====================================================
--- Create Tables WITHOUT RLS (we'll add it later)
--- =====================================================
-
--- Profiles table (links to Supabase auth)
+-- Create Tables
 CREATE TABLE profiles (
     id UUID PRIMARY KEY,
     name TEXT NOT NULL,
@@ -30,7 +23,6 @@ CREATE TABLE profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Seasons table
 CREATE TABLE seasons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -41,7 +33,6 @@ CREATE TABLE seasons (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Season Players table (many-to-many with rankings)
 CREATE TABLE season_players (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     season_id UUID NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
@@ -57,7 +48,6 @@ CREATE TABLE season_players (
     UNIQUE(season_id, player_id)
 );
 
--- Matches table (individual weeks within seasons)
 CREATE TABLE matches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     season_id UUID NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
@@ -67,7 +57,6 @@ CREATE TABLE matches (
     UNIQUE(season_id, week_number)
 );
 
--- Match Fixtures table (individual games within matches)
 CREATE TABLE match_fixtures (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     match_id UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
@@ -85,7 +74,6 @@ CREATE TABLE match_fixtures (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Match Results table
 CREATE TABLE match_results (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     fixture_id UUID NOT NULL REFERENCES match_fixtures(id) ON DELETE CASCADE,
@@ -97,7 +85,6 @@ CREATE TABLE match_results (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Availability table
 CREATE TABLE availability (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     player_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
@@ -108,16 +95,9 @@ CREATE TABLE availability (
     UNIQUE(player_id, match_date)
 );
 
--- =====================================================
--- Insert Sample Data (without RLS conflicts)
--- =====================================================
-
--- Insert Admin User (placeholder UUID - replace after creating auth user)
+-- Insert Sample Data with PROPER UUIDs
 INSERT INTO profiles (id, name, email, status, role) VALUES 
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Jon Best', 'best.jon@gmail.com', 'approved', 'admin');
-
--- Insert 10 Dummy Test Users
-INSERT INTO profiles (id, name, email, status, role) VALUES 
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Jon Best', 'best.jon@gmail.com', 'approved', 'admin'),
 ('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Alice Johnson', 'alice@example.com', 'approved', 'player'),
 ('b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Bob Smith', 'bob@example.com', 'approved', 'player'),
 ('b3eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Carol Davis', 'carol@example.com', 'approved', 'player'),
@@ -129,57 +109,27 @@ INSERT INTO profiles (id, name, email, status, role) VALUES
 ('b9eebc99-9c0b-4ef8-bb6d-6bb9bd380a20', 'Iris Martinez', 'iris@example.com', 'approved', 'player'),
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 'Jack Thompson', 'jack@example.com', 'approved', 'player');
 
--- Create Default Season (using the same UUID as before for consistency)
+-- Create Default Season
 INSERT INTO seasons (id, name, start_date, status) VALUES 
 ('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'Season 2025', '2025-01-01', 'active');
 
--- Add all players to the default season with initial rankings
+-- Add players to season with rankings
 INSERT INTO season_players (season_id, player_id, rank) VALUES 
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000001', 1),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-000000000002', 2),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000003', 3),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000004', 4),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000005', 5),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000006', 6),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000007', 7),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000008', 8),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000009', 9),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000010', 10),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000011', 11);
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 1),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 2),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 3),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'b3eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 4),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'b4eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 5),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'b5eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 6),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'b6eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 7),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'b7eebc99-9c0b-4ef8-bb6d-6bb9bd380a18', 8),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'b8eebc99-9c0b-4ef8-bb6d-6bb9bd380a19', 9),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'b9eebc99-9c0b-4ef8-bb6d-6bb9bd380a20', 10),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21', 11);
 
--- Create a sample match for testing
+-- Create sample match
 INSERT INTO matches (id, season_id, week_number, match_date) VALUES 
 ('550e8400-e29b-41d4-a716-446655440000', '0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 1, '2025-09-07');
 
--- =====================================================
--- Create Helpful Views
--- =====================================================
-
--- View to see current season standings
-CREATE OR REPLACE VIEW current_season_standings AS
-SELECT 
-    p.name,
-    p.email,
-    sp.rank,
-    sp.matches_played,
-    sp.matches_won,
-    sp.games_played,
-    sp.games_won,
-    CASE 
-        WHEN sp.games_played > 0 
-        THEN ROUND((sp.games_won::decimal / sp.games_played) * 100, 2)
-        ELSE 0 
-    END as win_percentage
-FROM season_players sp
-JOIN profiles p ON sp.player_id = p.id
-JOIN seasons s ON sp.season_id = s.id
-WHERE s.status = 'active'
-ORDER BY sp.rank ASC;
-
--- =====================================================
--- Success Message
--- =====================================================
-
-SELECT 'Simplified database reset complete! ✅' as status,
-       'RLS policies NOT enabled - add them manually if needed' as note,
-       'Remember to update admin user ID after creating auth user' as reminder;
+-- Success message
+SELECT 'Database reset complete with valid UUIDs! ✅' as status;

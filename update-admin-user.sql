@@ -19,7 +19,7 @@ WHERE email = 'best.jon@gmail.com';
 -- Also update the season_players record
 UPDATE season_players 
 SET player_id = 'YOUR_ACTUAL_AUTH_USER_ID'  -- Replace with real UUID  
-WHERE player_id = '00000000-0000-0000-0000-000000000001';
+WHERE player_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
 -- Verify the update worked
 SELECT 
