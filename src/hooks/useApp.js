@@ -705,7 +705,26 @@ export const useApp = (userId, selectedSeasonId) => {
   }, [state.currentSeason, state.seasonPlayers, state.users, state.availability]);
 
   const getMatchScore = useCallback((fixtureId) => {
-    return state.matchResults.find(r => r.fixture_id === fixtureId);
+    const fixtureResults = state.matchResults.filter(r => r.fixture_id === fixtureId);
+    
+    // If no results, return null
+    if (fixtureResults.length === 0) return null;
+    
+    // If only one result, return it
+    if (fixtureResults.length === 1) return fixtureResults[0];
+    
+    // Multiple results - prioritize verified results, then most recent
+    const verifiedResult = fixtureResults.find(r => r.verified === true);
+    if (verifiedResult) return verifiedResult;
+    
+    // If no verified result, return the most recent
+    return fixtureResults.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+  }, [state.matchResults]);
+
+  const getMatchScoreHistory = useCallback((fixtureId) => {
+    return state.matchResults
+      .filter(r => r.fixture_id === fixtureId)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   }, [state.matchResults]);
 
   // Load season players when selectedSeasonId changes
@@ -782,6 +801,7 @@ export const useApp = (userId, selectedSeasonId) => {
       getPlayerAvailability,
       getAvailabilityStats,
       getMatchScore,
+      getMatchScoreHistory,
     },
     refetch: {
       users: fetchUsers,

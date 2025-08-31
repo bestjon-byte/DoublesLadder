@@ -73,25 +73,44 @@ const ScoreChallengesSection = ({ currentUser, onDataRefresh }) => {
       console.log(`🏆 Resolving challenge ${challengeId} with decision: ${decision}`);
       
       if (decision === 'approved' && newScore) {
-        // First, update the original result with the challenged score
+        // Create new corrected result record and preserve original
         const challenge = challenges.find(c => c.id === challengeId);
         
-        if (challenge?.original_result_id) {
-          console.log('📝 Updating original score...');
-          const { error: scoreError } = await supabase
+        if (challenge?.original_result_id && challenge?.fixture_id) {
+          console.log('📝 Creating corrected score record...');
+          
+          // Create new result record with corrected score
+          const { data: correctedResult, error: createError } = await supabase
             .from('match_results')
-            .update({
+            .insert({
+              fixture_id: challenge.fixture_id,
               pair1_score: newScore.pair1_score,
-              pair2_score: newScore.pair2_score
+              pair2_score: newScore.pair2_score,
+              submitted_by: challenge.challenger_id,
+              verified: true // Mark as the official/verified score
             })
-            .eq('id', challenge.original_result_id);
+            .select()
+            .single();
             
-          if (scoreError) {
-            console.error('❌ Error updating score:', scoreError);
-            alert('Error updating score: ' + scoreError.message);
+          if (createError) {
+            console.error('❌ Error creating corrected result:', createError);
+            alert('Error creating corrected result: ' + createError.message);
             return;
           }
-          console.log('✅ Score updated successfully');
+          
+          // Mark original result as superseded (unverified)
+          const { error: updateError } = await supabase
+            .from('match_results')
+            .update({ verified: false })
+            .eq('id', challenge.original_result_id);
+            
+          if (updateError) {
+            console.error('❌ Error marking original as superseded:', updateError);
+            alert('Error updating original result: ' + updateError.message);
+            return;
+          }
+          
+          console.log('✅ Created corrected result:', correctedResult.id, 'and marked original as superseded');
         }
       }
       
