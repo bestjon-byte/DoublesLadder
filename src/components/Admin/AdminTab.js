@@ -5,6 +5,7 @@ import ScoreChallengesSection from './ScoreChallengesSection';
 
 const AdminTab = ({ 
   users, 
+  ladderPlayers = [], // NEW: Current season players
   currentUser,
   currentSeason,
   approveUser, 
@@ -92,7 +93,7 @@ const AdminTab = ({
           <p className="text-sm text-gray-600 mb-4">Set availability on behalf of players</p>
           
           {currentSeason.matches.map((match) => {
-            const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
+            // Use ladderPlayers prop instead of filtering users
             const matchComplete = isMatchComplete(match.id);
             
             return (
@@ -224,10 +225,10 @@ const AdminTab = ({
       {/* Add Players to Ladder */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4">Add Players to Ladder</h3>
-        {users.filter(u => u.status === 'approved' && !u.in_ladder).length > 0 ? (
+        {users.filter(u => u.status === 'approved' && !ladderPlayers.some(lp => lp.id === u.id)).length > 0 ? (
           <div className="space-y-3">
-            {users.filter(u => u.status === 'approved' && !u.in_ladder).map(user => {
-              const maxRank = users.filter(u => u.in_ladder && u.status === 'approved').length + 1;
+            {users.filter(u => u.status === 'approved' && !ladderPlayers.some(lp => lp.id === u.id)).map(user => {
+              const maxRank = ladderPlayers.length + 1;
               return (
                 <div key={user.id} className="flex justify-between items-center p-3 border border-gray-200 rounded">
                   <p className="font-medium">{user.name}</p>

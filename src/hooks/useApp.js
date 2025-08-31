@@ -343,12 +343,16 @@ export const useApp = (userId, selectedSeasonId) => {
   }, [state.currentSeason, fetchAvailability]);
 
   const addMatchToSeason = useCallback(async (matchDate) => {
+    console.log('🗓️ addMatchToSeason called with:', { matchDate, selectedSeasonId });
+    
     if (!matchDate) {
+      console.error('❌ No match date provided');
       alert('Please select a date for the match');
       return { success: false };
     }
     
     if (!selectedSeasonId) {
+      console.error('❌ No selectedSeasonId provided');
       alert('No season selected');
       return { success: false };
     }
@@ -396,11 +400,12 @@ export const useApp = (userId, selectedSeasonId) => {
 
       if (error) throw error;
       
+      console.log('✅ Match created successfully for week', weekNumber);
       await fetchSeasons(); // Refresh season data
       alert(`Match created for Week ${weekNumber}`);
       return { success: true };
     } catch (error) {
-      console.error('Error adding match:', error);
+      console.error('💥 Error adding match:', error);
       alert('Error: ' + error.message);
       return { success: false, error };
     }

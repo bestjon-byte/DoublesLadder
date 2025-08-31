@@ -113,12 +113,17 @@ const TennisLadderApp = () => {
   };
 
   const handleAddMatch = async () => {
+    console.log('🎯 handleAddMatch called with:', { newMatchDate, hasAction: !!actions?.addMatchToSeason });
+    
     if (actions?.addMatchToSeason) {
       const result = await actions.addMatchToSeason(newMatchDate);
+      console.log('📋 addMatchToSeason result:', result);
       if (result?.success) {
         setShowScheduleModal(false);
         setNewMatchDate('');
       }
+    } else {
+      console.error('❌ No addMatchToSeason action available');
     }
   };
 
@@ -245,6 +250,7 @@ const TennisLadderApp = () => {
           {activeTab === 'admin' && user?.role === 'admin' && (
             <AdminTab 
               users={allUsers} // CHANGED: Use allUsers
+              ladderPlayers={ladderPlayers} // NEW: Add ladder players for filtering
               currentUser={user}
               currentSeason={selectedSeason} // CHANGED: Use selectedSeason
               approveUser={actions?.approveUser || (() => alert('Approve user not available'))}
