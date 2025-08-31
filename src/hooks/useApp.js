@@ -100,8 +100,7 @@ export const useApp = (userId, selectedSeasonId) => {
             name,
             email,
             status,
-            role,
-            in_ladder
+            role
           )
         `)
         .eq('season_id', seasonId)
