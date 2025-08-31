@@ -725,20 +725,42 @@ export const useApp = (userId, selectedSeasonId) => {
 
   const clearOldMatches = useCallback(async () => {
     try {
+      // Clear all season and match data in proper order (respecting foreign key constraints)
+      console.log('🗑️ Clearing all season and match data...');
+      
+      // Delete in reverse dependency order
+      await supabase.from('score_challenges').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('score_conflicts').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('match_results').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('match_fixtures').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabase.from('availability').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('availability').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('season_players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('seasons').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       
-      alert('All match data cleared!');
-      await fetchSeasons();
+      // Also clear old ladder tables if they exist
+      await supabase.from('ladder_players').delete().neq('id', 0);
+      await supabase.from('ladders').delete().neq('id', 0);
+      
+      console.log('✅ All season and match data cleared successfully!');
+      alert('All season and match data cleared! Users have been preserved.');
+      
+      // Refresh all data
+      await Promise.all([
+        fetchUsers(),
+        fetchSeasons(),
+        fetchAvailability(),
+        fetchMatchFixtures(),
+        fetchMatchResults()
+      ]);
+      
       return { success: true };
     } catch (error) {
-      console.error('Error clearing data:', error);
-      alert('Error: ' + error.message);
+      console.error('💥 Error clearing data:', error);
+      alert('Error clearing data: ' + error.message);
       return { success: false, error };
     }
-  }, [fetchSeasons]);
+  }, [fetchUsers, fetchSeasons, fetchAvailability, fetchMatchFixtures, fetchMatchResults]);
 
 
   // Helper functions

@@ -404,16 +404,23 @@ const AdminTab = ({
       <div className="bg-red-50 border border-red-200 rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4 text-red-800">⚠️ Admin Maintenance</h3>
         <p className="text-sm text-red-600 mb-4">Use these tools carefully - they will delete data permanently!</p>
-        <button
-          onClick={() => {
-            if (window.confirm('This will delete ALL matches, fixtures, results, and availability data. Are you absolutely sure?')) {
-              clearOldMatches();
-            }
-          }}
-          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
-        >
-          Clear All Match Data
-        </button>
+        <div className="space-y-2">
+          <p className="text-xs text-gray-600">
+            This will reset everything except users (profiles). All seasons, matches, results, availability, and ladder data will be permanently deleted.
+          </p>
+          <button
+            onClick={() => {
+              if (window.confirm('This will delete ALL seasons, matches, fixtures, results, availability, and ladder data. Only users will be preserved. Are you absolutely sure?')) {
+                if (window.confirm('⚠️ FINAL WARNING: This action cannot be undone! Click OK to proceed with complete data reset.')) {
+                  clearOldMatches();
+                }
+              }
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+          >
+            🗑️ Clear All Season & Match Data
+          </button>
+        </div>
       </div>
     </div>
   );
