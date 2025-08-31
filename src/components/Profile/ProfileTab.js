@@ -26,7 +26,8 @@ const ProfileTab = ({
     currentUser?.id, 
     filterType === 'current' ? selectedSeason?.id : 
     filterType === 'season' ? selectedSeasonId : null,
-    filterType === 'all-time'
+    filterType === 'all-time',
+    allUsers
   );
 
   const {

@@ -463,7 +463,10 @@ export const useApp = (userId, selectedSeasonId) => {
       : state.users;
     
     const availablePlayers = playersToUse.filter(user => {
+      // Check if user is in ladder and approved
       if (!user.in_ladder || user.status !== 'approved') return false;
+      
+      // Check if user marked themselves available for this match date
       const userAvailability = state.availability.find(
         a => a.player_id === user.id && a.match_date === match.match_date
       );

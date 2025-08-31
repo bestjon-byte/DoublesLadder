@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 
-export const useProfileStats = (playerId, seasonId = null, allTime = false) => {
+export const useProfileStats = (playerId, seasonId = null, allTime = false, allUsers = []) => {
   const [stats, setStats] = useState({
     matchHistory: [],
     overallStats: {},
@@ -58,15 +58,8 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false) => {
 
       if (matchError) throw matchError;
 
-      // Fetch all users for name lookups
-      const { data: users, error: usersError } = await supabase
-        .from('profiles')
-        .select('id, name');
-
-      if (usersError) throw usersError;
-
-      // Create a lookup map for user names
-      const userLookup = users.reduce((acc, user) => {
+      // Create a lookup map for user names from passed allUsers
+      const userLookup = allUsers.reduce((acc, user) => {
         acc[user.id] = user.name;
         return acc;
       }, {});
@@ -215,19 +208,20 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false) => {
         .filter(pair => pair.matches >= 2) // Only pairs faced 2+ times
         .sort((a, b) => a.winRate - b.winRate)[0]; // Lowest win rate first
 
-      // Calculate win streaks
+      // Calculate win streaks (need chronological order, oldest first)
+      const chronologicalMatches = [...processedMatches].reverse();
       let currentStreak = 0;
       let currentStreakType = null;
       let longestWinStreak = 0;
       let tempWinStreak = 0;
 
-      processedMatches.forEach((match, index) => {
+      chronologicalMatches.forEach((match, index) => {
         if (index === 0) {
           currentStreak = 1;
           currentStreakType = match.won ? 'win' : 'loss';
           if (match.won) tempWinStreak = 1;
         } else {
-          const prevMatch = processedMatches[index - 1];
+          const prevMatch = chronologicalMatches[index - 1];
           if (match.won === prevMatch.won) {
             currentStreak++;
             if (match.won) tempWinStreak++;
@@ -311,7 +305,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false) => {
         error: error.message
       }));
     }
-  }, [playerId, seasonId, allTime]);
+  }, [playerId, seasonId, allTime, allUsers]);
 
   useEffect(() => {
     calculateStats();
