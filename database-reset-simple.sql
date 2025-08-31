@@ -1,6 +1,6 @@
 -- =====================================================
--- TENNIS LADDER DATABASE RESET SCRIPT
--- Complete database reset with multi-season support
+-- SIMPLIFIED TENNIS LADDER DATABASE RESET 
+-- This version avoids RLS policy conflicts during setup
 -- =====================================================
 
 -- First, clean up existing data and tables
@@ -15,17 +15,13 @@ DROP TABLE IF EXISTS season_players CASCADE;
 DROP TABLE IF EXISTS seasons CASCADE;
 DROP TABLE IF EXISTS profiles CASCADE;
 
--- Clear Supabase Auth users (this will cascade delete auth users)
--- Note: This requires superuser privileges, might need to do manually
--- DELETE FROM auth.users;
-
 -- =====================================================
--- Create Tables with Proper Structure
+-- Create Tables WITHOUT RLS (we'll add it later)
 -- =====================================================
 
 -- Profiles table (links to Supabase auth)
 CREATE TABLE profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'suspended')),
@@ -113,11 +109,10 @@ CREATE TABLE availability (
 );
 
 -- =====================================================
--- Create Sample Data FIRST (before enabling RLS)
+-- Insert Sample Data (without RLS conflicts)
 -- =====================================================
 
--- Insert Admin User (you'll need to create the auth user manually in Supabase)
--- Note: The UUID here is a placeholder - replace with actual auth user ID from Supabase
+-- Insert Admin User (placeholder UUID - replace after creating auth user)
 INSERT INTO profiles (id, name, email, status, role) VALUES 
 ('00000000-0000-0000-0000-000000000001', 'Jon Best', 'best.jon@gmail.com', 'approved', 'admin');
 
@@ -134,14 +129,14 @@ INSERT INTO profiles (id, name, email, status, role) VALUES
 ('00000000-0000-0000-0000-000000000010', 'Iris Martinez', 'iris@example.com', 'approved', 'player'),
 ('00000000-0000-0000-0000-000000000011', 'Jack Thompson', 'jack@example.com', 'approved', 'player');
 
--- Create Default Season
+-- Create Default Season (using the same UUID as before for consistency)
 INSERT INTO seasons (id, name, start_date, status) VALUES 
 ('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 'Season 2025', '2025-01-01', 'active');
 
 -- Add all players to the default season with initial rankings
 INSERT INTO season_players (season_id, player_id, rank) VALUES 
 ('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000001', 1),
-('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000002', 2),
+('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-000000000002', 2),
 ('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000003', 3),
 ('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000004', 4),
 ('0be6fcbe-ed98-4f6d-bc42-463a9de52f76', '00000000-0000-0000-0000-000000000005', 5),
@@ -157,69 +152,7 @@ INSERT INTO matches (id, season_id, week_number, match_date) VALUES
 ('550e8400-e29b-41d4-a716-446655440000', '0be6fcbe-ed98-4f6d-bc42-463a9de52f76', 1, '2025-09-07');
 
 -- =====================================================
--- NOW Enable Row Level Security (RLS) Policies
--- =====================================================
-
--- Enable RLS on all tables
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE seasons ENABLE ROW LEVEL SECURITY;
-ALTER TABLE season_players ENABLE ROW LEVEL SECURITY;
-ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
-ALTER TABLE match_fixtures ENABLE ROW LEVEL SECURITY;
-ALTER TABLE match_results ENABLE ROW LEVEL SECURITY;
-ALTER TABLE availability ENABLE ROW LEVEL SECURITY;
-
--- Basic RLS policies (allow authenticated users to read, admins to modify)
--- You might want to adjust these based on your specific requirements
-
--- Profiles - users can read all, only update their own
-CREATE POLICY "Anyone can view profiles" ON profiles FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Admins can do anything with profiles" ON profiles FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
-
--- Seasons - read for all authenticated, admin only modify
-CREATE POLICY "Anyone can view seasons" ON seasons FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Admins can manage seasons" ON seasons FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
-
--- Season players - read for all, admin/own record modify
-CREATE POLICY "Anyone can view season players" ON season_players FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Admins can manage season players" ON season_players FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
-
--- Matches - read for all, admin only modify  
-CREATE POLICY "Anyone can view matches" ON matches FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Admins can manage matches" ON matches FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
-
--- Match fixtures - read for all, admin only modify
-CREATE POLICY "Anyone can view match fixtures" ON match_fixtures FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Admins can manage match fixtures" ON match_fixtures FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
-
--- Match results - read for all, players can submit own results
-CREATE POLICY "Anyone can view match results" ON match_results FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Players can submit match results" ON match_results FOR INSERT USING (auth.role() = 'authenticated');
-CREATE POLICY "Admins can manage match results" ON match_results FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
-
--- Availability - read for all, users can manage their own
-CREATE POLICY "Anyone can view availability" ON availability FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Users can manage own availability" ON availability FOR ALL USING (auth.uid() = player_id);
-CREATE POLICY "Admins can manage all availability" ON availability FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-);
-
-
--- =====================================================
--- Create Helpful Views for Development
+-- Create Helpful Views
 -- =====================================================
 
 -- View to see current season standings
@@ -244,15 +177,9 @@ WHERE s.status = 'active'
 ORDER BY sp.rank ASC;
 
 -- =====================================================
--- Database Setup Complete!
+-- Success Message
 -- =====================================================
 
--- To complete the setup, you need to:
--- 1. Run this script in Supabase SQL Editor
--- 2. Go to Authentication > Users in Supabase Dashboard
--- 3. Create a new user with email: best.jon@gmail.com
--- 4. Copy the generated User ID and update the admin user record:
---    UPDATE profiles SET id = 'ACTUAL_USER_ID' WHERE email = 'best.jon@gmail.com';
--- 5. Test login with the admin account
-
-SELECT 'Database reset complete! ✅' as status;
+SELECT 'Simplified database reset complete! ✅' as status,
+       'RLS policies NOT enabled - add them manually if needed' as note,
+       'Remember to update admin user ID after creating auth user' as reminder;

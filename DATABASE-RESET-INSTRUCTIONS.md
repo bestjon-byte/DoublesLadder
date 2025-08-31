@@ -8,10 +8,22 @@
 3. This prevents auth/profile mismatches
 
 ### Step 2: Run Database Reset Script
+
+**If you get RLS errors, use the simple version:**
+
+**Option A: Full Script (with RLS policies)**
 1. Go to **Supabase Dashboard** → **SQL Editor**
 2. Create new query
 3. Copy and paste the entire content of `database-reset.sql`
-4. Click **Run** - this will:
+4. Click **Run**
+
+**Option B: Simple Script (if RLS errors occur)**
+1. Go to **Supabase Dashboard** → **SQL Editor**
+2. Create new query  
+3. Copy and paste the entire content of `database-reset-simple.sql`
+4. Click **Run**
+
+Both will:
    - ✅ Drop all existing tables
    - ✅ Create fresh table structure
    - ✅ Set up proper relationships
