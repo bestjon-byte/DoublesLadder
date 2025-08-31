@@ -252,8 +252,11 @@ export const useApp = (userId, selectedSeasonId) => {
 
   // Updated addToLadder for season-based system
   const addToLadder = useCallback(async (userIdToAdd, rank) => {
+    console.log('🎾 addToLadder called with:', { userIdToAdd, rank, selectedSeasonId });
+    
     if (!selectedSeasonId) {
-      alert('No active season to add player to');
+      console.error('❌ No selectedSeasonId provided');
+      alert('No season selected to add player to');
       return { success: false };
     }
 
@@ -345,20 +348,30 @@ export const useApp = (userId, selectedSeasonId) => {
       return { success: false };
     }
     
-    // Use current season from state, or fetch active season
-    let activeSeason = state.currentSeason;
+    if (!selectedSeasonId) {
+      alert('No season selected');
+      return { success: false };
+    }
     
-    if (!activeSeason) {
-      const { data: season } = await supabase
+    // Use selectedSeasonId directly - this comes from the App component
+    let activeSeason;
+    try {
+      const { data: season, error } = await supabase
         .from('seasons')
         .select('*')
-        .eq('status', 'active')
+        .eq('id', selectedSeasonId)
         .single();
+      
+      if (error) throw error;
       activeSeason = season;
+    } catch (error) {
+      console.error('Error fetching season:', error);
+      alert('Error finding selected season');
+      return { success: false };
     }
     
     if (!activeSeason) {
-      alert('No active season found');
+      alert('Selected season not found');
       return { success: false };
     }
     
@@ -391,7 +404,7 @@ export const useApp = (userId, selectedSeasonId) => {
       alert('Error: ' + error.message);
       return { success: false, error };
     }
-  }, [state.currentSeason, fetchSeasons]);
+  }, [selectedSeasonId, fetchSeasons]);
 
   const generateMatches = useCallback(async (matchId) => {
     const match = state.currentSeason?.matches?.find(m => m.id === matchId);
