@@ -218,7 +218,7 @@ const TennisLadderApp = () => {
           {activeTab === 'matches' && (
             <MatchesTab 
               currentUser={user}
-              currentSeason={selectedSeason} // CHANGED: Use selectedSeason
+              currentSeason={currentSeason} // CHANGED: Use currentSeason (has matches data)
               setShowScheduleModal={setShowScheduleModal}
               matchFixtures={matchFixtures}
               matchResults={matchResults}
@@ -234,7 +234,7 @@ const TennisLadderApp = () => {
           {activeTab === 'availability' && (
             <AvailabilityTab 
               currentUser={user}
-              currentSeason={selectedSeason} // CHANGED: Use selectedSeason
+              currentSeason={currentSeason} // CHANGED: Use currentSeason (has matches data)
               getPlayerAvailability={helpers?.getPlayerAvailability || (() => undefined)}
               setPlayerAvailability={(matchId, available) => {
                 if (actions?.setPlayerAvailability) {
@@ -252,7 +252,7 @@ const TennisLadderApp = () => {
               users={allUsers} // CHANGED: Use allUsers
               ladderPlayers={ladderPlayers} // NEW: Add ladder players for filtering
               currentUser={user}
-              currentSeason={selectedSeason} // CHANGED: Use selectedSeason
+              currentSeason={currentSeason} // CHANGED: Use currentSeason from useApp (has matches data)
               approveUser={actions?.approveUser || (() => alert('Approve user not available'))}
               addToLadder={actions?.addToLadder || (() => alert('Add to ladder not available'))}
               fetchUsers={refetch?.users || (() => {})}

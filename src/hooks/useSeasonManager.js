@@ -34,7 +34,8 @@ export const useSeasonManager = () => {
       console.log('📊 Processed seasons data:', processedSeasons.map(s => ({ 
         id: s.id, 
         name: s.name, 
-        matchCount: s.matches?.length 
+        matchCount: s.matches?.length,
+        matches: s.matches?.map(m => ({ id: m.id, week: m.week_number, date: m.match_date }))
       })));
 
       setSeasons(processedSeasons);
@@ -43,9 +44,12 @@ export const useSeasonManager = () => {
       const active = processedSeasons.find(s => s.status === 'active');
       setActiveSeason(active);
       
-      // Set selected season to active if none selected
+      console.log('🎯 Setting activeSeason:', active ? { id: active.id, matchCount: active.matches?.length } : 'null');
+      
+      // Set selected season to active if none selected  
       if (!selectedSeason && active) {
         setSelectedSeason(active);
+        console.log('🎯 Auto-selected season:', active.name);
       }
 
       return processedSeasons;
