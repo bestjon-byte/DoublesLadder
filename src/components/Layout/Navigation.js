@@ -2,7 +2,7 @@
 import React from 'react';
 import { Users, Calendar, Trophy, Settings } from 'lucide-react';
 
-const Navigation = ({ activeTab, setActiveTab, currentUser }) => {
+const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers }) => {
   return (
     <nav className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4">
@@ -29,7 +29,7 @@ const Navigation = ({ activeTab, setActiveTab, currentUser }) => {
             <Calendar className="w-4 h-4 inline mr-2" />
             Matches
           </button>
-          {currentUser?.in_ladder && (
+          {ladderPlayers?.find(player => player.id === currentUser?.id) && (
             <button
               onClick={() => setActiveTab('availability')}
               className={`px-4 py-3 text-sm font-medium border-b-2 ${

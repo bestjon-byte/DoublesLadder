@@ -214,7 +214,8 @@ const TennisLadderApp = () => {
         <Navigation 
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
-          currentUser={user} 
+          currentUser={user}
+          ladderPlayers={ladderPlayers}
         />
         
         <main className="max-w-7xl mx-auto px-4 py-6">
