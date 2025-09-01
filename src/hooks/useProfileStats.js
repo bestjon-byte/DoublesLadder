@@ -248,29 +248,29 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
         .filter(opponent => opponent.matches > 1)
         .sort((a, b) => b.matches - a.matches);
 
-      // Season progression (if looking at all time)
+      // Season progression (if looking at all time) - use games for more accurate stats
       let seasonProgression = [];
       if (allTime) {
         const seasonStats = {};
-        processedMatches.forEach(match => {
-          if (!seasonStats[match.seasonId]) {
-            seasonStats[match.seasonId] = {
-              seasonId: match.seasonId,
-              seasonName: match.seasonName,
-              matches: 0,
-              wins: 0
+        processedMatches.forEach(game => {
+          if (!seasonStats[game.seasonId]) {
+            seasonStats[game.seasonId] = {
+              seasonId: game.seasonId,
+              seasonName: game.seasonName,
+              games: 0,
+              gamesWon: 0
             };
           }
-          seasonStats[match.seasonId].matches++;
-          if (match.won) {
-            seasonStats[match.seasonId].wins++;
+          seasonStats[game.seasonId].games++;
+          if (game.won) {
+            seasonStats[game.seasonId].gamesWon++;
           }
         });
 
         seasonProgression = Object.values(seasonStats)
           .map(season => ({
             ...season,
-            winRate: season.matches > 0 ? (season.wins / season.matches) * 100 : 0
+            winRate: season.games > 0 ? (season.gamesWon / season.games) * 100 : 0
           }))
           .sort((a, b) => new Date(a.seasonId) - new Date(b.seasonId)); // Rough chronological sort
       }

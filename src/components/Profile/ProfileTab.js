@@ -97,7 +97,7 @@ const ProfileTab = ({
       </div>
 
       {/* Overview Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatsCard
           icon={<Trophy className="w-6 h-6 text-yellow-600" />}
           title="Matches Won"
@@ -107,24 +107,38 @@ const ProfileTab = ({
         />
         <StatsCard
           icon={<Target className="w-6 h-6 text-green-600" />}
-          title="Win Rate"
-          value={`${Math.round((overallStats.winRate || 0) * 100)}%`}
-          subtitle="overall performance"
+          title="Match Win Rate"
+          value={`${Math.round((overallStats.matchWinRate || 0) * 100)}%`}
+          subtitle="match sessions"
           color="green"
         />
         <StatsCard
-          icon={<Activity className="w-6 h-6 text-blue-600" />}
+          icon={<Trophy className="w-6 h-6 text-blue-600" />}
+          title="Games Won"
+          value={overallStats.gamesWon || 0}
+          subtitle={`of ${overallStats.totalGames || 0} total`}
+          color="blue"
+        />
+        <StatsCard
+          icon={<Target className="w-6 h-6 text-teal-600" />}
+          title="Game Win Rate"
+          value={`${Math.round((overallStats.gameWinRate || 0) * 100)}%`}
+          subtitle="individual games"
+          color="teal"
+        />
+        <StatsCard
+          icon={<Activity className="w-6 h-6 text-purple-600" />}
           title="Current Streak"
           value={winStreaks.current || 0}
           subtitle={winStreaks.currentType === 'win' ? 'wins' : 'losses'}
           color={winStreaks.currentType === 'win' ? 'green' : 'red'}
         />
         <StatsCard
-          icon={<Award className="w-6 h-6 text-purple-600" />}
+          icon={<Award className="w-6 h-6 text-orange-600" />}
           title="Best Streak"
           value={winStreaks.longest || 0}
           subtitle="consecutive wins"
-          color="purple"
+          color="orange"
         />
       </div>
 
@@ -201,7 +215,9 @@ const StatsCard = ({ icon, title, value, subtitle, color }) => {
     yellow: 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:from-yellow-100 hover:to-yellow-200',
     green: 'bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:from-green-100 hover:to-green-200',
     blue: 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:from-blue-100 hover:to-blue-200',
+    teal: 'bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200 hover:from-teal-100 hover:to-teal-200',
     purple: 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:from-purple-100 hover:to-purple-200',
+    orange: 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200',
     red: 'bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:from-red-100 hover:to-red-200'
   };
 
@@ -209,7 +225,9 @@ const StatsCard = ({ icon, title, value, subtitle, color }) => {
     yellow: 'bg-yellow-100',
     green: 'bg-green-100',
     blue: 'bg-blue-100',
+    teal: 'bg-teal-100',
     purple: 'bg-purple-100',
+    orange: 'bg-orange-100',
     red: 'bg-red-100'
   };
 
@@ -265,7 +283,7 @@ const SeasonProgressionChart = ({ data }) => {
                 />
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {season.wins}W - {season.matches - season.wins}L ({season.matches} total)
+                {season.gamesWon}W - {season.games - season.gamesWon}L ({season.games} games)
               </div>
             </div>
           </div>
@@ -303,7 +321,7 @@ const BestPartnersSection = ({ partners, allUsers }) => (
                     <div className="font-medium text-gray-900">
                       {partner.name}
                     </div>
-                    <div className="text-xs text-gray-500">{partner.matches} matches together</div>
+                    <div className="text-xs text-gray-500">{partner.games} games, {partner.matches} matches together</div>
                   </div>
                 </div>
                 <div className="text-right">
@@ -365,7 +383,7 @@ const NemesisSection = ({ nemesisOpponent, nemesisPair, allUsers }) => (
                     {Math.round(nemesisOpponent.winRate * 100)}%
                   </div>
                   <div className="text-xs text-gray-600">
-                    {nemesisOpponent.wins}W - {nemesisOpponent.losses}L
+                    {nemesisOpponent.gamesWon}W - {nemesisOpponent.gamesLost}L games ({nemesisOpponent.matches} matches)
                   </div>
                   <div className="w-16 bg-red-200 rounded-full h-1.5 mt-1">
                     <div 
@@ -403,7 +421,7 @@ const NemesisSection = ({ nemesisOpponent, nemesisPair, allUsers }) => (
                     {Math.round(nemesisPair.winRate * 100)}%
                   </div>
                   <div className="text-xs text-gray-600">
-                    {nemesisPair.wins}W - {nemesisPair.losses}L
+                    {nemesisPair.gamesWon}W - {nemesisPair.gamesLost}L games ({nemesisPair.matches} matches)
                   </div>
                   <div className="w-16 bg-red-200 rounded-full h-1.5 mt-1">
                     <div 
