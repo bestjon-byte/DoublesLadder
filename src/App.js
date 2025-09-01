@@ -135,29 +135,29 @@ const TennisLadderApp = () => {
     return <LoadingScreen />;
   }
 
-  // Password reset mode
-  if (authMode === 'reset') {
-    return (
-      <AuthScreen 
-        onAuthChange={() => {}}
-        isPasswordReset={true}
-        onPasswordResetComplete={() => {
-          if (authActions?.setAuthMode) {
-            authActions.setAuthMode('normal');
-          }
-        }}
-      />
-    );
-  }
-
-  // Not authenticated
-  if (!user) {
-    return <AuthScreen onAuthChange={() => {}} />;
-  }
-
-  // Main app
+  // Main app - MOVED ToastProvider to wrap everything
   return (
     <ToastProvider>
+      {/* Password reset mode */}
+      {authMode === 'reset' && (
+        <AuthScreen 
+          onAuthChange={() => {}}
+          isPasswordReset={true}
+          onPasswordResetComplete={() => {
+            if (authActions?.setAuthMode) {
+              authActions.setAuthMode('normal');
+            }
+          }}
+        />
+      )}
+
+      {/* Not authenticated */}
+      {!user && authMode !== 'reset' && (
+        <AuthScreen onAuthChange={() => {}} />
+      )}
+
+      {/* Authenticated app */}
+      {user && (
       <ErrorBoundary>
         <div className="min-h-screen bg-gray-50">
         {/* UPDATED Header with SeasonSelector */}
@@ -319,6 +319,7 @@ const TennisLadderApp = () => {
         />
         </div>
       </ErrorBoundary>
+      )}
     </ToastProvider>
   );
 };
