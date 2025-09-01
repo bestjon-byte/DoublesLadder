@@ -301,7 +301,7 @@ const BestPartnersSection = ({ partners, allUsers }) => (
                   </div>
                   <div>
                     <div className="font-medium text-gray-900">
-                      {allUsers.find(u => u.id === partner.playerId)?.name || 'Unknown Player'}
+                      {partner.name}
                     </div>
                     <div className="text-xs text-gray-500">{partner.matches} matches together</div>
                   </div>
@@ -355,7 +355,7 @@ const NemesisSection = ({ nemesisOpponent, nemesisPair, allUsers }) => (
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900">
-                      {allUsers.find(u => u.id === nemesisOpponent.playerId)?.name || 'Unknown Player'}
+                      {nemesisOpponent.name}
                     </div>
                     <div className="text-xs text-gray-600">Your toughest individual opponent</div>
                   </div>
@@ -393,8 +393,7 @@ const NemesisSection = ({ nemesisOpponent, nemesisPair, allUsers }) => (
                   </div>
                   <div>
                     <div className="font-semibold text-gray-900">
-                      {allUsers.find(u => u.id === nemesisPair.player1Id)?.name || 'Unknown'} & {' '}
-                      {allUsers.find(u => u.id === nemesisPair.player2Id)?.name || 'Unknown'}
+                      {nemesisPair.player1Name} & {nemesisPair.player2Name}
                     </div>
                     <div className="text-xs text-gray-600">Your toughest doubles pair</div>
                   </div>
@@ -605,7 +604,7 @@ const HeadToHeadSection = ({ records, allUsers }) => {
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
-                    {allUsers.find(u => u.id === record.opponentId)?.name || 'Unknown Player'}
+                    {record.name}
                   </div>
                   <div className="text-xs text-gray-500">{totalMatches} matches played</div>
                 </div>

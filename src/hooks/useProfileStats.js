@@ -59,18 +59,10 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       if (matchError) throw matchError;
 
       // Create a lookup map for user names from passed allUsers
-      console.log('🔍 Profile Stats Debug:', {
-        allUsersCount: allUsers.length,
-        sampleUser: allUsers[0],
-        allUserIds: allUsers.map(u => u.id).slice(0, 3)
-      });
-      
       const userLookup = allUsers.reduce((acc, user) => {
         acc[user.id] = user.name;
         return acc;
       }, {});
-      
-      console.log('🔍 UserLookup sample:', Object.keys(userLookup).slice(0, 3));
 
       // Process match data
       const processedMatches = matchData
@@ -160,11 +152,9 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       processedMatches.forEach(match => {
         match.opponentIds.forEach(opponentId => {
           if (!opponentStats[opponentId]) {
-            const opponentName = userLookup[opponentId];
-            console.log(`🔍 Looking up opponent ${opponentId}: found "${opponentName}"`);
             opponentStats[opponentId] = {
               playerId: opponentId,
-              name: opponentName || 'Unknown',
+              name: userLookup[opponentId] || 'Unknown',
               matches: 0,
               wins: 0,
               losses: 0
