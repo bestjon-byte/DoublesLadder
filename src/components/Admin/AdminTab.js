@@ -1,10 +1,11 @@
 // src/components/Admin/AdminTab.js - COMPLETE FIXED VERSION
 import React, { useState } from 'react';
-import { Check, Users, ShieldCheck } from 'lucide-react';
+import { Check, Users, ShieldCheck, Trash2 } from 'lucide-react';
 import ScoreChallengesSection from './ScoreChallengesSection';
 import PlayerMergeModal from './PlayerMergeModal';
 import UserRoleModal from '../Modals/UserRoleModal';
 import AddToLadderModal from '../Modals/AddToLadderModal';
+import DeleteSeasonModal from '../Modals/DeleteSeasonModal';
 
 const AdminTab = ({ 
   users, 
@@ -20,9 +21,13 @@ const AdminTab = ({
   getPlayerAvailability,
   getAvailabilityStats,
   clearOldMatches,
+  deleteSeason, // NEW: Function to delete seasons
   matchFixtures,
   matchResults,
-  seasonActions
+  seasonActions,
+  // NEW: Season data for DeleteSeasonModal
+  selectedSeason,
+  seasons
 }) => {
   const [loading, setLoading] = useState(false);
   const [showCreateSeason, setShowCreateSeason] = useState(false);
@@ -31,6 +36,7 @@ const AdminTab = ({
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [showUserRoleModal, setShowUserRoleModal] = useState(false);
   const [showAddToLadderModal, setShowAddToLadderModal] = useState(false);
+  const [showDeleteSeasonModal, setShowDeleteSeasonModal] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -283,6 +289,26 @@ const AdminTab = ({
               Merge Players
             </button>
           </div>
+
+          {/* Delete Season */}
+          <div className="border border-red-200 rounded-lg p-4 hover:bg-red-50 transition-colors bg-red-50">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="bg-red-100 p-2 rounded-full">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-red-900">Delete Season</h4>
+                <p className="text-xs text-red-600">⚠️ Permanently remove season</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowDeleteSeasonModal(true)}
+              disabled={loading}
+              className="w-full bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors text-sm"
+            >
+              Delete Season
+            </button>
+          </div>
         </div>
       </div>
 
@@ -482,6 +508,15 @@ const AdminTab = ({
         allUsers={users}
         ladderPlayers={ladderPlayers}
         addToLadder={addToLadder}
+      />
+
+      {/* Delete Season Modal */}
+      <DeleteSeasonModal 
+        showModal={showDeleteSeasonModal}
+        setShowModal={setShowDeleteSeasonModal}
+        seasons={seasons || []}
+        selectedSeason={selectedSeason}
+        deleteSeason={deleteSeason}
       />
     </div>
   );

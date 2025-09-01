@@ -795,6 +795,103 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [fetchUsers, fetchSeasons, fetchAvailability, fetchMatchFixtures, fetchMatchResults]);
 
+  const deleteSeason = useCallback(async (seasonId, seasonName) => {
+    try {
+      console.log(`🗑️ Deleting season: ${seasonName} (ID: ${seasonId})`);
+      
+      // Delete all data related to this specific season in proper order (respecting foreign key constraints)
+      
+      // 1. Delete match results for this season's matches
+      const { data: seasonMatches } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('season_id', seasonId);
+        
+      if (seasonMatches && seasonMatches.length > 0) {
+        const matchIds = seasonMatches.map(m => m.id);
+        
+        // Get all fixtures for these matches
+        const { data: fixtures } = await supabase
+          .from('match_fixtures')
+          .select('id')
+          .in('match_id', matchIds);
+          
+        if (fixtures && fixtures.length > 0) {
+          const fixtureIds = fixtures.map(f => f.id);
+          
+          // Delete match results
+          console.log(`🗑️ Deleting match results for ${fixtureIds.length} fixtures...`);
+          const { error: resultsError } = await supabase
+            .from('match_results')
+            .delete()
+            .in('fixture_id', fixtureIds);
+          if (resultsError) throw resultsError;
+        }
+        
+        // Delete match fixtures
+        console.log(`🗑️ Deleting fixtures for ${matchIds.length} matches...`);
+        const { error: fixturesError } = await supabase
+          .from('match_fixtures')
+          .delete()
+          .in('match_id', matchIds);
+        if (fixturesError) throw fixturesError;
+        
+        // Delete availability records for these matches
+        console.log(`🗑️ Deleting availability records for season matches...`);
+        const { error: availabilityError } = await supabase
+          .from('player_availability')
+          .delete()
+          .in('match_id', matchIds);
+        if (availabilityError) throw availabilityError;
+        
+        // Delete matches
+        console.log(`🗑️ Deleting ${matchIds.length} matches...`);
+        const { error: matchesError } = await supabase
+          .from('matches')
+          .delete()
+          .in('id', matchIds);
+        if (matchesError) throw matchesError;
+      }
+      
+      // 2. Delete season players
+      console.log(`🗑️ Deleting season players...`);
+      const { error: seasonPlayersError } = await supabase
+        .from('season_players')
+        .delete()
+        .eq('season_id', seasonId);
+      if (seasonPlayersError) throw seasonPlayersError;
+      
+      // 3. Finally delete the season itself
+      console.log(`🗑️ Deleting season record...`);
+      const { error: seasonError } = await supabase
+        .from('seasons')
+        .delete()
+        .eq('id', seasonId);
+      if (seasonError) throw seasonError;
+      
+      // Refresh all data
+      console.log('🔄 Refreshing data after season deletion...');
+      await Promise.all([
+        fetchUsers(),
+        fetchSeasons(),
+        fetchAvailability(),
+        fetchMatchFixtures(),
+        fetchMatchResults()
+      ]);
+      
+      // Trigger global refresh events
+      window.dispatchEvent(new CustomEvent('refreshSeasonData'));
+      window.dispatchEvent(new CustomEvent('refreshMatchData'));
+      
+      console.log(`✅ Season "${seasonName}" deleted successfully!`);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('💥 Error deleting season:', error);
+      return { success: false, error };
+    }
+  }, [fetchUsers, fetchSeasons, fetchAvailability, fetchMatchFixtures, fetchMatchResults]);
+
 
   // Helper functions
   const getPlayerAvailability = useCallback((userIdToCheck, matchId) => {
@@ -935,6 +1032,7 @@ export const useApp = (userId, selectedSeasonId) => {
       generateMatches,
       updateRankings,
       clearOldMatches,
+      deleteSeason,
     },
     helpers: {
       getPlayerAvailability,
