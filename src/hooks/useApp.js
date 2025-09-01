@@ -861,7 +861,7 @@ export const useApp = (userId, selectedSeasonId) => {
         console.warn('⏰ App data initialization timeout - forcing loading to false');
         setLoading('initial', false);
         updateData('error', new Error('App data loading timeout - please refresh the page'));
-      }, 12000); // 12 second timeout for app data
+      }, 25000); // 25 second timeout for app data - increased for slower connections
       
       try {
         await Promise.all([

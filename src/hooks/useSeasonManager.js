@@ -168,7 +168,7 @@ export const useSeasonManager = () => {
         console.warn('⏰ Season initialization timeout - forcing loading to false');
         setLoading(false);
         setError(new Error('Season loading timeout - please refresh the page'));
-      }, 8000); // 8 second timeout
+      }, 15000); // 15 second timeout - increased for slower connections
       
       try {
         await fetchSeasons();
@@ -181,7 +181,10 @@ export const useSeasonManager = () => {
       }
     };
     
-    initializeSeasons();
+    // Small delay to let auth initialize first
+    setTimeout(() => {
+      initializeSeasons();
+    }, 100);
   }, [fetchSeasons]);
 
   // Listen for refresh events from other components

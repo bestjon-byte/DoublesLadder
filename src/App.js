@@ -70,8 +70,8 @@ const TennisLadderApp = () => {
     return <div className="p-4 bg-red-100">Error: Service unavailable</div>;
   }
 
-  // Show error state if any hook has an error
-  if (error || seasonData?.error || authData?.error) {
+  // Show error state if any hook has an error (but not if still loading)
+  if (!authLoading && !seasonLoading && !dataLoading?.initial && (error || seasonData?.error || authData?.error)) {
     return (
       <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">

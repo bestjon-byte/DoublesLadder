@@ -210,7 +210,7 @@ export const useAuth = () => {
         console.warn('⏰ Auth initialization timeout - forcing loading to false');
         setLoading(false);
         setError(new Error('Authentication timeout - please refresh the page'));
-      }, 10000); // 10 second timeout
+      }, 20000); // 20 second timeout - increased for slower connections
       
       try {
         console.log('🚀 Initializing auth...');

@@ -4,11 +4,11 @@ import React, { useState, useEffect } from 'react';
 const LoadingScreen = ({ message = 'Loading...' }) => {
   const [showOverride, setShowOverride] = useState(false);
   
-  // Show manual override after 8 seconds
+  // Show manual override after 15 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowOverride(true);
-    }, 8000);
+    }, 15000);
     
     return () => clearTimeout(timer);
   }, []);
