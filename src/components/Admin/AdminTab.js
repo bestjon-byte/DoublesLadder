@@ -1,7 +1,8 @@
 // src/components/Admin/AdminTab.js - COMPLETE FIXED VERSION
 import React, { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Users } from 'lucide-react';
 import ScoreChallengesSection from './ScoreChallengesSection';
+import PlayerMergeModal from './PlayerMergeModal';
 
 const AdminTab = ({ 
   users, 
@@ -24,6 +25,7 @@ const AdminTab = ({
   const [showCreateSeason, setShowCreateSeason] = useState(false);
   const [newSeasonName, setNewSeasonName] = useState('');
   const [newSeasonStartDate, setNewSeasonStartDate] = useState('');
+  const [showMergeModal, setShowMergeModal] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -106,6 +108,15 @@ const AdminTab = ({
           </div>
           
           <div className="flex space-x-2">
+            <button
+              onClick={() => setShowMergeModal(true)}
+              disabled={loading}
+              className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm flex items-center space-x-1"
+              title="Merge CSV players with real user accounts"
+            >
+              <Users className="w-4 h-4" />
+              <span>Merge Players</span>
+            </button>
             {currentSeason?.status === 'active' && (
               <button
                 onClick={handleCompleteSeason}
@@ -422,6 +433,19 @@ const AdminTab = ({
           </button>
         </div>
       </div>
+
+      {/* Player Merge Modal */}
+      <PlayerMergeModal 
+        showModal={showMergeModal}
+        setShowModal={setShowMergeModal}
+        allUsers={users}
+        ladderPlayers={ladderPlayers}
+        selectedSeason={currentSeason}
+        onMergeComplete={() => {
+          // Refresh data after merge
+          if (fetchUsers) fetchUsers();
+        }}
+      />
     </div>
   );
 };
