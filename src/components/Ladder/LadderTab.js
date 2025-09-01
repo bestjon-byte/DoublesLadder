@@ -3,7 +3,7 @@ import React from 'react';
 import { getLadderData, getRankMovementDisplay } from '../../utils/helpers';
 
 const LadderTab = ({ currentUser, users, updateRankings, selectedSeason }) => {
-  const ladderData = getLadderData(users);
+  const ladderData = getLadderData(users, selectedSeason);
   const isSeasonCompleted = selectedSeason?.status === 'completed';
 
   return (

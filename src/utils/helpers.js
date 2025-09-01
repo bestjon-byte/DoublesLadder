@@ -1,10 +1,37 @@
 // src/utils/helpers.js
 import { ArrowUp, ArrowDown } from 'lucide-react';
 
-export const getLadderData = (users) => {
-  return users
-    .filter(user => user.in_ladder && user.status === 'approved')
-    .sort((a, b) => (a.rank || 999) - (b.rank || 999));
+export const getLadderData = (users, selectedSeason = null) => {
+  const filteredUsers = users
+    .filter(user => user.in_ladder && user.status === 'approved');
+  
+  // For completed seasons, sort by performance (win percentage, then games played)
+  // For active seasons, sort by rank
+  if (selectedSeason?.status === 'completed') {
+    return filteredUsers.sort((a, b) => {
+      const aWinPct = (a.games_played || 0) > 0 ? (a.games_won || 0) / (a.games_played || 0) : 0;
+      const bWinPct = (b.games_played || 0) > 0 ? (b.games_won || 0) / (b.games_played || 0) : 0;
+      
+      // Primary sort: Win percentage (descending)
+      if (aWinPct !== bWinPct) {
+        return bWinPct - aWinPct;
+      }
+      
+      // Secondary sort: Games played (descending) - more games = better ranking if same win%
+      if ((a.games_played || 0) !== (b.games_played || 0)) {
+        return (b.games_played || 0) - (a.games_played || 0);
+      }
+      
+      // Tertiary sort: Games won (descending)
+      return (b.games_won || 0) - (a.games_won || 0);
+    }).map((user, index) => ({
+      ...user,
+      rank: index + 1 // Assign new rank based on performance
+    }));
+  } else {
+    // For active seasons, sort by existing rank
+    return filteredUsers.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+  }
 };
 
 export const getRankMovementIcon = (movement) => {
