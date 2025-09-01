@@ -280,10 +280,40 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
             <p className="text-gray-500 text-center py-4">No score challenges yet</p>
           ) : (
             <div className="space-y-4">
-              {challenges.map((challenge) => (
-                <div key={challenge.id} className={`border rounded-lg p-4 ${
-                  challenge.status === 'pending' ? 'border-orange-200 bg-orange-50' : 'border-gray-200'
+              {challenges.map((challenge) => {
+                const isResolved = challenge.status !== 'pending';
+                return (
+                <div key={challenge.id} className={`border rounded-lg transition-all duration-200 ${
+                  challenge.status === 'pending' ? 'border-orange-200 bg-orange-50 p-4' : 'border-gray-200 p-2 hover:p-4'
                 }`}>
+                  {isResolved ? (
+                    // Collapsed view for resolved challenges
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-3 flex-1">
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${
+                          challenge.status === 'approved'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {challenge.status.toUpperCase()}
+                        </span>
+                        <span className="text-sm text-gray-700 truncate">
+                          {challenge.fixture ? 
+                            `${challenge.fixture.player1?.name} & ${challenge.fixture.player2?.name} vs ${challenge.fixture.player3?.name} & ${challenge.fixture.player4?.name}` 
+                            : 'Match details unavailable'
+                          }
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {challenge.original_result?.pair1_score} - {challenge.original_result?.pair2_score} → {challenge.challenged_pair1_score} - {challenge.challenged_pair2_score}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(challenge.resolved_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    // Expanded view for pending challenges  
+                    <>
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
@@ -373,8 +403,11 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
                       <span> • Resolved: {new Date(challenge.resolved_at).toLocaleString()}</span>
                     )}
                   </div>
+                  </>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

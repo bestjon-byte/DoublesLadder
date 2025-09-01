@@ -1,6 +1,6 @@
 // src/components/Admin/AdminTab.js - COMPLETE FIXED VERSION
 import React, { useState } from 'react';
-import { Check, Users, ShieldCheck, Trash2 } from 'lucide-react';
+import { Check, Users, ShieldCheck, Trash2, Calendar } from 'lucide-react';
 import ScoreChallengesSection from './ScoreChallengesSection';
 import PlayerMergeModal from './PlayerMergeModal';
 import UserRoleModal from '../Modals/UserRoleModal';
@@ -100,96 +100,6 @@ const AdminTab = ({
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
       
-      {/* Season Management */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Season Management</h3>
-        
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-sm text-gray-600">
-              Current Season: <span className="font-medium">{currentSeason?.name || 'No Active Season'}</span>
-            </p>
-            {currentSeason && (
-              <p className="text-xs text-gray-500">
-                Status: {currentSeason.status} • Started: {new Date(currentSeason.start_date).toLocaleDateString()}
-                {currentSeason.end_date && ` • Ended: ${new Date(currentSeason.end_date).toLocaleDateString()}`}
-              </p>
-            )}
-          </div>
-          
-          <div className="flex space-x-2">
-            {currentSeason?.status === 'active' && (
-              <button
-                onClick={handleCompleteSeason}
-                disabled={loading}
-                className="bg-orange-600 text-white px-3 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50 transition-colors text-sm"
-              >
-                Complete Season
-              </button>
-            )}
-            <button
-              onClick={() => setShowCreateSeason(true)}
-              disabled={loading || (activeSeason && activeSeason.status === 'active')}
-              className="bg-[#5D1F1F] text-white px-3 py-2 rounded-md hover:bg-[#4A1818] disabled:opacity-50 transition-colors text-sm"
-              title={activeSeason?.status === 'active' ? 'Complete the current season before creating a new one' : ''}
-            >
-              Create New Season
-            </button>
-          </div>
-        </div>
-        
-        {showCreateSeason && (
-          <div className="border-t pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Season Name
-                </label>
-                <input
-                  type="text"
-                  value={newSeasonName}
-                  onChange={(e) => setNewSeasonName(e.target.value)}
-                  placeholder="e.g., Spring 2025"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={newSeasonStartDate}
-                  onChange={(e) => setNewSeasonStartDate(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
-                />
-              </div>
-              
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleCreateSeason}
-                  disabled={loading || !newSeasonName.trim() || !newSeasonStartDate}
-                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
-                >
-                  Create
-                </button>
-                <button
-                  onClick={() => {
-                    setShowCreateSeason(false);
-                    setNewSeasonName('');
-                    setNewSeasonStartDate('');
-                  }}
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-      
       {/* Score Challenges and Conflicts Management - THE MAIN NEW FEATURE */}
       <ScoreChallengesSection 
         currentUser={currentUser}
@@ -235,6 +145,43 @@ const AdminTab = ({
         <p className="text-sm text-gray-600 mb-6">Quick access to administrative functions</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* Season Management */}
+          <div className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors ${
+            activeSeason?.status === 'active' ? 'border-orange-200 bg-orange-50' : 'border-gray-200'
+          }`}>
+            <div className="flex items-center space-x-3 mb-3">
+              <div className={`p-2 rounded-full ${
+                activeSeason?.status === 'active' ? 'bg-orange-100' : 'bg-green-100'
+              }`}>
+                <Calendar className={`w-5 h-5 ${
+                  activeSeason?.status === 'active' ? 'text-orange-600' : 'text-green-600'
+                }`} />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">
+                  {activeSeason?.status === 'active' ? 'Complete Season' : 'Create Season'}
+                </h4>
+                <p className="text-xs text-gray-500">
+                  {activeSeason?.status === 'active' 
+                    ? `End: ${activeSeason.name}` 
+                    : 'Start new season'
+                  }
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={activeSeason?.status === 'active' ? handleCompleteSeason : () => setShowCreateSeason(true)}
+              disabled={loading}
+              className={`w-full px-3 py-2 rounded-md transition-colors text-sm ${
+                activeSeason?.status === 'active'
+                  ? 'bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50'
+                  : 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-50'
+              }`}
+            >
+              {activeSeason?.status === 'active' ? 'Complete Season' : 'Create New Season'}
+            </button>
+          </div>
+
           {/* User Role Management */}
           <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
             <div className="flex items-center space-x-3 mb-3">
@@ -407,76 +354,6 @@ const AdminTab = ({
         </div>
       )}
 
-      {/* Availability Overview - FIXED DATE LOGIC */}
-      {currentSeason?.matches && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Availability Overview</h3>
-          
-          <div className="space-y-4">
-            {currentSeason.matches.map((match) => {
-              const stats = getAvailabilityStats(match.id);
-              const matchComplete = isMatchComplete(match.id);
-              
-              // FIXED: Proper date comparison that treats today as valid
-              const today = new Date();
-              today.setHours(0, 0, 0, 0); // Reset to start of day
-              
-              let matchDate, isPast, isToday;
-              if (match.match_date) {
-                matchDate = new Date(match.match_date);
-                matchDate.setHours(0, 0, 0, 0); // Reset to start of day
-                isPast = matchDate < today; // Now only truly past dates are considered "past"
-                isToday = matchDate.getTime() === today.getTime();
-              } else {
-                matchDate = null;
-                isPast = false;
-                isToday = false;
-              }
-              
-              return (
-                <div key={match.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium flex items-center space-x-2">
-                        <span>Week {match.week_number} - {matchDate ? matchDate.toLocaleDateString('en-GB') : 'No date set'}</span>
-                        {isToday && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-normal">
-                            📅 Today
-                          </span>
-                        )}
-                      </h4>
-                      <div className="mt-2 space-y-1 text-sm text-gray-600">
-                        <div>Available: <span className="font-medium text-green-600">{stats.available}</span></div>
-                        <div>Responded: <span className="font-medium">{stats.responded}/{stats.total}</span></div>
-                        <div>Pending: <span className="font-medium text-orange-600">{stats.pending}</span></div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {matchComplete ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                          ✅ Match Completed
-                        </span>
-                      ) : isPast ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded">
-                          Match Date Passed
-                        </span>
-                      ) : stats.available >= 4 ? (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                          {isToday ? '🎾 Ready to Schedule (Today!)' : 'Ready to Schedule'}
-                        </span>
-                      ) : (
-                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
-                          Need More Players
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
 
       {/* Debug/Maintenance Section */}
@@ -550,6 +427,67 @@ const AdminTab = ({
         currentUser={currentUser}
         deleteUser={deleteUser}
       />
+
+      {/* Create Season Modal */}
+      {showCreateSeason && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Create New Season</h3>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Season Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newSeasonName}
+                    onChange={(e) => setNewSeasonName(e.target.value)}
+                    placeholder="e.g., Spring 2025"
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newSeasonStartDate}
+                    onChange={(e) => setNewSeasonStartDate(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleCreateSeason}
+                  disabled={loading || !newSeasonName.trim() || !newSeasonStartDate}
+                  className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  Create Season
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateSeason(false);
+                    setNewSeasonName('');
+                    setNewSeasonStartDate('');
+                  }}
+                  disabled={loading}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 disabled:opacity-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
