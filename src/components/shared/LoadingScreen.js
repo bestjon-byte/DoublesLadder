@@ -6,12 +6,38 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
     <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
         <div className="flex flex-col items-center">
-          {/* Tennis ball spinner */}
+          {/* Tennis racket with ball */}
           <div className="relative w-16 h-16 mb-4">
-            <div className="absolute inset-0 border-4 border-green-500 rounded-full animate-ping"></div>
-            <div className="relative w-16 h-16 border-4 border-green-600 rounded-full flex items-center justify-center bg-green-500">
-              <div className="w-12 h-[2px] bg-white transform rotate-45"></div>
-              <div className="w-12 h-[2px] bg-white transform -rotate-45 absolute"></div>
+            {/* Tennis racket SVG */}
+            <svg 
+              className="w-16 h-16 text-[#5D1F1F] animate-pulse" 
+              viewBox="0 0 100 100" 
+              fill="currentColor"
+            >
+              {/* Racket head (oval) */}
+              <ellipse cx="50" cy="35" rx="18" ry="25" fill="none" stroke="currentColor" strokeWidth="3"/>
+              {/* String pattern */}
+              <line x1="35" y1="20" x2="35" y2="50" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+              <line x1="42" y1="15" x2="42" y2="55" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+              <line x1="50" y1="10" x2="50" y2="60" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+              <line x1="58" y1="15" x2="58" y2="55" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+              <line x1="65" y1="20" x2="65" y2="50" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+              {/* Horizontal strings */}
+              <line x1="32" y1="25" x2="68" y2="25" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+              <line x1="35" y1="35" x2="65" y2="35" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+              <line x1="32" y1="45" x2="68" y2="45" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
+              {/* Handle */}
+              <rect x="47" y="55" width="6" height="35" rx="3" fill="currentColor"/>
+              {/* Handle grip lines */}
+              <line x1="45" y1="65" x2="55" y2="65" stroke="white" strokeWidth="1"/>
+              <line x1="45" y1="72" x2="55" y2="72" stroke="white" strokeWidth="1"/>
+              <line x1="45" y1="79" x2="55" y2="79" stroke="white" strokeWidth="1"/>
+            </svg>
+            
+            {/* Bouncing tennis ball */}
+            <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full animate-bounce border-2 border-green-600 shadow-md">
+              <div className="w-5 h-[1px] bg-white transform rotate-45 absolute top-2.5 left-0.5"></div>
+              <div className="w-5 h-[1px] bg-white transform -rotate-45 absolute top-2.5 left-0.5"></div>
             </div>
           </div>
           

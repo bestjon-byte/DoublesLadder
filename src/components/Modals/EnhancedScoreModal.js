@@ -1,6 +1,7 @@
 // src/components/Modals/EnhancedScoreModal.js - FIXED
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Flag, Eye } from 'lucide-react';
+import { useAppToast } from '../../contexts/ToastContext';
 
 const EnhancedScoreModal = ({ 
   showModal, 
@@ -12,17 +13,22 @@ const EnhancedScoreModal = ({
   getMatchScore,
   onChallengeScore 
 }) => {
+  const toast = useAppToast();
   const [pair1Score, setPair1Score] = useState('');
   const [pair2Score, setPair2Score] = useState('');
   const [loading, setLoading] = useState(false);
   const [existingScore, setExistingScore] = useState(null);
   const [showChallenge, setShowChallenge] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [challengeReason, setChallengeReason] = useState('');
 
   useEffect(() => {
     if (selectedMatch?.fixtureId) {
       const score = getMatchScore(selectedMatch.fixtureId);
       setExistingScore(score);
+      setDataLoaded(true);
+    } else {
+      setDataLoaded(false);
     }
   }, [selectedMatch, getMatchScore]);
 
@@ -45,7 +51,7 @@ const EnhancedScoreModal = ({
 
   const handleSubmit = async () => {
     if (!pair1Score || !pair2Score) {
-      alert('Please enter scores for both pairs');
+      toast.warning('Please enter scores for both pairs');
       return;
     }
 
@@ -57,10 +63,10 @@ const EnhancedScoreModal = ({
       
       if (latestScore && !existingScore) {
         // Someone else submitted while we had the modal open
-        alert(`Oops! Someone already submitted a score for this match while you were entering yours.\n\nExisting score: ${latestScore.pair1_score} - ${latestScore.pair2_score}\nYour score: ${pair1Score} - ${pair2Score}\n\nRefreshing to show the current score.`);
+        toast.warning(`Someone already submitted a different score: ${latestScore.pair1_score}-${latestScore.pair2_score}. Page will refresh to show current score.`, 6000);
         
         // Refresh the data and close modal
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 2000);
         return;
       }
       
@@ -68,14 +74,15 @@ const EnhancedScoreModal = ({
       
       if (result?.conflict) {
         // Handle the conflict case
-        alert(`Score conflict detected! Someone submitted a different score at the same time.\n\nWinning score: ${result.winningScore.pair1_score} - ${result.winningScore.pair2_score}\nYour score: ${pair1Score} - ${pair2Score}\n\nIf you believe your score is correct, you can challenge it once the page refreshes.`);
-        window.location.reload();
+        toast.warning(`Score conflict! Winning score: ${result.winningScore.pair1_score}-${result.winningScore.pair2_score}. You can challenge this score if needed.`, 6000);
+        setTimeout(() => window.location.reload(), 2000);
       } else if (result?.success) {
         // Success case
+        toast.success('Score submitted successfully!');
         closeModal();
       }
     } catch (error) {
-      alert(`Error submitting score: ${error.message}`);
+      toast.error(`Error submitting score: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -83,7 +90,7 @@ const EnhancedScoreModal = ({
 
   const handleChallenge = async () => {
     if (!challengeReason.trim()) {
-      alert('Please provide a reason for challenging this score');
+      toast.warning('Please provide a reason for challenging this score');
       return;
     }
 
@@ -98,10 +105,10 @@ const EnhancedScoreModal = ({
         reason: challengeReason
       });
       
-      alert('Challenge submitted! An admin will review your dispute.');
+      toast.success('Challenge submitted! An admin will review your dispute.');
       closeModal();
     } catch (error) {
-      alert(`Error submitting challenge: ${error.message}`);
+      toast.error(`Error submitting challenge: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -115,6 +122,7 @@ const EnhancedScoreModal = ({
     setChallengeReason('');
     setShowChallenge(false);
     setExistingScore(null);
+    setDataLoaded(false);
   };
 
   if (!showModal || !selectedMatch) return null;
@@ -231,7 +239,7 @@ const EnhancedScoreModal = ({
                 >
                   {loading ? 'Submitting...' : 'Submit Score'}
                 </button>
-              ) : existingScore && canUserEnterScore && !showChallenge ? (
+              ) : dataLoaded && existingScore && canUserEnterScore && !showChallenge ? (
                 // Challenge existing score
                 <button
                   onClick={() => setShowChallenge(true)}
@@ -240,7 +248,7 @@ const EnhancedScoreModal = ({
                   <Flag className="w-4 h-4 mr-2" />
                   Challenge Score
                 </button>
-              ) : showChallenge ? (
+              ) : dataLoaded && showChallenge ? (
                 // Submit challenge
                 <button
                   onClick={handleChallenge}

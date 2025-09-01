@@ -19,6 +19,7 @@ import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import SeasonSelector from './components/Season/SeasonSelector';
+import { ToastProvider } from './contexts/ToastContext';
 
 const TennisLadderApp = () => {
   // Authentication hook
@@ -156,8 +157,9 @@ const TennisLadderApp = () => {
 
   // Main app
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
+    <ToastProvider>
+      <ErrorBoundary>
+        <div className="min-h-screen bg-gray-50">
         {/* UPDATED Header with SeasonSelector */}
         <header className="bg-[#5D1F1F] text-white shadow-lg">
           <div className="max-w-7xl mx-auto px-4 py-4">
@@ -315,8 +317,9 @@ const TennisLadderApp = () => {
           getMatchScore={helpers?.getMatchScore || (() => null)}
           onChallengeScore={handleScoreChallenge}
         />
-      </div>
-    </ErrorBoundary>
+        </div>
+      </ErrorBoundary>
+    </ToastProvider>
   );
 };
 

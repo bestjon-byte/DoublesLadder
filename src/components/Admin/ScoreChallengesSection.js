@@ -229,9 +229,11 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
         <h3 className="text-lg font-semibold">Score Management & Challenges</h3>
         <button 
           onClick={fetchAllData}
-          className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
+          className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 flex items-center space-x-2"
+          title="Refresh challenges, conflicts, and match results"
         >
-          🔄 Refresh
+          <span>🔄</span>
+          <span>Refresh Data</span>
         </button>
       </div>
       

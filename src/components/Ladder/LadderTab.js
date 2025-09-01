@@ -55,8 +55,14 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason }) => {
                   </td>
                 </tr>
               ) : (
-                ladderData.map((player, index) => (
-                  <tr key={player.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                ladderData.map((player, index) => {
+                  const isCurrentUser = player.id === currentUser?.id;
+                  return (
+                    <tr key={player.id} className={
+                      isCurrentUser 
+                        ? 'bg-gradient-to-r from-[#5D1F1F]/10 to-[#5D1F1F]/5 border-l-4 border-[#5D1F1F] font-medium' 
+                        : (index % 2 === 0 ? 'bg-white' : 'bg-gray-50')
+                    }>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{player.rank}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{player.name}</div>
@@ -74,7 +80,7 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason }) => {
                       {getRankMovementDisplay(player.previous_rank, player.rank)}
                     </td>
                   </tr>
-                ))
+                })
               )}
             </tbody>
           </table>
