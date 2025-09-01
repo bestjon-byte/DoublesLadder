@@ -6,6 +6,7 @@ import PlayerMergeModal from './PlayerMergeModal';
 import UserRoleModal from '../Modals/UserRoleModal';
 import AddToLadderModal from '../Modals/AddToLadderModal';
 import DeleteSeasonModal from '../Modals/DeleteSeasonModal';
+import DeleteUserModal from '../Modals/DeleteUserModal';
 
 const AdminTab = ({ 
   users, 
@@ -22,6 +23,7 @@ const AdminTab = ({
   getAvailabilityStats,
   clearOldMatches,
   deleteSeason, // NEW: Function to delete seasons
+  deleteUser, // NEW: Function to delete/deactivate users
   matchFixtures,
   matchResults,
   seasonActions,
@@ -37,6 +39,7 @@ const AdminTab = ({
   const [showUserRoleModal, setShowUserRoleModal] = useState(false);
   const [showAddToLadderModal, setShowAddToLadderModal] = useState(false);
   const [showDeleteSeasonModal, setShowDeleteSeasonModal] = useState(false);
+  const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -231,7 +234,7 @@ const AdminTab = ({
         <h3 className="text-lg font-semibold mb-4">Admin Tools</h3>
         <p className="text-sm text-gray-600 mb-6">Quick access to administrative functions</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
           {/* User Role Management */}
           <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
             <div className="flex items-center space-x-3 mb-3">
@@ -307,6 +310,26 @@ const AdminTab = ({
               className="w-full bg-red-600 text-white px-3 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors text-sm"
             >
               Delete Season
+            </button>
+          </div>
+
+          {/* Delete User */}
+          <div className="border border-orange-200 rounded-lg p-4 hover:bg-orange-50 transition-colors bg-orange-50">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="bg-orange-100 p-2 rounded-full">
+                <Users className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-orange-900">Delete User</h4>
+                <p className="text-xs text-orange-600">⚠️ Deactivate user account</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowDeleteUserModal(true)}
+              disabled={loading}
+              className="w-full bg-orange-600 text-white px-3 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50 transition-colors text-sm"
+            >
+              Delete User
             </button>
           </div>
         </div>
@@ -517,6 +540,15 @@ const AdminTab = ({
         seasons={seasons || []}
         selectedSeason={selectedSeason}
         deleteSeason={deleteSeason}
+      />
+
+      {/* Delete User Modal */}
+      <DeleteUserModal 
+        showModal={showDeleteUserModal}
+        setShowModal={setShowDeleteUserModal}
+        allUsers={users || []}
+        currentUser={currentUser}
+        deleteUser={deleteUser}
       />
     </div>
   );

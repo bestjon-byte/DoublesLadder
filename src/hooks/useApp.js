@@ -892,6 +892,74 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [fetchUsers, fetchSeasons, fetchAvailability, fetchMatchFixtures, fetchMatchResults]);
 
+  const deleteUser = useCallback(async (userId, userName, userEmail) => {
+    try {
+      console.log(`🗑️ Deactivating user: ${userName} (${userEmail}) - ID: ${userId}`);
+      
+      // Instead of deleting the user, we'll deactivate them and anonymize their data
+      // This preserves match history while making them unavailable for selection
+      
+      // 1. Remove from all current season ladders
+      console.log(`🗑️ Removing user from all season ladders...`);
+      const { error: seasonPlayersError } = await supabase
+        .from('season_players')
+        .delete()
+        .eq('player_id', userId);
+      if (seasonPlayersError) throw seasonPlayersError;
+      
+      // 2. Set status to 'deleted' and anonymize personal information
+      console.log(`🗑️ Deactivating user account...`);
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          status: 'deleted', // This will make them unavailable for selection
+          name: `[Deleted User - ${userName.substring(0, 3)}***]`, // Partially anonymize name
+          email: `deleted_user_${userId.substring(0, 8)}@deleted.local`, // Anonymize email but keep unique
+          phone: null, // Clear phone number
+          emergency_contact: null, // Clear emergency contact
+          in_ladder: false, // Remove from general ladder
+          // Keep: id, role (for data integrity), created_at, updated_at
+          // This preserves match history references while deactivating the account
+        })
+        .eq('id', userId);
+      if (profileError) throw profileError;
+      
+      // 3. Clear their availability for future matches (but keep historical data)
+      console.log(`🗑️ Clearing future availability records...`);
+      const { error: availabilityError } = await supabase
+        .from('player_availability')
+        .delete()
+        .eq('player_id', userId)
+        .gte('match_date', new Date().toISOString()); // Only delete future availability
+      if (availabilityError) throw availabilityError;
+      
+      // Note: We DON'T delete:
+      // - Match results (preserves game history)
+      // - Match fixtures (preserves who played with/against whom)
+      // - Historical availability records (preserves past participation data)
+      // This maintains data integrity for reporting and statistics
+      
+      // Refresh data
+      console.log('🔄 Refreshing data after user deactivation...');
+      await Promise.all([
+        fetchUsers(),
+        fetchSeasons(),
+        fetchAvailability()
+      ]);
+      
+      // Trigger global refresh events
+      window.dispatchEvent(new CustomEvent('refreshUserData'));
+      window.dispatchEvent(new CustomEvent('refreshSeasonData'));
+      
+      console.log(`✅ User "${userName}" deactivated successfully! Match history preserved.`);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('💥 Error deactivating user:', error);
+      return { success: false, error };
+    }
+  }, [fetchUsers, fetchSeasons, fetchAvailability]);
+
 
   // Helper functions
   const getPlayerAvailability = useCallback((userIdToCheck, matchId) => {
@@ -1033,6 +1101,7 @@ export const useApp = (userId, selectedSeasonId) => {
       updateRankings,
       clearOldMatches,
       deleteSeason,
+      deleteUser,
     },
     helpers: {
       getPlayerAvailability,
