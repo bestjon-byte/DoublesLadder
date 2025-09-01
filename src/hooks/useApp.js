@@ -496,6 +496,38 @@ export const useApp = (userId, selectedSeasonId) => {
       alert(`Need at least 4 players. Found ${numPlayers}.`);
       return { success: false };
     }
+    
+    // Check for unsupported player counts where some players would be left out
+    // Problem: any count that creates remainder groups of 1, 2, or 3 players (except special case of 5)
+    const remainder = numPlayers % 5;
+    const canUse5PlayerCourts = remainder === 0; // 5, 10, 15, etc.
+    const canUse4PlayerCourts = numPlayers % 4 === 0; // 4, 8, 12, etc.
+    const isSpecialCase = numPlayers === 9; // 4 + 5 combination
+    const isSingleCourtWith5 = numPlayers === 5;
+    
+    if (!canUse4PlayerCourts && !canUse5PlayerCourts && !isSpecialCase && !isSingleCourtWith5) {
+      const nextMultipleOf4 = Math.ceil(numPlayers / 4) * 4;
+      const nextMultipleOf5 = Math.ceil(numPlayers / 5) * 5;
+      const prevMultipleOf5 = Math.floor(numPlayers / 5) * 5;
+      
+      const options = [];
+      if (numPlayers > 1) options.push(`• ${numPlayers - 1} players`);
+      if (numPlayers > 2) options.push(`• ${numPlayers - 2} players`);
+      if (prevMultipleOf5 >= 5 && prevMultipleOf5 !== numPlayers) options.push(`• ${prevMultipleOf5} players`);
+      options.push(`• Wait for ${Math.min(nextMultipleOf4, nextMultipleOf5)} players`);
+      
+      alert(
+        `Cannot schedule matches for ${numPlayers} players.\n\n` +
+        `This would leave ${numPlayers % 4} player(s) without a proper court rotation.\n` +
+        `Please adjust your player selection.\n\n` +
+        `Options:\n${options.join('\n')}\n\n` +
+        `Supported formats:\n` +
+        `• 4, 8, 12, 16... players: Full courts (4 each)\n` +
+        `• 5, 10, 15, 20... players: Rotation courts (5 each)\n` +
+        `• 9 players: Special case (4 + 5 courts)`
+      );
+      return { success: false };
+    }
 
     const courts = [];
 
