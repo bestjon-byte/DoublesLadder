@@ -839,7 +839,7 @@ export const useApp = (userId, selectedSeasonId) => {
         // Delete availability records for these matches
         console.log(`🗑️ Deleting availability records for season matches...`);
         const { error: availabilityError } = await supabase
-          .from('player_availability')
+          .from('availability')
           .delete()
           .in('match_id', matchIds);
         if (availabilityError) throw availabilityError;
@@ -924,7 +924,7 @@ export const useApp = (userId, selectedSeasonId) => {
       // 3. Clear their availability for future matches (but keep historical data)
       console.log(`🗑️ Clearing future availability records...`);
       const { error: availabilityError } = await supabase
-        .from('player_availability')
+        .from('availability')
         .delete()
         .eq('player_id', userId)
         .gte('match_date', new Date().toISOString()); // Only delete future availability
