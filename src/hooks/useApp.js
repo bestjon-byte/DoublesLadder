@@ -915,9 +915,6 @@ export const useApp = (userId, selectedSeasonId) => {
           status: 'deleted', // This will make them unavailable for selection
           name: `[Deleted User - ${userName.substring(0, 3)}***]`, // Partially anonymize name
           email: `deleted_user_${userId.substring(0, 8)}@deleted.local`, // Anonymize email but keep unique
-          phone: null, // Clear phone number
-          emergency_contact: null, // Clear emergency contact
-          in_ladder: false, // Remove from general ladder
           // Keep: id, role (for data integrity), created_at, updated_at
           // This preserves match history references while deactivating the account
         })

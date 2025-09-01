@@ -124,7 +124,7 @@ const DeleteUserModal = ({
                     <ul className="list-disc list-inside ml-2">
                       <li>Login access disabled</li>
                       <li>Removed from all current seasons</li>
-                      <li>Personal information anonymized</li>
+                      <li>Name and email anonymized</li>
                       <li>No longer available for ladder selection</li>
                       <li>Future availability cleared</li>
                     </ul>
@@ -208,9 +208,6 @@ const DeleteUserModal = ({
                 <p><strong>Email:</strong> {selectedUserObj.email}</p>
                 <p><strong>Role:</strong> {selectedUserObj.role || 'player'}</p>
                 <p><strong>Status:</strong> {selectedUserObj.status}</p>
-                {selectedUserObj.phone && (
-                  <p><strong>Phone:</strong> {selectedUserObj.phone}</p>
-                )}
               </div>
             </div>
           )}
