@@ -276,6 +276,23 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [fetchUsers]);
 
+  // Update user role (promote/demote admin)
+  const updateUserRole = useCallback(async (userId, newRole) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+
+      if (error) throw error;
+      await fetchUsers();
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      return { success: false, error };
+    }
+  }, [fetchUsers]);
+
   // Updated addToLadder for season-based system
   const addToLadder = useCallback(async (userIdToAdd, rank) => {
     console.log('🎾 addToLadder called with:', { userIdToAdd, rank, selectedSeasonId });
@@ -911,6 +928,7 @@ export const useApp = (userId, selectedSeasonId) => {
     allUsers: state.users, // Use this for admin user management
     actions: {
       approveUser,
+      updateUserRole,
       addToLadder,
       setPlayerAvailability,
       addMatchToSeason,

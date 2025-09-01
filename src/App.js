@@ -306,6 +306,7 @@ const TennisLadderApp = () => {
               currentSeason={selectedSeasonData || selectedSeason} // CHANGED: Use selected season data
               activeSeason={activeSeason} // NEW: Pass active season for admin controls
               approveUser={actions?.approveUser || (() => alert('Approve user not available'))}
+              updateUserRole={actions?.updateUserRole || (() => alert('Update user role not available'))}
               addToLadder={actions?.addToLadder || (() => alert('Add to ladder not available'))}
               fetchUsers={refetch?.users || (() => {})}
               setPlayerAvailability={actions?.setPlayerAvailability || (() => {})}

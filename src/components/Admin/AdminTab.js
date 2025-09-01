@@ -1,6 +1,6 @@
 // src/components/Admin/AdminTab.js - COMPLETE FIXED VERSION
 import React, { useState } from 'react';
-import { Check, Users } from 'lucide-react';
+import { Check, Users, Shield, ShieldCheck } from 'lucide-react';
 import ScoreChallengesSection from './ScoreChallengesSection';
 import PlayerMergeModal from './PlayerMergeModal';
 
@@ -10,7 +10,8 @@ const AdminTab = ({
   currentUser,
   currentSeason,
   activeSeason, // NEW: Active season for admin controls
-  approveUser, 
+  approveUser,
+  updateUserRole, // NEW: Function to promote/demote users
   addToLadder, 
   fetchUsers,
   setPlayerAvailability,
@@ -36,6 +37,24 @@ const AdminTab = ({
   const handleAddToLadder = async (userId, rank) => {
     setLoading(true);
     await addToLadder(userId, rank);
+    setLoading(false);
+  };
+
+  const handleUpdateUserRole = async (userId, newRole, userName) => {
+    const action = newRole === 'admin' ? 'promote' : 'demote';
+    const confirmation = window.confirm(
+      `Are you sure you want to ${action} ${userName} ${newRole === 'admin' ? 'to admin' : 'to regular user'}?`
+    );
+    
+    if (!confirmation) return;
+    
+    setLoading(true);
+    const result = await updateUserRole(userId, newRole);
+    if (result.success) {
+      alert(`Successfully ${action}d ${userName} ${newRole === 'admin' ? 'to admin' : 'to regular user'}!`);
+    } else {
+      alert(`Failed to ${action} ${userName}. Please try again.`);
+    }
     setLoading(false);
   };
 
@@ -225,6 +244,76 @@ const AdminTab = ({
           </div>
         ) : (
           <p className="text-gray-500">No pending approvals</p>
+        )}
+      </div>
+
+      {/* User Role Management */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">User Role Management</h3>
+        <p className="text-sm text-gray-600 mb-4">Promote users to admin or demote them to regular users</p>
+        
+        {users.filter(u => u.status === 'approved').length > 0 ? (
+          <div className="space-y-3">
+            {users.filter(u => u.status === 'approved').map(user => (
+              <div key={user.id} className="flex justify-between items-center p-3 border border-gray-200 rounded">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    user.role === 'admin' ? 'bg-blue-100' : 'bg-gray-100'
+                  }`}>
+                    {user.role === 'admin' ? (
+                      <ShieldCheck className="w-4 h-4 text-blue-600" />
+                    ) : (
+                      <Shield className="w-4 h-4 text-gray-500" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium">{user.name}</p>
+                    <p className="text-sm text-gray-600">{user.email}</p>
+                    <p className={`text-xs font-medium ${
+                      user.role === 'admin' ? 'text-blue-600' : 'text-gray-500'
+                    }`}>
+                      {user.role === 'admin' ? 'Administrator' : 'Regular User'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Don't allow the current user to demote themselves */}
+                {user.id !== currentUser?.id && (
+                  <div className="flex space-x-2">
+                    {user.role !== 'admin' ? (
+                      <button
+                        onClick={() => handleUpdateUserRole(user.id, 'admin', user.name)}
+                        disabled={loading}
+                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-1"
+                        title="Promote to Admin"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Promote</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleUpdateUserRole(user.id, 'player', user.name)}
+                        disabled={loading}
+                        className="bg-orange-600 text-white px-3 py-1 rounded text-sm hover:bg-orange-700 disabled:opacity-50 flex items-center space-x-1"
+                        title="Demote to Regular User"
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span>Demote</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {user.id === currentUser?.id && (
+                  <div className="text-xs text-gray-500 italic">
+                    (Current User)
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">No approved users to manage</p>
         )}
       </div>
 
