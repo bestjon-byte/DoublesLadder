@@ -80,6 +80,7 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason }) => {
                       {getRankMovementDisplay(player.previous_rank, player.rank)}
                     </td>
                   </tr>
+                  );
                 })
               )}
             </tbody>
