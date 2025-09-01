@@ -16,10 +16,10 @@ export const useAuth = () => {
     return hashParams.get('type') === 'recovery' && hashParams.get('access_token');
   }, []);
 
-  // Load user profile
+  // Load user profile with simpler approach
   const loadUserProfile = useCallback(async (userId) => {
     try {
-      console.log('📱 Loading user profile...');
+      console.log('📱 Loading user profile for ID:', userId);
       
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -29,11 +29,16 @@ export const useAuth = () => {
 
       if (error) {
         console.error('❌ Profile error:', error);
+        // If profile doesn't exist, try to create one
+        if (error.code === 'PGRST116') {
+          console.log('🔄 Profile not found, will create later...');
+          return null;
+        }
         setError(error);
         return null;
       }
 
-      console.log('✅ Profile loaded:', profile.name);
+      console.log('✅ Profile loaded:', profile?.name || 'Unknown');
       setUser(profile);
       return profile;
     } catch (error) {
@@ -202,64 +207,99 @@ export const useAuth = () => {
     }
   }, []);
 
-  // Initialize auth
+  // Initialize auth with simpler, more robust approach
   useEffect(() => {
+    let isActive = true; // Prevent state updates if component unmounts
+    
     const initializeAuth = async () => {
-      // Set timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        console.warn('⏰ Auth initialization timeout - forcing loading to false');
-        setLoading(false);
-        setError(new Error('Authentication timeout - please refresh the page'));
-      }, 20000); // 20 second timeout - increased for slower connections
-      
       try {
         console.log('🚀 Initializing auth...');
         
-        // Check for password reset mode
+        // Check for password reset mode first
         const isPasswordReset = checkForPasswordReset();
-        
         if (isPasswordReset) {
           console.log('🔑 Password reset mode detected');
-          setAuthMode('reset');
-          clearTimeout(timeoutId);
-          setLoading(false);
+          if (isActive) {
+            setAuthMode('reset');
+            setLoading(false);
+          }
           return;
         }
 
-        // Get current session
+        // Get current session with timeout protection
+        console.log('🔍 Getting current session...');
         const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!isActive) return; // Component unmounted
         
         if (error) {
           console.error('❌ Session error:', error);
           setError(error);
-          clearTimeout(timeoutId);
           setLoading(false);
           return;
         }
 
-        if (session) {
-          console.log('✅ Valid session found');
+        if (session?.user) {
+          console.log('✅ Valid session found, loading profile...');
           const profile = await loadUserProfile(session.user.id);
+          
+          if (!isActive) return; // Component unmounted
+          
           if (!profile) {
-            console.error('❌ Failed to load profile - signing out');
-            await supabase.auth.signOut();
-            setUser(null);
+            console.log('🔄 No profile found, creating one...');
+            // Create profile from auth data
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                email: session.user.email,
+                status: 'pending',
+                role: 'player'
+              })
+              .select()
+              .single();
+
+            if (createError) {
+              console.error('❌ Failed to create profile:', createError);
+              await supabase.auth.signOut();
+            } else {
+              console.log('✅ Profile created:', newProfile.name);
+              setUser(newProfile);
+            }
           }
         } else {
           console.log('ℹ️ No session - showing login');
         }
-        
-        clearTimeout(timeoutId);
       } catch (error) {
         console.error('💥 Auth initialization failed:', error);
-        setError(error);
-        clearTimeout(timeoutId);
+        if (isActive) {
+          setError(error);
+        }
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
 
-    initializeAuth();
+    // Set a reasonable timeout
+    const timeoutId = setTimeout(() => {
+      if (isActive) {
+        console.warn('⏰ Auth timeout - stopping loading');
+        setLoading(false);
+      }
+    }, 8000);
+
+    initializeAuth().finally(() => {
+      clearTimeout(timeoutId);
+    });
+
+    // Cleanup function
+    return () => {
+      isActive = false;
+      clearTimeout(timeoutId);
+    };
   }, [checkForPasswordReset, loadUserProfile]);
 
   // Listen for auth changes
