@@ -102,14 +102,14 @@ const ProfileTab = ({
           icon={<Trophy className="w-6 h-6 text-yellow-600" />}
           title="Matches Won"
           value={overallStats.matchesWon || 0}
-          subtitle={`of ${overallStats.totalMatches || 0} total`}
+          subtitle={`${overallStats.matchesDrawn || 0} draws, ${overallStats.matchesLost || 0} losses`}
           color="yellow"
         />
         <StatsCard
           icon={<Target className="w-6 h-6 text-green-600" />}
           title="Match Win Rate"
           value={`${Math.round((overallStats.matchWinRate || 0) * 100)}%`}
-          subtitle="match sessions"
+          subtitle="excluding draws"
           color="green"
         />
         <StatsCard
@@ -455,18 +455,20 @@ const FormGuide = ({ matches, allUsers }) => (
             <div
               key={index}
               className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-all duration-300 hover:scale-110 ${
-                match.won 
-                  ? 'bg-green-500 text-white hover:bg-green-600' 
-                  : 'bg-red-500 text-white hover:bg-red-600'
+                match.tie
+                  ? 'bg-gray-500 text-white hover:bg-gray-600'
+                  : match.won 
+                    ? 'bg-green-500 text-white hover:bg-green-600' 
+                    : 'bg-red-500 text-white hover:bg-red-600'
               }`}
-              title={`${match.won ? 'Won' : 'Lost'} ${match.score} vs ${match.opponentNames?.join(' & ')}`}
+              title={`${match.tie ? 'Drew' : match.won ? 'Won' : 'Lost'} ${match.score} vs ${match.opponentNames?.join(' & ')}`}
             >
-              {match.won ? 'W' : 'L'}
+              {match.tie ? 'D' : match.won ? 'W' : 'L'}
             </div>
           ))}
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -481,11 +483,25 @@ const FormGuide = ({ matches, allUsers }) => (
             </div>
           </div>
           
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-gray-600">
+                  {matches.filter(m => m.tie).length}
+                </div>
+                <div className="text-sm text-gray-700">Recent draws</div>
+              </div>
+              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                <div className="w-4 h-4 bg-gray-600 rounded"></div>
+              </div>
+            </div>
+          </div>
+          
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-red-600">
-                  {matches.filter(m => !m.won).length}
+                  {matches.filter(m => !m.won && !m.tie).length}
                 </div>
                 <div className="text-sm text-red-700">Recent losses</div>
               </div>
@@ -500,7 +516,7 @@ const FormGuide = ({ matches, allUsers }) => (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="text-sm font-medium text-blue-900 mb-2">Recent Form Analysis</div>
           <div className="text-xs text-blue-700">
-            Last 10 matches: {Math.round((matches.filter(m => m.won).length / matches.length) * 100)}% win rate
+            Last {matches.length} matches: {Math.round((matches.filter(m => m.won).length / Math.max(matches.filter(m => !m.tie).length, 1)) * 100)}% win rate (excluding draws)
           </div>
         </div>
       </>
@@ -520,15 +536,17 @@ const MatchHistory = ({ matches, allUsers }) => (
       <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
         {matches.slice(0, 20).map((match, index) => (
           <div key={index} className={`border rounded-lg p-4 transition-all duration-200 hover:shadow-md ${
+            match.tie ? 'border-gray-200 bg-gray-50/30' :
             match.won ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/30'
           }`}>
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-3 mb-2">
                   <div className={`px-3 py-1 text-xs font-bold rounded-full ${
+                    match.tie ? 'bg-gray-500 text-white' :
                     match.won ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
                   }`}>
-                    {match.won ? 'WIN' : 'LOSS'}
+                    {match.tie ? 'DRAW' : match.won ? 'WIN' : 'LOSS'}
                   </div>
                   <span className="text-sm text-gray-600">
                     {new Date(match.date).toLocaleDateString('en-US', { 
@@ -565,6 +583,7 @@ const MatchHistory = ({ matches, allUsers }) => (
               
               <div className="text-right ml-4">
                 <div className={`text-xl font-bold ${
+                  match.tie ? 'text-gray-600' :
                   match.won ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {match.score}

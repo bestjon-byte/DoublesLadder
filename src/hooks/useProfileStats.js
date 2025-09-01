@@ -123,7 +123,10 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       // Calculate overall stats
       const totalMatches = processedMatches.length; // Each fixture is a complete match
       const matchesWon = processedMatches.filter(match => match.won).length;
-      const matchWinRate = totalMatches > 0 ? matchesWon / totalMatches : 0;
+      const matchesDrawn = processedMatches.filter(match => match.tie).length;
+      const matchesLost = processedMatches.filter(match => !match.won && !match.tie).length;
+      const decisiveMatches = totalMatches - matchesDrawn;
+      const matchWinRate = decisiveMatches > 0 ? matchesWon / decisiveMatches : 0;
       
       // Calculate game-level stats
       const totalGames = processedMatches.reduce((sum, match) => sum + match.playerScore + match.opponentScore, 0);
@@ -303,6 +306,8 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
           gameWinRate,
           totalMatches,
           matchesWon,
+          matchesDrawn,
+          matchesLost,
           matchWinRate
         },
         bestPartners,
