@@ -283,7 +283,7 @@ const SeasonProgressionChart = ({ data }) => {
                 />
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {season.gamesWon}W - {season.games - season.gamesWon}L ({season.games} games)
+                {season.gamesWon}W - {season.totalGames - season.gamesWon}L ({season.totalGames} games)
               </div>
             </div>
           </div>
@@ -321,7 +321,7 @@ const BestPartnersSection = ({ partners, allUsers }) => (
                     <div className="font-medium text-gray-900">
                       {partner.name}
                     </div>
-                    <div className="text-xs text-gray-500">{partner.games} games, {partner.matches} matches together</div>
+                    <div className="text-xs text-gray-500">{partner.totalGames} games, {partner.matches} matches together</div>
                   </div>
                 </div>
                 <div className="text-right">

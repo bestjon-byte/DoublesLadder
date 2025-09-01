@@ -83,6 +83,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
           const playerScore = isInPair1 ? result.pair1_score : result.pair2_score;
           const opponentScore = isInPair1 ? result.pair2_score : result.pair1_score;
           const won = playerScore > opponentScore;
+          const tie = playerScore === opponentScore;
           
           // Get partner ID
           let partnerId;
@@ -102,6 +103,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
             matchId: fixture.match_id,
             date: result.created_at,
             won,
+            tie,
             score: `${playerScore} - ${opponentScore}`,
             partnerId,
             partnerName: userLookup[partnerId] || 'Unknown',
@@ -117,37 +119,44 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
         .filter(Boolean)
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
+      // Each fixture represents one complete match
       // Calculate overall stats
-      const totalMatches = processedMatches.length;
-      const matchesWon = processedMatches.filter(m => m.won).length;
-      const winRate = totalMatches > 0 ? matchesWon / totalMatches : 0;
+      const totalMatches = processedMatches.length; // Each fixture is a complete match
+      const matchesWon = processedMatches.filter(match => match.won).length;
+      const matchWinRate = totalMatches > 0 ? matchesWon / totalMatches : 0;
+      
+      // Calculate game-level stats
+      const totalGames = processedMatches.reduce((sum, match) => sum + match.playerScore + match.opponentScore, 0);
+      const gamesWon = processedMatches.reduce((sum, match) => sum + match.playerScore, 0);
+      const gameWinRate = totalGames > 0 ? gamesWon / totalGames : 0;
 
-      // Calculate best partners
+      // Calculate best partners based on GAMES across matches
       const partnerStats = {};
       processedMatches.forEach(match => {
         if (!partnerStats[match.partnerId]) {
           partnerStats[match.partnerId] = {
             playerId: match.partnerId,
             name: match.partnerName,
-            matches: 0,
-            wins: 0
+            totalGames: 0,
+            gamesWon: 0,
+            matches: 0
           };
         }
+        
+        partnerStats[match.partnerId].totalGames += (match.playerScore + match.opponentScore);
+        partnerStats[match.partnerId].gamesWon += match.playerScore;
         partnerStats[match.partnerId].matches++;
-        if (match.won) {
-          partnerStats[match.partnerId].wins++;
-        }
       });
 
       const bestPartners = Object.values(partnerStats)
         .map(partner => ({
           ...partner,
-          winRate: partner.matches > 0 ? partner.wins / partner.matches : 0
+          winRate: partner.totalGames > 0 ? partner.gamesWon / partner.totalGames : 0
         }))
-        .filter(partner => partner.matches >= 2) // Only partners with 2+ matches
+        .filter(partner => partner.totalGames >= 10) // Only partners with 10+ games
         .sort((a, b) => b.winRate - a.winRate);
 
-      // Calculate nemesis opponent (individual player)
+      // Calculate nemesis opponent based on GAMES across matches
       const opponentStats = {};
       processedMatches.forEach(match => {
         match.opponentIds.forEach(opponentId => {
@@ -155,29 +164,29 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
             opponentStats[opponentId] = {
               playerId: opponentId,
               name: userLookup[opponentId] || 'Unknown',
-              matches: 0,
-              wins: 0,
-              losses: 0
+              totalGames: 0,
+              gamesWon: 0,
+              gamesLost: 0,
+              matches: 0
             };
           }
+          
+          opponentStats[opponentId].totalGames += (match.playerScore + match.opponentScore);
+          opponentStats[opponentId].gamesWon += match.playerScore;
+          opponentStats[opponentId].gamesLost += match.opponentScore;
           opponentStats[opponentId].matches++;
-          if (match.won) {
-            opponentStats[opponentId].wins++;
-          } else {
-            opponentStats[opponentId].losses++;
-          }
         });
       });
 
       const nemesisOpponent = Object.values(opponentStats)
         .map(opponent => ({
           ...opponent,
-          winRate: opponent.matches > 0 ? opponent.wins / opponent.matches : 0
+          winRate: opponent.totalGames > 0 ? opponent.gamesWon / opponent.totalGames : 0
         }))
-        .filter(opponent => opponent.matches >= 2) // Only opponents faced 2+ times
+        .filter(opponent => opponent.totalGames >= 10) // Only opponents faced 10+ games
         .sort((a, b) => a.winRate - b.winRate)[0]; // Lowest win rate first
 
-      // Calculate nemesis pair
+      // Calculate nemesis pair based on GAMES
       const pairStats = {};
       processedMatches.forEach(match => {
         const pairKey = match.opponentIds.sort().join('-');
@@ -187,25 +196,25 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
             player2Id: match.opponentIds[1],
             player1Name: userLookup[match.opponentIds[0]] || 'Unknown',
             player2Name: userLookup[match.opponentIds[1]] || 'Unknown',
-            matches: 0,
-            wins: 0,
-            losses: 0
+            totalGames: 0,
+            gamesWon: 0,
+            gamesLost: 0,
+            matches: 0
           };
         }
+        
+        pairStats[pairKey].totalGames += (match.playerScore + match.opponentScore);
+        pairStats[pairKey].gamesWon += match.playerScore;
+        pairStats[pairKey].gamesLost += match.opponentScore;
         pairStats[pairKey].matches++;
-        if (match.won) {
-          pairStats[pairKey].wins++;
-        } else {
-          pairStats[pairKey].losses++;
-        }
       });
 
       const nemesisPair = Object.values(pairStats)
         .map(pair => ({
           ...pair,
-          winRate: pair.matches > 0 ? pair.wins / pair.matches : 0
+          winRate: pair.totalGames > 0 ? pair.gamesWon / pair.totalGames : 0
         }))
-        .filter(pair => pair.matches >= 2) // Only pairs faced 2+ times
+        .filter(pair => pair.totalGames >= 10) // Only pairs faced 10+ games
         .sort((a, b) => a.winRate - b.winRate)[0]; // Lowest win rate first
 
       // Calculate win streaks (need chronological order, oldest first)
@@ -248,29 +257,33 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
         .filter(opponent => opponent.matches > 1)
         .sort((a, b) => b.matches - a.matches);
 
-      // Season progression (if looking at all time) - use games for more accurate stats
+      // Season progression (if looking at all time) - use games for accurate stats
       let seasonProgression = [];
       if (allTime) {
         const seasonStats = {};
-        processedMatches.forEach(game => {
-          if (!seasonStats[game.seasonId]) {
-            seasonStats[game.seasonId] = {
-              seasonId: game.seasonId,
-              seasonName: game.seasonName,
-              games: 0,
-              gamesWon: 0
+        processedMatches.forEach(match => {
+          if (!seasonStats[match.seasonId]) {
+            seasonStats[match.seasonId] = {
+              seasonId: match.seasonId,
+              seasonName: match.seasonName,
+              totalGames: 0,
+              gamesWon: 0,
+              matches: 0,
+              matchesWon: 0
             };
           }
-          seasonStats[game.seasonId].games++;
-          if (game.won) {
-            seasonStats[game.seasonId].gamesWon++;
+          seasonStats[match.seasonId].totalGames += (match.playerScore + match.opponentScore);
+          seasonStats[match.seasonId].gamesWon += match.playerScore;
+          seasonStats[match.seasonId].matches++;
+          if (match.won) {
+            seasonStats[match.seasonId].matchesWon++;
           }
         });
 
         seasonProgression = Object.values(seasonStats)
           .map(season => ({
             ...season,
-            winRate: season.games > 0 ? (season.gamesWon / season.games) * 100 : 0
+            winRate: season.totalGames > 0 ? (season.gamesWon / season.totalGames) * 100 : 0
           }))
           .sort((a, b) => new Date(a.seasonId) - new Date(b.seasonId)); // Rough chronological sort
       }
@@ -278,9 +291,12 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       setStats({
         matchHistory: processedMatches,
         overallStats: {
+          totalGames,
+          gamesWon,
+          gameWinRate,
           totalMatches,
           matchesWon,
-          winRate
+          matchWinRate
         },
         bestPartners,
         nemesisOpponent,
