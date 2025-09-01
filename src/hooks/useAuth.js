@@ -22,7 +22,7 @@ export const useAuth = () => {
     
     // Create timeout promise
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Profile query timeout')), 3000);
+      setTimeout(() => reject(new Error('Profile query timeout')), 2000); // Reduced to 2s
     });
     
     // Create query promise
@@ -337,15 +337,16 @@ export const useAuth = () => {
     };
   }, [checkForPasswordReset, loadUserProfile]);
 
-  // Listen for auth changes
+  // Listen for auth changes (but avoid duplicate profile loading)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔄 Auth event:', event);
       
       switch (event) {
         case 'SIGNED_IN':
-          if (session && !checkForPasswordReset()) {
-            console.log('✅ User signed in');
+          // Only load profile if we don't already have a user (avoid duplicate loading)
+          if (session && !checkForPasswordReset() && !user) {
+            console.log('✅ User signed in via auth change');
             await loadUserProfile(session.user.id);
           }
           break;
@@ -362,13 +363,17 @@ export const useAuth = () => {
           setUser(null);
           break;
           
+        case 'INITIAL_SESSION':
+          console.log('🔄 Initial session event - skipping duplicate load');
+          break;
+          
         default:
           break;
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [checkForPasswordReset, loadUserProfile]);
+  }, [checkForPasswordReset, loadUserProfile, user]);
 
   return {
     user,

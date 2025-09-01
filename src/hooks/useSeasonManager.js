@@ -181,10 +181,8 @@ export const useSeasonManager = () => {
       }
     };
     
-    // Small delay to let auth initialize first
-    setTimeout(() => {
-      initializeSeasons();
-    }, 100);
+    // Start immediately - no need to wait for auth
+    initializeSeasons();
   }, [fetchSeasons]);
 
   // Listen for refresh events from other components
