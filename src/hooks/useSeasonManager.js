@@ -162,7 +162,26 @@ export const useSeasonManager = () => {
 
   // Initialize on mount
   useEffect(() => {
-    fetchSeasons();
+    const initializeSeasons = async () => {
+      // Set timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn('⏰ Season initialization timeout - forcing loading to false');
+        setLoading(false);
+        setError(new Error('Season loading timeout - please refresh the page'));
+      }, 8000); // 8 second timeout
+      
+      try {
+        await fetchSeasons();
+        clearTimeout(timeoutId);
+      } catch (error) {
+        console.error('💥 Season initialization failed:', error);
+        setError(error);
+        clearTimeout(timeoutId);
+        setLoading(false);
+      }
+    };
+    
+    initializeSeasons();
   }, [fetchSeasons]);
 
   // Listen for refresh events from other components

@@ -70,6 +70,26 @@ const TennisLadderApp = () => {
     return <div className="p-4 bg-red-100">Error: Service unavailable</div>;
   }
 
+  // Show error state if any hook has an error
+  if (error || seasonData?.error || authData?.error) {
+    return (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+          <h2 className="text-xl font-bold text-red-600 mb-4">Connection Error</h2>
+          <p className="text-gray-700 mb-4">
+            There was a problem connecting to the server. This may be temporary.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Score submission handler
   const submitScore = async (pair1Score, pair2Score) => {
     if (!selectedMatch) return;
@@ -130,9 +150,12 @@ const TennisLadderApp = () => {
     }
   };
 
-  // Loading state
+  // Loading state with manual override after timeout
   if (authLoading || seasonLoading || dataLoading?.initial) {
-    return <LoadingScreen />;
+    const loadingMessage = authLoading ? 'Authenticating...' : 
+                          seasonLoading ? 'Loading seasons...' : 
+                          'Loading app data...';
+    return <LoadingScreen message={loadingMessage} />;
   }
 
   // Main app - MOVED ToastProvider to wrap everything

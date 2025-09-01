@@ -856,6 +856,13 @@ export const useApp = (userId, selectedSeasonId) => {
       console.log('🚀 Loading app data for user:', userId);
       setLoading('initial', true);
       
+      // Set timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn('⏰ App data initialization timeout - forcing loading to false');
+        setLoading('initial', false);
+        updateData('error', new Error('App data loading timeout - please refresh the page'));
+      }, 12000); // 12 second timeout for app data
+      
       try {
         await Promise.all([
           fetchUsers(),
@@ -867,9 +874,12 @@ export const useApp = (userId, selectedSeasonId) => {
           fetchMatchFixtures(),
           fetchMatchResults(),
         ]);
+        
+        clearTimeout(timeoutId);
       } catch (error) {
         console.error('Error loading initial data:', error);
         updateData('error', error);
+        clearTimeout(timeoutId);
       } finally {
         setLoading('initial', false);
       }

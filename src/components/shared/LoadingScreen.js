@@ -1,7 +1,17 @@
 // src/components/shared/LoadingScreen.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const LoadingScreen = ({ message = 'Loading...' }) => {
+  const [showOverride, setShowOverride] = useState(false);
+  
+  // Show manual override after 8 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowOverride(true);
+    }, 8000);
+    
+    return () => clearTimeout(timer);
+  }, []);
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
@@ -49,6 +59,19 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
             <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
             <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
           </div>
+          
+          {/* Manual override button after timeout */}
+          {showOverride && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-500 mb-3">Taking longer than expected?</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-[#5D1F1F] text-white px-4 py-2 rounded text-sm hover:bg-[#4A1818] transition-colors"
+              >
+                Refresh Page
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

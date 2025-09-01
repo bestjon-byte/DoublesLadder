@@ -205,6 +205,13 @@ export const useAuth = () => {
   // Initialize auth
   useEffect(() => {
     const initializeAuth = async () => {
+      // Set timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn('⏰ Auth initialization timeout - forcing loading to false');
+        setLoading(false);
+        setError(new Error('Authentication timeout - please refresh the page'));
+      }, 10000); // 10 second timeout
+      
       try {
         console.log('🚀 Initializing auth...');
         
@@ -214,6 +221,7 @@ export const useAuth = () => {
         if (isPasswordReset) {
           console.log('🔑 Password reset mode detected');
           setAuthMode('reset');
+          clearTimeout(timeoutId);
           setLoading(false);
           return;
         }
@@ -224,19 +232,28 @@ export const useAuth = () => {
         if (error) {
           console.error('❌ Session error:', error);
           setError(error);
+          clearTimeout(timeoutId);
           setLoading(false);
           return;
         }
 
         if (session) {
           console.log('✅ Valid session found');
-          await loadUserProfile(session.user.id);
+          const profile = await loadUserProfile(session.user.id);
+          if (!profile) {
+            console.error('❌ Failed to load profile - signing out');
+            await supabase.auth.signOut();
+            setUser(null);
+          }
         } else {
           console.log('ℹ️ No session - showing login');
         }
+        
+        clearTimeout(timeoutId);
       } catch (error) {
         console.error('💥 Auth initialization failed:', error);
         setError(error);
+        clearTimeout(timeoutId);
       } finally {
         setLoading(false);
       }
