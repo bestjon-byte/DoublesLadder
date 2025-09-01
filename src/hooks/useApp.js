@@ -912,7 +912,7 @@ export const useApp = (userId, selectedSeasonId) => {
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          status: 'deleted', // This will make them unavailable for selection
+          status: 'suspended', // This will make them unavailable for selection (constraint allows pending/approved/suspended)
           name: `[Deleted User - ${userName.substring(0, 3)}***]`, // Partially anonymize name
           email: `deleted_user_${userId.substring(0, 8)}@deleted.local`, // Anonymize email but keep unique
           // Keep: id, role (for data integrity), created_at, updated_at

@@ -42,9 +42,9 @@ const DeleteUserModal = ({
 
     // Final confirmation dialogs
     const firstConfirm = window.confirm(
-      `⚠️ DEACTIVATE USER: "${userToDelete.name}" (${userToDelete.email})\n\n` +
+      `⚠️ SUSPEND USER: "${userToDelete.name}" (${userToDelete.email})\n\n` +
       `This will:\n` +
-      `• Deactivate their account and login access\n` +
+      `• Suspend their account (status: suspended)\n` +
       `• Remove them from all current seasons\n` +
       `• Make them unavailable for future ladder selection\n` +
       `• Anonymize their personal information\n\n` +
@@ -52,14 +52,14 @@ const DeleteUserModal = ({
       `• All match history and results\n` +
       `• Historical game data for statistics\n\n` +
       `This action CANNOT be easily undone!\n\n` +
-      `Click OK to proceed with user deactivation.`
+      `Click OK to proceed with user suspension.`
     );
 
     if (!firstConfirm) return;
 
     const secondConfirm = window.confirm(
-      `🚨 FINAL CONFIRMATION: Deactivate "${userToDelete.name}"?\n\n` +
-      `Their login will be disabled and they will be removed from the app,\n` +
+      `🚨 FINAL CONFIRMATION: Suspend "${userToDelete.name}"?\n\n` +
+      `Their account will be suspended and they will be removed from the app,\n` +
       `but their match history will be preserved.\n\n` +
       `Are you absolutely certain you want to continue?`
     );
@@ -70,16 +70,16 @@ const DeleteUserModal = ({
     try {
       const result = await deleteUser(userToDelete.id, userToDelete.name, userToDelete.email);
       if (result?.success) {
-        alert(`✅ User "${userToDelete.name}" has been deactivated successfully.\nTheir match history has been preserved.`);
+        alert(`✅ User "${userToDelete.name}" has been suspended successfully.\nTheir match history has been preserved.`);
         setShowModal(false);
         setConfirmText('');
         setSelectedUserToDelete('');
       } else {
-        alert('❌ Failed to deactivate user. Please try again or contact support.');
+        alert('❌ Failed to suspend user. Please try again or contact support.');
       }
     } catch (error) {
-      console.error('Error deactivating user:', error);
-      alert('❌ Error deactivating user: ' + error.message);
+      console.error('Error suspending user:', error);
+      alert('❌ Error suspending user: ' + error.message);
     } finally {
       setDeleting(false);
     }
@@ -107,7 +107,7 @@ const DeleteUserModal = ({
             </button>
           </div>
           <p className="text-sm text-orange-700 mt-2 font-medium">
-            🚨 This will deactivate the user but preserve their match history
+            🚨 This will suspend the user account but preserve their match history
           </p>
         </div>
 
@@ -120,9 +120,9 @@ const DeleteUserModal = ({
                 <h4 className="font-semibold text-blue-900 mb-2">What happens when you delete a user:</h4>
                 <div className="text-sm text-blue-800 space-y-2">
                   <div>
-                    <p className="font-semibold text-orange-700">DEACTIVATED:</p>
+                    <p className="font-semibold text-orange-700">SUSPENDED:</p>
                     <ul className="list-disc list-inside ml-2">
-                      <li>Login access disabled</li>
+                      <li>Account status changed to 'suspended'</li>
                       <li>Removed from all current seasons</li>
                       <li>Name and email anonymized</li>
                       <li>No longer available for ladder selection</li>
@@ -215,7 +215,7 @@ const DeleteUserModal = ({
           {/* Warning */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
             <p className="text-sm text-yellow-800">
-              <strong>⚠️ Note:</strong> This action deactivates the user account rather than permanently deleting it. 
+              <strong>⚠️ Note:</strong> This action suspends the user account rather than permanently deleting it. 
               This ensures match history and statistics remain intact for reporting purposes.
             </p>
           </div>
@@ -229,7 +229,7 @@ const DeleteUserModal = ({
               className="flex-1 bg-orange-600 text-white py-3 px-4 rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold flex items-center justify-center space-x-2"
             >
               <UserX className="w-4 h-4" />
-              <span>{deleting ? 'Deactivating User...' : 'DEACTIVATE USER'}</span>
+              <span>{deleting ? 'Suspending User...' : 'SUSPEND USER'}</span>
             </button>
             <button
               onClick={() => {
