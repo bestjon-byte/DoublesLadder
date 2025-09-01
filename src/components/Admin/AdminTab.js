@@ -4,6 +4,7 @@ import { Check, Users, ShieldCheck } from 'lucide-react';
 import ScoreChallengesSection from './ScoreChallengesSection';
 import PlayerMergeModal from './PlayerMergeModal';
 import UserRoleModal from '../Modals/UserRoleModal';
+import AddToLadderModal from '../Modals/AddToLadderModal';
 
 const AdminTab = ({ 
   users, 
@@ -29,6 +30,7 @@ const AdminTab = ({
   const [newSeasonStartDate, setNewSeasonStartDate] = useState('');
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [showUserRoleModal, setShowUserRoleModal] = useState(false);
+  const [showAddToLadderModal, setShowAddToLadderModal] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -36,11 +38,6 @@ const AdminTab = ({
     setLoading(false);
   };
 
-  const handleAddToLadder = async (userId, rank) => {
-    setLoading(true);
-    await addToLadder(userId, rank);
-    setLoading(false);
-  };
 
 
   const handleCreateSeason = async () => {
@@ -112,15 +109,6 @@ const AdminTab = ({
           </div>
           
           <div className="flex space-x-2">
-            <button
-              onClick={() => setShowMergeModal(true)}
-              disabled={loading}
-              className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm flex items-center space-x-1"
-              title="Merge CSV players with real user accounts"
-            >
-              <Users className="w-4 h-4" />
-              <span>Merge Players</span>
-            </button>
             {currentSeason?.status === 'active' && (
               <button
                 onClick={handleCompleteSeason}
@@ -232,20 +220,69 @@ const AdminTab = ({
         )}
       </div>
 
-      {/* User Role Management */}
+      {/* Admin Tools */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">User Role Management</h3>
-            <p className="text-sm text-gray-600">Promote users to admin or demote them to regular users</p>
+        <h3 className="text-lg font-semibold mb-4">Admin Tools</h3>
+        <p className="text-sm text-gray-600 mb-6">Quick access to administrative functions</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* User Role Management */}
+          <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <ShieldCheck className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">User Roles</h4>
+                <p className="text-xs text-gray-500">Promote/demote admins</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowUserRoleModal(true)}
+              className="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
+            >
+              Manage User Roles
+            </button>
           </div>
-          <button
-            onClick={() => setShowUserRoleModal(true)}
-            className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors flex items-center space-x-2"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Manage User Roles</span>
-          </button>
+
+          {/* Add Players to Ladder */}
+          <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="bg-green-100 p-2 rounded-full">
+                <Users className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Add Players</h4>
+                <p className="text-xs text-gray-500">Add users to ladder</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAddToLadderModal(true)}
+              className="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm"
+            >
+              Add Players
+            </button>
+          </div>
+
+          {/* Merge Players */}
+          <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="bg-purple-100 p-2 rounded-full">
+                <Users className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Merge Players</h4>
+                <p className="text-xs text-gray-500">Merge duplicate accounts</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowMergeModal(true)}
+              disabled={loading}
+              className="w-full bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50 transition-colors text-sm"
+            >
+              Merge Players
+            </button>
+          </div>
         </div>
       </div>
 
@@ -392,45 +429,6 @@ const AdminTab = ({
         </div>
       )}
 
-      {/* Add Players to Ladder */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">Add Players to Ladder</h3>
-        {users.filter(u => u.status === 'approved' && !ladderPlayers.some(lp => lp.id === u.id)).length > 0 ? (
-          <div className="space-y-3">
-            {users.filter(u => u.status === 'approved' && !ladderPlayers.some(lp => lp.id === u.id)).map(user => {
-              const maxRank = ladderPlayers.length + 1;
-              return (
-                <div key={user.id} className="flex justify-between items-center p-3 border border-gray-200 rounded">
-                  <p className="font-medium">{user.name}</p>
-                  <div className="flex items-center space-x-2">
-                    <select 
-                      id={`rank-${user.id}`}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm"
-                      defaultValue={maxRank}
-                    >
-                      {Array.from({length: maxRank}, (_, i) => i + 1).map(rank => (
-                        <option key={rank} value={rank}>Rank {rank}</option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => {
-                        const selectedRank = document.getElementById(`rank-${user.id}`).value;
-                        handleAddToLadder(user.id, selectedRank);
-                      }}
-                      disabled={loading}
-                      className="bg-[#5D1F1F] text-white px-3 py-1 rounded text-sm hover:bg-[#4A1818] disabled:opacity-50"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-gray-500">No approved players waiting to join ladder</p>
-        )}
-      </div>
 
       {/* Debug/Maintenance Section */}
       <div className="bg-red-50 border border-red-200 rounded-lg shadow p-6">
@@ -475,6 +473,15 @@ const AdminTab = ({
         allUsers={users.filter(u => u.status === 'approved')}
         currentUser={currentUser}
         updateUserRole={updateUserRole}
+      />
+
+      {/* Add to Ladder Modal */}
+      <AddToLadderModal 
+        showModal={showAddToLadderModal}
+        setShowModal={setShowAddToLadderModal}
+        allUsers={users}
+        ladderPlayers={ladderPlayers}
+        addToLadder={addToLadder}
       />
     </div>
   );
