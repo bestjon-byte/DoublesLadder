@@ -29,7 +29,7 @@ const UserRoleModal = ({
 
     const action = newRole === 'admin' ? 'promote' : 'demote';
     const confirmation = window.confirm(
-      `Are you sure you want to ${action} ${userName} ${newRole === 'admin' ? 'to admin' : 'to regular user'}?`
+      `Are you sure you want to ${action} ${userName} ${newRole === 'admin' ? 'to admin' : 'to player'}?`
     );
 
     if (!confirmation) return;
@@ -64,7 +64,7 @@ const UserRoleModal = ({
             </button>
           </div>
           <p className="text-sm text-gray-600 mt-2">
-            Promote users to admin or demote them to regular users
+            Promote users to admin or demote them to players
           </p>
         </div>
 
@@ -113,7 +113,7 @@ const UserRoleModal = ({
                           <span className={`ml-1 font-semibold ${
                             user.role === 'admin' ? 'text-blue-600' : 'text-gray-600'
                           }`}>
-                            {user.role === 'admin' ? 'Admin' : 'Regular User'}
+                            {user.role === 'admin' ? 'Admin' : 'Player'}
                           </span>
                         </div>
                       </div>
@@ -130,11 +130,11 @@ const UserRoleModal = ({
                         </button>
                       ) : (
                         <button
-                          onClick={() => handleUpdateUserRole(user.id, 'user', user.name)}
+                          onClick={() => handleUpdateUserRole(user.id, 'player', user.name)}
                           disabled={updating === user.id || user.id === currentUser.id}
                           className="px-4 py-2 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          {updating === user.id ? 'Demoting...' : 'Demote to User'}
+                          {updating === user.id ? 'Demoting...' : 'Demote to Player'}
                         </button>
                       )}
                     </div>
