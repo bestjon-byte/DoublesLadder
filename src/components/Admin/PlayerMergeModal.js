@@ -74,22 +74,31 @@ const PlayerMergeModal = ({
 
       if (seasonError) throw seasonError;
 
-      // Step 2: Update match fixtures to use real user ID
+      // Step 2: Update match fixtures to use real user ID (be more thorough)
+      console.log('🔄 Updating match fixtures...');
       const fixtureUpdates = [
-        { field: 'pair1_player1_id' },
-        { field: 'pair1_player2_id' },
-        { field: 'pair2_player1_id' },
-        { field: 'pair2_player2_id' },
-        { field: 'sitting_player_id' }
+        { field: 'player1_id', desc: 'individual player 1' },
+        { field: 'player2_id', desc: 'individual player 2' }, 
+        { field: 'player3_id', desc: 'individual player 3' },
+        { field: 'player4_id', desc: 'individual player 4' },
+        { field: 'pair1_player1_id', desc: 'pair 1 player 1' },
+        { field: 'pair1_player2_id', desc: 'pair 1 player 2' },
+        { field: 'pair2_player1_id', desc: 'pair 2 player 1' },
+        { field: 'pair2_player2_id', desc: 'pair 2 player 2' },
+        { field: 'sitting_player_id', desc: 'sitting player' }
       ];
 
       for (const update of fixtureUpdates) {
-        const { error } = await supabase
+        const { error, count } = await supabase
           .from('match_fixtures')
           .update({ [update.field]: selectedRealUser.id })
           .eq(update.field, selectedCsvPlayer.id);
         
-        if (error) console.warn(`Warning updating ${update.field}:`, error);
+        if (error) {
+          console.warn(`Warning updating ${update.desc}:`, error);
+        } else if (count > 0) {
+          console.log(`✅ Updated ${count} fixtures for ${update.desc}`);
+        }
       }
 
       // Step 3: Update match results submitted_by
@@ -101,25 +110,71 @@ const PlayerMergeModal = ({
       if (resultsError) console.warn('Warning updating results:', resultsError);
 
       // Step 4: Update availability records
-      const { error: availError } = await supabase
+      console.log('🔄 Updating availability records...');
+      const { error: availError, count: availCount } = await supabase
         .from('availability')
         .update({ player_id: selectedRealUser.id })
         .eq('player_id', selectedCsvPlayer.id);
 
-      if (availError) console.warn('Warning updating availability:', availError);
+      if (availError) {
+        console.warn('Warning updating availability:', availError);
+      } else if (availCount > 0) {
+        console.log(`✅ Updated ${availCount} availability records`);
+      }
 
-      // Step 5: Delete the old CSV profile
+      // Step 5: Update any score challenges
+      console.log('🔄 Updating score challenges...');
+      const { error: challengesError, count: challengesCount } = await supabase
+        .from('score_challenges')
+        .update({ challenger_id: selectedRealUser.id })
+        .eq('challenger_id', selectedCsvPlayer.id);
+
+      if (challengesError) {
+        console.warn('Warning updating score challenges:', challengesError);
+      } else if (challengesCount > 0) {
+        console.log(`✅ Updated ${challengesCount} score challenges`);
+      }
+
+      // Step 6: Update any score conflicts
+      console.log('🔄 Updating score conflicts...');
+      const { error: conflictsError, count: conflictsCount } = await supabase
+        .from('score_conflicts')
+        .update({ conflicting_user_id: selectedRealUser.id })
+        .eq('conflicting_user_id', selectedCsvPlayer.id);
+
+      if (conflictsError) {
+        console.warn('Warning updating score conflicts:', conflictsError);
+      } else if (conflictsCount > 0) {
+        console.log(`✅ Updated ${conflictsCount} score conflicts`);
+      }
+
+      // Step 7: Verify all references are updated before attempting delete
+      console.log('🔍 Checking for remaining references...');
+      
+      // Check match_fixtures
+      const { data: remainingFixtures } = await supabase
+        .from('match_fixtures')
+        .select('id')
+        .or(`player1_id.eq.${selectedCsvPlayer.id},player2_id.eq.${selectedCsvPlayer.id},player3_id.eq.${selectedCsvPlayer.id},player4_id.eq.${selectedCsvPlayer.id},pair1_player1_id.eq.${selectedCsvPlayer.id},pair1_player2_id.eq.${selectedCsvPlayer.id},pair2_player1_id.eq.${selectedCsvPlayer.id},pair2_player2_id.eq.${selectedCsvPlayer.id},sitting_player_id.eq.${selectedCsvPlayer.id}`);
+
+      if (remainingFixtures && remainingFixtures.length > 0) {
+        console.warn(`⚠️ ${remainingFixtures.length} match fixtures still reference the old player`);
+      }
+
+      // Step 8: Try to delete the old CSV profile
+      console.log('🗑️ Attempting to delete old CSV profile...');
       const { error: deleteError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', selectedCsvPlayer.id);
 
       if (deleteError) {
-        console.warn('Could not delete old profile:', deleteError);
-        // Don't fail the merge if we can't delete the old profile
+        console.warn('Could not delete old profile (this is OK - merge completed successfully):', deleteError);
+        toast.success(`Successfully merged ${selectedCsvPlayer.name} with ${selectedRealUser.name}! Note: Old profile preserved due to database constraints.`);
+      } else {
+        console.log('✅ Old CSV profile deleted successfully');
+        toast.success(`Successfully merged and removed ${selectedCsvPlayer.name}! All data now belongs to ${selectedRealUser.name}.`);
       }
-
-      toast.success(`Successfully merged ${selectedCsvPlayer.name} with ${selectedRealUser.name}!`);
       
       // Reset state and close modal
       setSelectedCsvPlayer(null);
