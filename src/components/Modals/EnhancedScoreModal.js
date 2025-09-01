@@ -26,9 +26,11 @@ const EnhancedScoreModal = ({
     if (selectedMatch?.fixtureId) {
       const score = getMatchScore(selectedMatch.fixtureId);
       setExistingScore(score);
-      setDataLoaded(true);
+      // Small delay to prevent flash
+      setTimeout(() => setDataLoaded(true), 100);
     } else {
       setDataLoaded(false);
+      setExistingScore(null);
     }
   }, [selectedMatch, getMatchScore]);
 

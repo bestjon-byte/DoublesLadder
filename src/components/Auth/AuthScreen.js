@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import PasswordReset from './PasswordReset';
 import PasswordUpdate from './PasswordUpdate';
+import { useAppToast } from '../../contexts/ToastContext';
 
 const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComplete }) => {
+  const toast = useAppToast();
   const [authMode, setAuthMode] = useState('login');
   const [loading, setLoading] = useState(false);
   const [authForm, setAuthForm] = useState({
@@ -35,7 +37,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
         
         if (error) {
           console.error('❌ Login error:', error);
-          alert(`Login failed: ${error.message}`);
+          toast.error(`Login failed: ${error.message}`);
         } else {
           console.log('✅ Login successful');
           const { data: profile } = await supabase
@@ -61,17 +63,17 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
         
         if (error) {
           console.error('❌ Registration error:', error);
-          alert(`Registration failed: ${error.message}`);
+          toast.error(`Registration failed: ${error.message}`);
         } else {
           console.log('✅ Registration successful');
-          alert('Registration successful! Please wait for admin approval.');
+          toast.success('Registration successful! Please wait for admin approval.');
           setAuthMode('login');
           setAuthForm({ email: '', password: '', name: '' });
         }
       }
     } catch (err) {
       console.error('💥 Unexpected error:', err);
-      alert('An unexpected error occurred. Please try again.');
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

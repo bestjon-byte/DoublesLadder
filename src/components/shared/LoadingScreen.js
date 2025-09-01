@@ -6,7 +6,7 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
     <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
         <div className="flex flex-col items-center">
-          {/* Tennis racket with ball */}
+          {/* Tennis racket */}
           <div className="relative w-16 h-16 mb-4">
             {/* Tennis racket SVG */}
             <svg 
@@ -33,12 +33,6 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
               <line x1="45" y1="72" x2="55" y2="72" stroke="white" strokeWidth="1"/>
               <line x1="45" y1="79" x2="55" y2="79" stroke="white" strokeWidth="1"/>
             </svg>
-            
-            {/* Bouncing tennis ball */}
-            <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full animate-bounce border-2 border-green-600 shadow-md">
-              <div className="w-5 h-[1px] bg-white transform rotate-45 absolute top-2.5 left-0.5"></div>
-              <div className="w-5 h-[1px] bg-white transform -rotate-45 absolute top-2.5 left-0.5"></div>
-            </div>
           </div>
           
           <h2 className="text-xl font-semibold text-gray-800 mb-2">

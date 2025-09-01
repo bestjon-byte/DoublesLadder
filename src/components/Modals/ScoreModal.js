@@ -1,5 +1,6 @@
 // src/components/Modals/ScoreModal.js
 import React from 'react';
+import { useAppToast } from '../../contexts/ToastContext';
 
 const ScoreModal = ({ 
   showModal, 
@@ -8,6 +9,8 @@ const ScoreModal = ({
   setSelectedMatch, 
   submitScore 
 }) => {
+  const toast = useAppToast();
+  
   if (!showModal || !selectedMatch) return null;
 
   return (
@@ -57,7 +60,7 @@ const ScoreModal = ({
                   if (pair1Score && pair2Score) {
                     submitScore(pair1Score, pair2Score);
                   } else {
-                    alert('Please enter scores for both pairs');
+                    toast.warning('Please enter scores for both pairs');
                   }
                 }}
                 className="flex-1 bg-[#5D1F1F] text-white py-2 px-4 rounded-md hover:bg-[#4A1818]"
