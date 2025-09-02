@@ -14,8 +14,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
   const [activeTab, setActiveTab] = useState('challenges'); // challenges, conflicts, results
 
   useEffect(() => {
-    console.log('🔍 ScoreChallengesSection mounted, fetching all data...');
-    console.log('Selected season:', selectedSeason?.id, 'Current season:', currentSeason?.id);
+    // Fetch challenges, conflicts, and results data for the selected season
     fetchAllData();
   }, [selectedSeason?.id, currentSeason?.id]); // Re-fetch when selected or current season changes
 
@@ -30,11 +29,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
         fetchMatchResults(selectedSeason?.id)
       ]);
       
-      console.log('✅ Fetched data:', {
-        challenges: challengesData?.length || 0,
-        conflicts: conflictsData?.length || 0,
-        results: resultsData?.length || 0
-      });
+      // Data fetched successfully from all endpoints
       
       setChallenges(challengesData || []);
       setConflicts(conflictsData || []);
@@ -53,18 +48,18 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
     const targetSeasonId = seasonId || currentSeason?.id;
     
     if (!targetSeasonId) {
-      console.log('No season available, returning empty results');
+      // No season available - return empty results
       return [];
     }
 
     // Check if the target season is completed - if so, return empty (no editing allowed)
     const targetSeason = seasonId ? selectedSeason : currentSeason;
     if (targetSeason?.status === 'completed') {
-      console.log('Target season is completed, returning empty results (no editing allowed)');
+      // Completed season - no editing allowed
       return [];
     }
 
-    console.log('🎾 Fetching match results for season:', targetSeasonId);
+    // Fetching match results for current season
 
     const { data, error } = await supabase
       .from('match_results')
@@ -87,7 +82,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       throw error;
     }
     
-    console.log('✅ Fetched match results:', data?.length || 0, 'for season:', targetSeasonId);
+    // Match results fetched successfully
     return data || [];
   };
 
@@ -100,14 +95,14 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
     
     setLoading(true);
     try {
-      console.log(`🏆 Resolving challenge ${challengeId} with decision: ${decision}`);
+      // Processing challenge resolution
       
       if (decision === 'approved' && newScore) {
         // Create new corrected result record and preserve original
         const challenge = challenges.find(c => c.id === challengeId);
         
         if (challenge?.original_result_id && challenge?.fixture_id) {
-          console.log('📝 Creating corrected score record...');
+          // Creating corrected score record
           
           // Create new result record with corrected score
           const { data: correctedResult, error: createError } = await supabase
@@ -140,12 +135,12 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
             return;
           }
           
-          console.log('✅ Created corrected result:', correctedResult.id, 'and marked original as superseded');
+          // Corrected result created and original marked as superseded
         }
       }
       
       // Update the challenge status with minimal fields first
-      console.log('🔄 Updating challenge status...');
+      // Updating challenge status in database
       const updateData = {
         status: decision,
         resolved_by: currentUser.id,
@@ -159,7 +154,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
         updateData.admin_decision = 'Challenge rejected - original score stands';
       }
       
-      console.log('📤 Sending update:', updateData);
+      // Sending challenge update to database
       
       const { data: updateResult, error: challengeError } = await supabase
         .from('score_challenges')
@@ -179,7 +174,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
         return;
       }
       
-      console.log('✅ Challenge updated successfully:', updateResult);
+      // Challenge status updated successfully
       alert(`Challenge ${decision} successfully!`);
       
       // Refresh all data
@@ -201,7 +196,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       return;
     }
     
-    console.log('✏️ Starting score edit for:', result.id);
+    // Starting score edit mode
     setEditingScore(result.id);
     setEditForm({
       pair1_score: result.pair1_score.toString(),
@@ -212,7 +207,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
   const handleSaveEdit = async (resultId) => {
     setLoading(true);
     try {
-      console.log('💾 Saving score edit:', { resultId, editForm });
+      // Saving score edit to database
       
       if (!editForm.pair1_score || !editForm.pair2_score) {
         alert('Please enter both scores');
@@ -231,7 +226,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
         console.error('❌ Error updating score:', error);
         alert('Error updating score: ' + error.message);
       } else {
-        console.log('✅ Score updated successfully');
+        // Score updated successfully in database
         alert('Score updated successfully!');
         setEditingScore(null);
         setEditForm({ pair1_score: '', pair2_score: '' });
@@ -239,7 +234,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
         if (onDataRefresh) onDataRefresh();
       }
     } catch (error) {
-      console.error('💥 Error in handleSaveEdit:', error);
+      console.error('Error in handleSaveEdit:', error);
       alert('Error updating score: ' + error.message);
     } finally {
       setLoading(false);

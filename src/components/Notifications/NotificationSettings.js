@@ -56,7 +56,7 @@ const NotificationSettings = ({ currentUser, onSettingsUpdate }) => {
         
         if (subscription) {
           // Here you would typically send the subscription to your server
-          console.log('Subscription to store on server:', subscription);
+          // TODO: Send subscription data to server for storage
           
           // Show success notification
           notificationManager.showLocalNotification(

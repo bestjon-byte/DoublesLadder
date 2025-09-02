@@ -31,12 +31,7 @@ export const useSeasonManager = () => {
         matches: season.matches || [] // Include actual matches data
       })) || [];
 
-      console.log('📊 Processed seasons data:', processedSeasons.map(s => ({ 
-        id: s.id, 
-        name: s.name, 
-        matchCount: s.matches?.length,
-        matches: s.matches?.map(m => ({ id: m.id, week: m.week_number, date: m.match_date }))
-      })));
+      // Processed seasons with player counts and matches data
 
       setSeasons(processedSeasons);
       
@@ -44,12 +39,12 @@ export const useSeasonManager = () => {
       const active = processedSeasons.find(s => s.status === 'active');
       setActiveSeason(active);
       
-      console.log('🎯 Setting activeSeason:', active ? { id: active.id, matchCount: active.matches?.length } : 'null');
+      // Set active season (status === 'active')
       
       // Set selected season to active if none selected  
       if (!selectedSeason && active) {
         setSelectedSeason(active);
-        console.log('🎯 Auto-selected season:', active.name);
+        // Auto-selected active season as default
       }
 
       return processedSeasons;
@@ -188,10 +183,8 @@ export const useSeasonManager = () => {
   // Listen for refresh events from other components
   useEffect(() => {
     const handleRefreshSeasonData = () => {
-      console.log('🔄 Refreshing season data...');
-      fetchSeasons().then(() => {
-        console.log('✅ Season data refreshed');
-      });
+      // Refresh season data on external request
+      fetchSeasons();
     };
 
     window.addEventListener('refreshSeasonData', handleRefreshSeasonData);

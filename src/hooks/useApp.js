@@ -186,7 +186,7 @@ export const useApp = (userId, selectedSeasonId) => {
       let activeSeason = activeSeasons?.[0];
       
       if (!activeSeason) {
-        console.log('No active season found, creating default...');
+        // No active season found, creating default season
         activeSeason = await createDefaultSeason();
         if (!activeSeason) return;
       }
@@ -295,10 +295,10 @@ export const useApp = (userId, selectedSeasonId) => {
 
   // Updated addToLadder for season-based system
   const addToLadder = useCallback(async (userIdToAdd, rank) => {
-    console.log('🎾 addToLadder called with:', { userIdToAdd, rank, selectedSeasonId });
+    // Adding user to ladder for selected season
     
     if (!selectedSeasonId) {
-      console.error('❌ No selectedSeasonId provided');
+      console.error('No selectedSeasonId provided');
       alert('No season selected to add player to');
       return { success: false };
     }
@@ -388,16 +388,16 @@ export const useApp = (userId, selectedSeasonId) => {
   }, [state.selectedSeason, state.currentSeason, fetchAvailability]);
 
   const addMatchToSeason = useCallback(async (matchDate) => {
-    console.log('🗓️ addMatchToSeason called with:', { matchDate, selectedSeasonId });
+    // Adding match to season with provided date
     
     if (!matchDate) {
-      console.error('❌ No match date provided');
+      console.error('No match date provided');
       alert('Please select a date for the match');
       return { success: false };
     }
     
     if (!selectedSeasonId) {
-      console.error('❌ No selectedSeasonId provided');
+      console.error('No selectedSeasonId provided');
       alert('No season selected');
       return { success: false };
     }
@@ -445,7 +445,7 @@ export const useApp = (userId, selectedSeasonId) => {
 
       if (error) throw error;
       
-      console.log('✅ Match created successfully for week', weekNumber);
+      // Match created successfully for the new week
       
       // Refresh both useApp seasons AND useSeasonManager data
       await fetchSeasons(); // Refresh active season data
@@ -459,7 +459,7 @@ export const useApp = (userId, selectedSeasonId) => {
       alert(`Match created for Week ${weekNumber}`);
       return { success: true };
     } catch (error) {
-      console.error('💥 Error adding match:', error);
+      console.error('Error adding match:', error);
       alert('Error: ' + error.message);
       return { success: false, error };
     }
@@ -640,7 +640,7 @@ export const useApp = (userId, selectedSeasonId) => {
     }
 
     try {
-      console.log('Updating rankings for season:', selectedSeasonId);
+      // Updating rankings for selected season
       
       // Get all fixtures for this season first, then get their results
       const { data: seasonFixtures, error: fixturesError } = await supabase
@@ -657,7 +657,7 @@ export const useApp = (userId, selectedSeasonId) => {
       if (fixturesError) throw fixturesError;
 
       if (!seasonFixtures || seasonFixtures.length === 0) {
-        console.log('No fixtures found for season:', selectedSeasonId);
+        // No fixtures found for this season, resetting player stats
         // Still need to reset player stats
         await supabase
           .from('season_players')
@@ -778,7 +778,7 @@ export const useApp = (userId, selectedSeasonId) => {
   const clearOldMatches = useCallback(async () => {
     try {
       // Clear all season and match data in proper order (respecting foreign key constraints)
-      console.log('🗑️ Clearing all season and match data...');
+      // Clearing all season and match data in proper order
       
       // Delete in reverse dependency order
       await supabase.from('score_challenges').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -794,7 +794,7 @@ export const useApp = (userId, selectedSeasonId) => {
       await supabase.from('ladder_players').delete().neq('id', 0);
       await supabase.from('ladders').delete().neq('id', 0);
       
-      console.log('✅ All season and match data cleared successfully!');
+      // All season and match data cleared successfully
       
       // Clear local state first
       updateData('currentSeason', null);
@@ -821,7 +821,7 @@ export const useApp = (userId, selectedSeasonId) => {
       
       return { success: true };
     } catch (error) {
-      console.error('💥 Error clearing data:', error);
+      console.error('Error clearing data:', error);
       alert('Error clearing data: ' + error.message);
       return { success: false, error };
     }
@@ -829,7 +829,7 @@ export const useApp = (userId, selectedSeasonId) => {
 
   const deleteSeason = useCallback(async (seasonId, seasonName) => {
     try {
-      console.log(`🗑️ Deleting season: ${seasonName} (ID: ${seasonId})`);
+      // Deleting season and all related data
       
       // Delete all data related to this specific season in proper order (respecting foreign key constraints)
       
@@ -852,7 +852,7 @@ export const useApp = (userId, selectedSeasonId) => {
           const fixtureIds = fixtures.map(f => f.id);
           
           // Delete match results
-          console.log(`🗑️ Deleting match results for ${fixtureIds.length} fixtures...`);
+          // Deleting match results for season fixtures
           const { error: resultsError } = await supabase
             .from('match_results')
             .delete()
@@ -861,7 +861,7 @@ export const useApp = (userId, selectedSeasonId) => {
         }
         
         // Delete match fixtures
-        console.log(`🗑️ Deleting fixtures for ${matchIds.length} matches...`);
+        // Deleting fixtures for season matches
         const { error: fixturesError } = await supabase
           .from('match_fixtures')
           .delete()
@@ -869,7 +869,7 @@ export const useApp = (userId, selectedSeasonId) => {
         if (fixturesError) throw fixturesError;
         
         // Delete availability records for these matches
-        console.log(`🗑️ Deleting availability records for season matches...`);
+        // Deleting availability records for season matches
         const { error: availabilityError } = await supabase
           .from('availability')
           .delete()
@@ -877,7 +877,7 @@ export const useApp = (userId, selectedSeasonId) => {
         if (availabilityError) throw availabilityError;
         
         // Delete matches
-        console.log(`🗑️ Deleting ${matchIds.length} matches...`);
+        // Deleting season matches
         const { error: matchesError } = await supabase
           .from('matches')
           .delete()
@@ -886,7 +886,7 @@ export const useApp = (userId, selectedSeasonId) => {
       }
       
       // 2. Delete season players
-      console.log(`🗑️ Deleting season players...`);
+      // Deleting season players
       const { error: seasonPlayersError } = await supabase
         .from('season_players')
         .delete()
@@ -894,7 +894,7 @@ export const useApp = (userId, selectedSeasonId) => {
       if (seasonPlayersError) throw seasonPlayersError;
       
       // 3. Finally delete the season itself
-      console.log(`🗑️ Deleting season record...`);
+      // Deleting season record
       const { error: seasonError } = await supabase
         .from('seasons')
         .delete()
@@ -902,7 +902,7 @@ export const useApp = (userId, selectedSeasonId) => {
       if (seasonError) throw seasonError;
       
       // Refresh all data
-      console.log('🔄 Refreshing data after season deletion...');
+      // Refreshing data after season deletion
       await Promise.all([
         fetchUsers(),
         fetchSeasons(),
@@ -915,24 +915,24 @@ export const useApp = (userId, selectedSeasonId) => {
       window.dispatchEvent(new CustomEvent('refreshSeasonData'));
       window.dispatchEvent(new CustomEvent('refreshMatchData'));
       
-      console.log(`✅ Season "${seasonName}" deleted successfully!`);
+      // Season deleted successfully
       
       return { success: true };
     } catch (error) {
-      console.error('💥 Error deleting season:', error);
+      console.error('Error deleting season:', error);
       return { success: false, error };
     }
   }, [fetchUsers, fetchSeasons, fetchAvailability, fetchMatchFixtures, fetchMatchResults]);
 
   const deleteUser = useCallback(async (userId, userName, userEmail) => {
     try {
-      console.log(`🗑️ Deactivating user: ${userName} (${userEmail}) - ID: ${userId}`);
+      // Deactivating user and anonymizing data while preserving match history
       
       // Instead of deleting the user, we'll deactivate them and anonymize their data
       // This preserves match history while making them unavailable for selection
       
       // 1. Remove from all current season ladders
-      console.log(`🗑️ Removing user from all season ladders...`);
+      // Removing user from all season ladders
       const { error: seasonPlayersError } = await supabase
         .from('season_players')
         .delete()
@@ -940,7 +940,7 @@ export const useApp = (userId, selectedSeasonId) => {
       if (seasonPlayersError) throw seasonPlayersError;
       
       // 2. Set status to 'deleted' and anonymize personal information
-      console.log(`🗑️ Deactivating user account...`);
+      // Deactivating user account and anonymizing personal information
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -954,7 +954,7 @@ export const useApp = (userId, selectedSeasonId) => {
       if (profileError) throw profileError;
       
       // 3. Clear their availability for future matches (but keep historical data)
-      console.log(`🗑️ Clearing future availability records...`);
+      // Clearing future availability records
       const { error: availabilityError } = await supabase
         .from('availability')
         .delete()
@@ -969,7 +969,7 @@ export const useApp = (userId, selectedSeasonId) => {
       // This maintains data integrity for reporting and statistics
       
       // Refresh data
-      console.log('🔄 Refreshing data after user deactivation...');
+      // Refreshing data after user deactivation
       await Promise.all([
         fetchUsers(),
         fetchSeasons(),
@@ -980,11 +980,11 @@ export const useApp = (userId, selectedSeasonId) => {
       window.dispatchEvent(new CustomEvent('refreshUserData'));
       window.dispatchEvent(new CustomEvent('refreshSeasonData'));
       
-      console.log(`✅ User "${userName}" deactivated successfully! Match history preserved.`);
+      // User deactivated successfully with match history preserved
       
       return { success: true };
     } catch (error) {
-      console.error('💥 Error deactivating user:', error);
+      console.error('Error deactivating user:', error);
       return { success: false, error };
     }
   }, [fetchUsers, fetchSeasons, fetchAvailability]);
@@ -1064,12 +1064,12 @@ export const useApp = (userId, selectedSeasonId) => {
     }
 
     const loadInitialData = async () => {
-      console.log('🚀 Loading app data for user:', userId);
+      // Loading app data for user
       setLoading('initial', true);
       
       // Set timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
-        console.warn('⏰ App data initialization timeout - forcing loading to false');
+        console.warn('App data initialization timeout - forcing loading to false');
         setLoading('initial', false);
         updateData('error', new Error('App data loading timeout - please refresh the page'));
       }, 25000); // 25 second timeout for app data - increased for slower connections
@@ -1102,7 +1102,7 @@ export const useApp = (userId, selectedSeasonId) => {
   // Listen for refresh events
   useEffect(() => {
     const handleRefreshMatchData = () => {
-      console.log('📡 Refreshing match data...');
+      // Refreshing match data from event listener
       Promise.all([
         fetchMatchResults(),
         fetchMatchFixtures(),

@@ -106,7 +106,7 @@ const AdminTab = ({
         currentSeason={currentSeason}
         onDataRefresh={() => {
           // Refresh ALL parent data when scores are updated
-          console.log('🔄 Admin score updated, refreshing all data...');
+          // Trigger data refresh after admin score updates
           if (fetchUsers) fetchUsers();
           // We need to call the parent's fetchMatchResults function too
           window.dispatchEvent(new CustomEvent('refreshMatchData'));

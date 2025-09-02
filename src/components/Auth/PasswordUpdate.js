@@ -15,7 +15,7 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
   useEffect(() => {
     // Check if we have a valid recovery session
     const checkRecoverySession = async () => {
-      console.log('🔍 Checking for recovery session...');
+      // Checking for valid recovery session from password reset link
       
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -27,14 +27,14 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
         }
         
         if (session) {
-          console.log('✅ Valid recovery session found');
+          // Valid recovery session found
           setIsValidSession(true);
         } else {
-          console.log('❌ No valid session');
+          // No valid session available
           setError('Invalid or expired reset link. Please request a new password reset.');
         }
       } catch (err) {
-        console.error('💥 Unexpected error:', err);
+        console.error('Unexpected error:', err);
         setError('An error occurred. Please try again.');
       }
     };
@@ -64,7 +64,7 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
     setError('');
 
     try {
-      console.log('🔐 Updating password...');
+      // Attempting to update user password
       
       const { data, error } = await supabase.auth.updateUser({
         password: password
@@ -75,7 +75,7 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
         setError(`Failed to update password: ${error.message}`);
         setLoading(false);
       } else {
-        console.log('✅ Password updated successfully');
+        // Password updated successfully
         
         // Nuclear option - just reload the page after password update
         alert('Password updated successfully! You can now sign in with your new password.');
@@ -90,7 +90,7 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
         }, 100);
       }
     } catch (err) {
-      console.error('💥 Unexpected error:', err);
+      console.error('Unexpected error:', err);
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }

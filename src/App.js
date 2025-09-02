@@ -141,11 +141,8 @@ const TennisLadderApp = () => {
   };
 
   const handleAddMatch = async () => {
-    console.log('🎯 handleAddMatch called with:', { newMatchDate, hasAction: !!actions?.addMatchToSeason });
-    
     if (actions?.addMatchToSeason) {
       const result = await actions.addMatchToSeason(newMatchDate);
-      console.log('📋 addMatchToSeason result:', result);
       if (result?.success) {
         setShowScheduleModal(false);
         setNewMatchDate('');
@@ -227,9 +224,7 @@ const TennisLadderApp = () => {
                 onClick={async () => {
                   if (authActions?.signOut) {
                     try {
-                      console.log('🚪 Logout button clicked');
                       await authActions.signOut();
-                      console.log('✅ Logout completed successfully');
                     } catch (error) {
                       console.error('❌ Logout failed:', error);
                       alert('Error signing out. Please try again.');

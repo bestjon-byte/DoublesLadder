@@ -17,7 +17,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
 
   useEffect(() => {
     if (isPasswordReset) {
-      console.log('🔑 AuthScreen: Password reset mode activated');
+      // Password reset mode activated from URL parameters
       setAuthMode('update');
     }
   }, [isPasswordReset]);
@@ -28,7 +28,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
     
     try {
       if (authMode === 'login') {
-        console.log('🔐 Attempting login for:', authForm.email);
+        // Attempting user login with provided credentials
         
         const { data, error } = await supabase.auth.signInWithPassword({
           email: authForm.email,
@@ -39,7 +39,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
           console.error('❌ Login error:', error);
           toast.error(`Login failed: ${error.message}`);
         } else {
-          console.log('✅ Login successful');
+          // Login successful - proceeding to load user profile
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
@@ -49,7 +49,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
           onAuthChange(profile);
         }
       } else if (authMode === 'register') {
-        console.log('📝 Attempting registration for:', authForm.email);
+        // Attempting user registration with provided details
         
         const { data, error } = await supabase.auth.signUp({
           email: authForm.email,
@@ -65,7 +65,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
           console.error('❌ Registration error:', error);
           toast.error(`Registration failed: ${error.message}`);
         } else {
-          console.log('✅ Registration successful');
+          // Registration successful - user awaiting approval
           toast.success('Registration successful! Please wait for admin approval.');
           setAuthMode('login');
           setAuthForm({ email: '', password: '', name: '' });
@@ -91,7 +91,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
     return (
       <PasswordUpdate 
         onPasswordUpdated={() => {
-          console.log('✅ Password updated successfully');
+          // Password successfully updated via reset link
           if (onPasswordResetComplete) {
             onPasswordResetComplete();
           } else {

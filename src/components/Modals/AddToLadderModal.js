@@ -38,7 +38,7 @@ const AddToLadderModal = ({
       if (result?.success) {
         // Success feedback is handled by the parent component
         // Note: Don't try to reset the form as the user will be filtered out of the list
-        console.log(`✅ Successfully added ${userName} to ladder at rank ${selectedRank}`);
+        // Player successfully added to ladder
       } else {
         alert('Failed to add player to ladder. Please try again.');
       }

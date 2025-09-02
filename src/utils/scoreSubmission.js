@@ -3,7 +3,6 @@ import { supabase } from '../supabaseClient';
 
 export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pair2Score, currentUserId) => {
   try {
-    console.log('🎾 Submitting score:', { fixtureId, pair1Score, pair2Score, currentUserId });
     
     // Start a transaction-like approach by checking for existing score first
     const { data: existingResult, error: checkError } = await supabase
@@ -19,7 +18,6 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
 
     // If a score already exists, create a conflict record
     if (existingResult) {
-      console.log('🚨 Score conflict detected! Existing score:', existingResult);
       
       // Create conflict record
       const { error: conflictError } = await supabase
@@ -40,7 +38,7 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
         throw new Error(`Error creating conflict record: ${conflictError.message}`);
       }
 
-      console.log('✅ Conflict record created');
+      // Conflict record created
       return {
         conflict: true,
         winningScore: existingResult,
@@ -52,7 +50,6 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
     }
 
     // No existing score, insert the new one
-    console.log('📝 Inserting new score...');
     const { data: newResult, error: insertError } = await supabase
       .from('match_results')
       .insert({
@@ -70,7 +67,6 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
       
       // Check if this is a unique constraint violation (someone beat us to it)
       if (insertError.code === '23505' || insertError.message.includes('duplicate')) {
-        console.log('🚨 Race condition detected - someone submitted first!');
         
         // Fetch the winning submission
         const { data: winningResult } = await supabase
@@ -108,7 +104,7 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
       throw new Error(`Error inserting result: ${insertError.message}`);
     }
 
-    console.log('✅ Score submitted successfully:', newResult);
+    // Score submitted successfully
     return {
       success: true,
       result: newResult
@@ -122,7 +118,6 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
 
 export const submitScoreChallenge = async (challengeData) => {
   try {
-    console.log('🚩 Submitting score challenge:', challengeData);
     
     const { error } = await supabase
       .from('score_challenges')
@@ -140,7 +135,7 @@ export const submitScoreChallenge = async (challengeData) => {
       throw new Error(`Error submitting challenge: ${error.message}`);
     }
 
-    console.log('✅ Challenge submitted successfully');
+    // Challenge submitted successfully
     return { success: true };
   } catch (error) {
     console.error('💥 Error in submitScoreChallenge:', error);

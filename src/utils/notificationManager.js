@@ -7,7 +7,6 @@ class NotificationManager {
 
   async init() {
     if (!this.isSupported) {
-      console.log('Push notifications not supported');
       return false;
     }
 
@@ -24,7 +23,6 @@ class NotificationManager {
     if (!this.isSupported) return 'denied';
     
     const permission = await Notification.requestPermission();
-    console.log('Notification permission:', permission);
     return permission;
   }
 
@@ -55,7 +53,6 @@ class NotificationManager {
         )
       });
 
-      console.log('Push subscription successful:', subscription);
       return subscription;
     } catch (error) {
       console.error('Failed to subscribe to push notifications:', error);
@@ -67,7 +64,6 @@ class NotificationManager {
     const subscription = await this.getSubscription();
     if (subscription) {
       await subscription.unsubscribe();
-      console.log('Unsubscribed from push notifications');
       return true;
     }
     return false;

@@ -34,22 +34,9 @@ const EnhancedScoreModal = ({
     }
   }, [selectedMatch, getMatchScore]);
 
-  // TEMPORARY DEBUG - MOVED TO AFTER STATE DECLARATIONS
-  console.log('🐛 DEBUG INFO:', {
-    selectedMatch,
-    currentUser: currentUser?.name,
-    existingScore: !!existingScore,
-    showChallenge
-  });
+  // Debug info available in development mode via UI debug section
 
-  if (selectedMatch) {
-    console.log('🎾 Match players:', {
-      pair1: selectedMatch.pair1,
-      pair2: selectedMatch.pair2,
-      currentUserName: currentUser?.name,
-      isUserInMatch: [selectedMatch.pair1, selectedMatch.pair2].flat().includes(currentUser?.name)
-    });
-  }
+  // Player match validation logic handled in canUserEnterScore calculation
 
   const handleSubmit = async () => {
     if (!pair1Score || !pair2Score) {
@@ -132,7 +119,7 @@ const EnhancedScoreModal = ({
   const canUserEnterScore = currentUser?.role === 'admin' || 
     [selectedMatch.pair1, selectedMatch.pair2].flat().includes(currentUser?.name);
 
-  console.log('🔍 Can user enter score?', canUserEnterScore);
+  // User permission check complete
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

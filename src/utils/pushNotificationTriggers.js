@@ -24,7 +24,6 @@ export class PushNotificationTriggers {
 
   // Trigger when a new match is scheduled
   async onMatchScheduled(matchData) {
-    console.log('🎾 Match scheduled trigger:', matchData);
     
     // Get all players in the match
     const playerIds = [
@@ -36,7 +35,6 @@ export class PushNotificationTriggers {
     for (const playerId of playerIds) {
       if (await this.shouldSendNotification(playerId, 'matchScheduled')) {
         // In a real app, you'd send this to your server to push to that user
-        console.log(`Would send match scheduled notification to user ${playerId}`);
         
         // For demo purposes, if it's the current user, show local notification
         if (playerId === this.currentUser?.id) {
@@ -64,7 +62,6 @@ export class PushNotificationTriggers {
 
   // Trigger when availability is needed
   async onAvailabilityNeeded(matchIds) {
-    console.log('⏰ Availability needed trigger:', matchIds);
     
     if (await this.shouldSendNotification(this.currentUser?.id, 'availabilityReminder')) {
       notificationManager.notifyAvailabilityNeeded();
@@ -78,7 +75,6 @@ export class PushNotificationTriggers {
 
   // Trigger when match result is posted
   async onMatchResultPosted(matchResult) {
-    console.log('📊 Match result posted trigger:', matchResult);
     
     // Get all players involved
     const playerIds = [
@@ -88,7 +84,6 @@ export class PushNotificationTriggers {
 
     for (const playerId of playerIds) {
       if (await this.shouldSendNotification(playerId, 'matchResults')) {
-        console.log(`Would send match result notification to user ${playerId}`);
         
         // For demo purposes, if it's the current user, show local notification
         if (playerId === this.currentUser?.id) {
@@ -110,11 +105,9 @@ export class PushNotificationTriggers {
 
   // Trigger when rankings are updated
   async onRankingUpdate(rankingUpdates) {
-    console.log('📈 Ranking update trigger:', rankingUpdates);
     
     for (const update of rankingUpdates) {
       if (await this.shouldSendNotification(update.playerId, 'rankingUpdates')) {
-        console.log(`Would send ranking update notification to user ${update.playerId}`);
         
         // For demo purposes, if it's the current user, show local notification
         if (update.playerId === this.currentUser?.id) {
@@ -142,8 +135,6 @@ export class PushNotificationTriggers {
 
       if (error) {
         console.error('Error logging notification event:', error);
-      } else {
-        console.log(`✅ Logged notification event: ${type}`);
       }
     } catch (error) {
       console.error('Error logging notification event:', error);
@@ -152,7 +143,6 @@ export class PushNotificationTriggers {
 
   // Test notification system
   async testNotifications() {
-    console.log('🧪 Testing notification system...');
     
     // Test different notification types
     await this.onMatchScheduled({

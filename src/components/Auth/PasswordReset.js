@@ -16,21 +16,19 @@ const PasswordReset = ({ onBackToLogin }) => {
     setError('');
 
     try {
-      console.log('Attempting password reset for:', email);
-      console.log('Current origin:', window.location.origin);
-      console.log('Redirect URL will be:', `${window.location.origin}/reset-password`);
+      // Initiating password reset process for user email
       
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      console.log('Password reset response:', { data, error });
+      // Password reset request processed
 
       if (error) {
         console.error('Password reset error:', error);
         setError(`Password reset failed: ${error.message}`);
       } else {
-        console.log('Password reset email sent successfully');
+        // Password reset email sent successfully to user
         setMessage('Password reset email sent! Check your inbox and spam folder.');
         setEmail('');
       }
@@ -51,7 +49,7 @@ const PasswordReset = ({ onBackToLogin }) => {
             alt="Cawood Tennis Club Logo" 
             className="w-24 h-24 mx-auto mb-3 rounded-full shadow-md object-contain bg-white p-1"
             onError={(e) => {
-              console.error('Logo failed to load');
+              // Logo failed to load - show fallback
               e.target.style.display = 'none';
               e.target.nextSibling.style.display = 'flex';
             }}
@@ -105,9 +103,6 @@ const PasswordReset = ({ onBackToLogin }) => {
           </button>
         </div>
 
-        <div className="mt-4 text-xs text-gray-500 text-center">
-          <p>Debug info will appear in browser console</p>
-        </div>
       </div>
     </div>
   );
