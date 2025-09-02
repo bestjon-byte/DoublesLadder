@@ -4,7 +4,7 @@ import { Flag, Check, X, Edit, AlertTriangle, Clock } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { fetchScoreChallenges, fetchScoreConflicts } from '../../utils/scoreSubmission';
 
-const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) => {
+const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, selectedSeason, onDataRefresh }) => {
   const [challenges, setChallenges] = useState([]);
   const [conflicts, setConflicts] = useState([]);
   const [allResults, setAllResults] = useState([]);
@@ -16,7 +16,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
   useEffect(() => {
     console.log('🔍 ScoreChallengesSection mounted, fetching all data...');
     fetchAllData();
-  }, [currentSeason?.id]); // Re-fetch when season changes
+  }, [selectedSeason?.id]); // Re-fetch when selected season changes
 
   const fetchAllData = async () => {
     try {
@@ -24,9 +24,9 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
       
       // Fetch challenges, conflicts, and results in parallel
       const [challengesData, conflictsData, resultsData] = await Promise.all([
-        fetchScoreChallenges(currentSeason?.id),
-        fetchScoreConflicts(currentSeason?.id), 
-        fetchMatchResults()
+        fetchScoreChallenges(selectedSeason?.id),
+        fetchScoreConflicts(selectedSeason?.id), 
+        fetchMatchResults(selectedSeason?.id)
       ]);
       
       console.log('✅ Fetched data:', {
@@ -47,20 +47,26 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
     }
   };
 
-  const fetchMatchResults = async () => {
+  const fetchMatchResults = async (seasonId) => {
+    if (!seasonId) {
+      console.log('No season selected, returning empty results');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('match_results')
       .select(`
         *,
         fixture:fixture_id(
           *,
-          match:match_id(week_number, match_date),
+          match:match_id(week_number, match_date, season_id),
           player1:player1_id(name),
           player2:player2_id(name),
           player3:player3_id(name),
           player4:player4_id(name)
         )
       `)
+      .eq('fixture.match.season_id', seasonId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -68,6 +74,12 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
   };
 
  const resolveChallenge = async (challengeId, decision, newScore = null) => {
+    // Prevent resolving challenges for completed seasons
+    if (selectedSeason?.status === 'completed') {
+      alert('Cannot process challenges for completed seasons. Challenges can only be processed for the current active season.');
+      return;
+    }
+    
     setLoading(true);
     try {
       console.log(`🏆 Resolving challenge ${challengeId} with decision: ${decision}`);
@@ -165,6 +177,12 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
   };
 
   const handleEditScore = (result) => {
+    // Check if the selected season is completed/closed
+    if (selectedSeason?.status === 'completed') {
+      alert('Cannot edit scores for completed seasons. Scores can only be edited for the current active season.');
+      return;
+    }
+    
     console.log('✏️ Starting score edit for:', result.id);
     setEditingScore(result.id);
     setEditForm({
@@ -276,6 +294,21 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
             Score Challenges ({challenges.length})
           </h4>
           
+          {/* Show warning for completed seasons */}
+          {selectedSeason?.status === 'completed' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center">
+                <Clock className="w-5 h-5 text-yellow-600 mr-2" />
+                <div>
+                  <h5 className="font-medium text-yellow-800">Season Completed</h5>
+                  <p className="text-sm text-yellow-700">
+                    This season has been completed and closed. Score challenges cannot be processed for completed seasons.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {challenges.length === 0 ? (
             <p className="text-gray-500 text-center py-4">No score challenges yet</p>
           ) : (
@@ -379,17 +412,17 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
                             pair1_score: challenge.challenged_pair1_score,
                             pair2_score: challenge.challenged_pair2_score
                           })}
-                          disabled={loading}
+                          disabled={loading || selectedSeason?.status === 'completed'}
                           className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50"
-                          title="Approve challenge and update score"
+                          title={selectedSeason?.status === 'completed' ? 'Cannot process challenges for completed seasons' : 'Approve challenge and update score'}
                         >
                           <Check className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => resolveChallenge(challenge.id, 'rejected')}
-                          disabled={loading}
+                          disabled={loading || selectedSeason?.status === 'completed'}
                           className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 disabled:opacity-50"
-                          title="Reject challenge and keep original score"
+                          title={selectedSeason?.status === 'completed' ? 'Cannot process challenges for completed seasons' : 'Reject challenge and keep original score'}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -451,9 +484,30 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
             Edit Match Results ({allResults.length})
           </h4>
           
+          {/* Show warning for completed seasons */}
+          {selectedSeason?.status === 'completed' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center">
+                <Clock className="w-5 h-5 text-yellow-600 mr-2" />
+                <div>
+                  <h5 className="font-medium text-yellow-800">Season Completed</h5>
+                  <p className="text-sm text-yellow-700">
+                    This season has been completed and closed. Match scores can no longer be edited. 
+                    Only scores from the current active season can be modified.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {allResults.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No results to display</p>
+              <p className="text-gray-500">
+                {selectedSeason?.status === 'completed' 
+                  ? 'No results available for editing in completed seasons'
+                  : 'No results to display'
+                }
+              </p>
             </div>
           ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -531,8 +585,13 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, onDataRefresh }) =
                     {editingScore !== result.id && (
                       <button 
                         onClick={() => handleEditScore(result)}
-                        disabled={loading}
-                        className="bg-[#5D1F1F] text-white p-1 rounded text-xs hover:bg-[#4A1818]"
+                        disabled={loading || selectedSeason?.status === 'completed'}
+                        className={`p-1 rounded text-xs transition-colors ${
+                          selectedSeason?.status === 'completed'
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
+                        }`}
+                        title={selectedSeason?.status === 'completed' ? 'Cannot edit scores in completed seasons' : 'Edit score'}
                       >
                         <Edit className="w-3 h-3" />
                       </button>
