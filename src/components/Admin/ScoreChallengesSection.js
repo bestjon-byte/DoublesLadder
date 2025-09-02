@@ -15,8 +15,9 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
 
   useEffect(() => {
     console.log('🔍 ScoreChallengesSection mounted, fetching all data...');
+    console.log('Selected season:', selectedSeason?.id, 'Current season:', currentSeason?.id);
     fetchAllData();
-  }, [selectedSeason?.id]); // Re-fetch when selected season changes
+  }, [selectedSeason?.id, currentSeason?.id]); // Re-fetch when selected or current season changes
 
   const fetchAllData = async () => {
     try {
@@ -48,10 +49,15 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
   };
 
   const fetchMatchResults = async (seasonId) => {
-    if (!seasonId) {
-      console.log('No season selected, returning empty results');
+    // Use current season if no specific season provided
+    const targetSeasonId = seasonId || currentSeason?.id;
+    
+    if (!targetSeasonId) {
+      console.log('No season available (neither selected nor current), returning empty results');
       return [];
     }
+
+    console.log('🎾 Fetching match results for season:', targetSeasonId);
 
     const { data, error } = await supabase
       .from('match_results')
@@ -66,10 +72,15 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
           player4:player4_id(name)
         )
       `)
-      .eq('fixture.match.season_id', seasonId)
+      .eq('fixture.match.season_id', targetSeasonId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error fetching match results:', error);
+      throw error;
+    }
+    
+    console.log('✅ Fetched match results:', data?.length || 0);
     return data || [];
   };
 
