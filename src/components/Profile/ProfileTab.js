@@ -1,6 +1,7 @@
 // src/components/Profile/ProfileTab.js
 import React, { useState } from 'react';
 import { useProfileStats } from '../../hooks/useProfileStats';
+import NotificationSettings from '../Notifications/NotificationSettings';
 import { 
   Trophy, 
   TrendingUp, 
@@ -10,7 +11,8 @@ import {
   Target,
   Award,
   Activity,
-  BarChart3
+  BarChart3,
+  Bell
 } from 'lucide-react';
 
 const ProfileTab = ({ 
@@ -60,41 +62,82 @@ const ProfileTab = ({
     );
   }
 
+  const [activeView, setActiveView] = useState('stats'); // 'stats', 'notifications'
+
   return (
     <div className="space-y-6">
-      {/* Header with Season Filter */}
+      {/* Header with Season Filter and Navigation */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{currentUser?.name}'s Profile</h1>
-            <p className="text-gray-600 mt-1">Performance statistics and match history</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{currentUser?.name}'s Profile</h1>
+            <p className="text-gray-600 mt-1">Performance statistics and preferences</p>
           </div>
-          <div className="flex items-center space-x-3">
-            <label className="text-sm font-medium text-gray-700">View:</label>
-            <select 
-              value={filterType} 
-              onChange={(e) => setFilterType(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
-            >
-              <option value="current">Current Season</option>
-              <option value="all-time">All Time</option>
-              {seasons.length > 1 && <option value="season">Select Season</option>}
-            </select>
-            {filterType === 'season' && (
-              <select 
-                value={selectedSeasonId || ''} 
-                onChange={(e) => setSelectedSeasonId(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {/* View Toggle */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setActiveView('stats')}
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeView === 'stats'
+                    ? 'bg-white text-[#5D1F1F] shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
-                <option value="">Select a season...</option>
-                {seasons.map(season => (
-                  <option key={season.id} value={season.id}>{season.name}</option>
-                ))}
-              </select>
+                <BarChart3 className="w-4 h-4 inline mr-2" />
+                Stats
+              </button>
+              <button
+                onClick={() => setActiveView('notifications')}
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeView === 'notifications'
+                    ? 'bg-white text-[#5D1F1F] shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Bell className="w-4 h-4 inline mr-2" />
+                Notifications
+              </button>
+            </div>
+            
+            {/* Season Filter - only show for stats view */}
+            {activeView === 'stats' && (
+              <div className="flex items-center space-x-3">
+                <label className="text-sm font-medium text-gray-700">View:</label>
+                <select 
+                  value={filterType} 
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+                >
+                  <option value="current">Current Season</option>
+                  <option value="all-time">All Time</option>
+                  {seasons.length > 1 && <option value="season">Select Season</option>}
+                </select>
+                {filterType === 'season' && (
+                  <select 
+                    value={selectedSeasonId || ''} 
+                    onChange={(e) => setSelectedSeasonId(e.target.value)}
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+                  >
+                    <option value="">Select a season...</option>
+                    {seasons.map(season => (
+                      <option key={season.id} value={season.id}>{season.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Conditional Content */}
+      {activeView === 'notifications' ? (
+        <NotificationSettings currentUser={currentUser} />
+      ) : (
+        <>
+          {/* Rest of the existing stats content */}
 
       {/* Overview Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -685,6 +728,8 @@ const HeadToHeadSection = ({ records, allUsers }) => {
             {showAll ? `Show less ↑` : `View all ${records.length} opponents ↓`}
           </button>
         </div>
+      )}
+        </>
       )}
     </div>
   );
