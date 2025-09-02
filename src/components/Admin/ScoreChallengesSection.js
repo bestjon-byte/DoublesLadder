@@ -49,15 +49,21 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
   };
 
   const fetchMatchResults = async (seasonId) => {
-    // Use current season if no specific season provided
-    const targetSeasonId = seasonId || currentSeason?.id;
+    // Only fetch results for the current active season - never for completed seasons
+    const targetSeasonId = currentSeason?.id;
     
     if (!targetSeasonId) {
-      console.log('No season available (neither selected nor current), returning empty results');
+      console.log('No current season available, returning empty results');
       return [];
     }
 
-    console.log('🎾 Fetching match results for season:', targetSeasonId);
+    // If a completed season is selected, return empty results (no editing allowed)
+    if (selectedSeason?.status === 'completed') {
+      console.log('Selected season is completed, returning empty results (no editing allowed)');
+      return [];
+    }
+
+    console.log('🎾 Fetching match results for current season only:', targetSeasonId);
 
     const { data, error } = await supabase
       .from('match_results')
@@ -80,7 +86,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       throw error;
     }
     
-    console.log('✅ Fetched match results:', data?.length || 0);
+    console.log('✅ Fetched match results for current season:', data?.length || 0);
     return data || [];
   };
 
