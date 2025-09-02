@@ -2,7 +2,7 @@
 import React from 'react';
 import { getLadderData, getRankMovementDisplay } from '../../utils/helpers';
 
-const LadderTab = ({ currentUser, users, updateRankings, selectedSeason }) => {
+const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect }) => {
   const ladderData = getLadderData(users, selectedSeason);
   const isSeasonCompleted = selectedSeason?.status === 'completed';
 
@@ -81,9 +81,14 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason }) => {
                         <span className="text-sm">{movement}</span>
                       </div>
                       <div>
-                        <div className={`font-semibold ${isCurrentUser ? 'text-[#5D1F1F]' : 'text-gray-900'}`}>
+                        <button
+                          onClick={() => onPlayerSelect && onPlayerSelect(player.id)}
+                          className={`font-semibold text-left hover:underline transition-colors ${
+                            isCurrentUser ? 'text-[#5D1F1F] hover:text-red-800' : 'text-gray-900 hover:text-[#5D1F1F]'
+                          }`}
+                        >
                           {player.name}
-                        </div>
+                        </button>
                         {isCurrentUser && (
                           <div className="text-xs text-[#5D1F1F] font-medium">You</div>
                         )}
@@ -148,9 +153,14 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason }) => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-sm font-medium ${isCurrentUser ? 'text-[#5D1F1F]' : 'text-gray-900'}`}>
+                          <button
+                            onClick={() => onPlayerSelect && onPlayerSelect(player.id)}
+                            className={`text-sm font-medium hover:underline transition-colors text-left ${
+                              isCurrentUser ? 'text-[#5D1F1F] hover:text-red-800' : 'text-gray-900 hover:text-[#5D1F1F]'
+                            }`}
+                          >
                             {player.name} {isCurrentUser && <span className="text-xs">(You)</span>}
-                          </div>
+                          </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {player.matches_won || 0}/{player.matches_played || 0}

@@ -17,13 +17,20 @@ const ProfileTab = ({
   currentUser, 
   seasons = [], 
   selectedSeason = null,
-  allUsers = []
+  allUsers = [],
+  selectedPlayerId = null,
+  onPlayerSelect = null,
+  onPlayerClear = null
 }) => {
   const [filterType, setFilterType] = useState('current'); // 'current', 'all-time', 'season'
   const [selectedSeasonId, setSelectedSeasonId] = useState(selectedSeason?.id);
 
+  // Determine which player to show (selected player or current user)
+  const viewingPlayerId = selectedPlayerId || currentUser?.id;
+  const viewingPlayer = allUsers.find(user => user.id === viewingPlayerId) || currentUser;
+
   const profileStats = useProfileStats(
-    currentUser?.id, 
+    viewingPlayerId, 
     filterType === 'current' ? selectedSeason?.id : 
     filterType === 'season' ? selectedSeasonId : null,
     filterType === 'all-time',
@@ -62,36 +69,82 @@ const ProfileTab = ({
 
   return (
     <div className="space-y-6">
-      {/* Header with Season Filter */}
+      {/* Header with Player and Season Filter */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{currentUser?.name}'s Profile</h1>
-            <p className="text-gray-600 mt-1">Performance statistics and match history</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {viewingPlayer?.name || 'Unknown Player'}'s Profile
+              </h1>
+              {selectedPlayerId && selectedPlayerId !== currentUser?.id && (
+                <button
+                  onClick={() => onPlayerClear && onPlayerClear()}
+                  className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors"
+                >
+                  View My Profile
+                </button>
+              )}
+            </div>
+            <p className="text-gray-600">Performance statistics and match history</p>
           </div>
-          <div className="flex items-center space-x-3">
-            <label className="text-sm font-medium text-gray-700">View:</label>
-            <select 
-              value={filterType} 
-              onChange={(e) => setFilterType(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
-            >
-              <option value="current">Current Season</option>
-              <option value="all-time">All Time</option>
-              {seasons.length > 1 && <option value="season">Select Season</option>}
-            </select>
-            {filterType === 'season' && (
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Player Selection Dropdown */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Player:</label>
               <select 
-                value={selectedSeasonId || ''} 
-                onChange={(e) => setSelectedSeasonId(e.target.value)}
+                value={viewingPlayerId || ''} 
+                onChange={(e) => {
+                  const newPlayerId = e.target.value;
+                  if (newPlayerId === currentUser?.id) {
+                    onPlayerClear && onPlayerClear();
+                  } else {
+                    onPlayerSelect && onPlayerSelect(newPlayerId);
+                  }
+                }}
+                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent min-w-0"
+              >
+                {allUsers
+                  .sort((a, b) => {
+                    // Put current user first, then alphabetical
+                    if (a.id === currentUser?.id) return -1;
+                    if (b.id === currentUser?.id) return 1;
+                    return (a.name || '').localeCompare(b.name || '');
+                  })
+                  .map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}{user.id === currentUser?.id ? ' (You)' : ''}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            
+            {/* Season Filter */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">View:</label>
+              <select 
+                value={filterType} 
+                onChange={(e) => setFilterType(e.target.value)}
                 className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
               >
-                <option value="">Select a season...</option>
-                {seasons.map(season => (
-                  <option key={season.id} value={season.id}>{season.name}</option>
-                ))}
+                <option value="current">Current Season</option>
+                <option value="all-time">All Time</option>
+                {seasons.length > 1 && <option value="season">Select Season</option>}
               </select>
-            )}
+              {filterType === 'season' && (
+                <select 
+                  value={selectedSeasonId || ''} 
+                  onChange={(e) => setSelectedSeasonId(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+                >
+                  <option value="">Select a season...</option>
+                  {seasons.map(season => (
+                    <option key={season.id} value={season.id}>{season.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
         </div>
       </div>

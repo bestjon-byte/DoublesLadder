@@ -62,6 +62,7 @@ const TennisLadderApp = () => {
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null); // For viewing other players' profiles
 
   // Check for hook failures
   if (!authData || !seasonData || !appData) {
@@ -125,6 +126,12 @@ const TennisLadderApp = () => {
     } catch (error) {
       throw error;
     }
+  };
+
+  // Player profile navigation handler
+  const handlePlayerSelect = (playerId) => {
+    setSelectedPlayerId(playerId);
+    setActiveTab('profile'); // Switch to profile tab when selecting a player
   };
 
   // Modal handlers
@@ -262,6 +269,7 @@ const TennisLadderApp = () => {
               users={ladderPlayers} // CHANGED: Use ladderPlayers
               updateRankings={actions?.updateRankings || (() => alert('Update rankings not available'))}
               selectedSeason={selectedSeason} // NEW: Pass selected season
+              onPlayerSelect={handlePlayerSelect} // NEW: Player selection handler
             />
           )}
 
@@ -288,6 +296,9 @@ const TennisLadderApp = () => {
               seasons={seasons}
               selectedSeason={selectedSeason}
               allUsers={allUsers}
+              selectedPlayerId={selectedPlayerId} // NEW: Selected player for profile viewing
+              onPlayerSelect={setSelectedPlayerId} // NEW: Player selection handler
+              onPlayerClear={() => setSelectedPlayerId(null)} // NEW: Clear selection handler
             />
           )}
 
