@@ -7,7 +7,6 @@ import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/s
 
 // Components
 import AuthScreen from './components/Auth/AuthScreen';
-import Header from './components/Layout/Header';
 import Navigation from './components/Layout/Navigation';
 import LadderTab from './components/Ladder/LadderTab';
 import MatchesTab from './components/Matches/MatchesTab';
@@ -46,7 +45,6 @@ const TennisLadderApp = () => {
   const {
     ladderPlayers = [], // NEW: Season-specific players for ladder
     allUsers = [], // NEW: All users for admin management
-    currentSeason = null, // Active season (for admin functions)
     selectedSeason: selectedSeasonData = null, // Selected season data with matches
     availability = [],
     matchFixtures = [],
@@ -185,35 +183,37 @@ const TennisLadderApp = () => {
         <div className="min-h-screen bg-gray-50">
         {/* UPDATED Header with SeasonSelector */}
         <header className="bg-[#5D1F1F] text-white shadow-lg">
-          <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
+                <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
                   <img 
                     src="/club-logo.png" 
                     alt="Cawood Tennis Club" 
-                    className="w-10 h-10 rounded-full bg-white p-0.5 shadow object-contain"
+                    className="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-white p-0.5 shadow object-contain"
                     onError={(e) => {
                       e.target.style.display = 'none';
                       e.target.nextSibling.style.display = 'flex';
                     }}
                   />
-                  <div className="w-10 h-10 bg-[#4A1818] rounded-full flex items-center justify-center shadow" style={{display: 'none'}}>
-                    <span className="text-white font-bold text-lg">C</span>
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#4A1818] rounded-full flex items-center justify-center shadow" style={{display: 'none'}}>
+                    <span className="text-white font-bold text-sm sm:text-lg">C</span>
                   </div>
-                  <div>
-                    <h1 className="text-xl font-bold">Cawood Tennis Club</h1>
-                    <p className="text-red-100 text-sm">Welcome, {user?.name}</p>
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-sm sm:text-xl font-bold truncate">Cawood Tennis Club</h1>
+                    <p className="text-red-100 text-xs sm:text-sm truncate">Welcome, {user?.name}</p>
                   </div>
                 </div>
 
-                {/* NEW: Season Selector */}
-                <SeasonSelector 
-                  seasons={seasons}
-                  selectedSeason={selectedSeason}
-                  onSeasonSelect={seasonActions?.setSelectedSeason}
-                  loading={seasonLoading}
-                />
+                {/* NEW: Season Selector - responsive */}
+                <div className="hidden sm:block">
+                  <SeasonSelector 
+                    seasons={seasons}
+                    selectedSeason={selectedSeason}
+                    onSeasonSelect={seasonActions?.setSelectedSeason}
+                    loading={seasonLoading}
+                  />
+                </div>
               </div>
               
               <button
@@ -229,10 +229,21 @@ const TennisLadderApp = () => {
                     }
                   }
                 }}
-                className="text-red-100 hover:text-white text-sm transition-colors"
+                className="text-red-100 hover:text-white text-xs sm:text-sm transition-colors flex-shrink-0 ml-2"
               >
-                Sign Out
+                <span className="hidden sm:inline">Sign Out</span>
+                <span className="sm:hidden">Out</span>
               </button>
+            </div>
+            
+            {/* Mobile Season Selector */}
+            <div className="sm:hidden mt-2">
+              <SeasonSelector 
+                seasons={seasons}
+                selectedSeason={selectedSeason}
+                onSeasonSelect={seasonActions?.setSelectedSeason}
+                loading={seasonLoading}
+              />
             </div>
           </div>
         </header>
@@ -244,7 +255,7 @@ const TennisLadderApp = () => {
           ladderPlayers={ladderPlayers}
         />
         
-        <main className="max-w-7xl mx-auto px-4 py-6">
+        <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
           {activeTab === 'ladder' && (
             <LadderTab 
               currentUser={user}
