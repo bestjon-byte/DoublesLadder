@@ -16,37 +16,52 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
     <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
         <div className="flex flex-col items-center">
-          {/* Smooth bouncing tennis ball with C */}
-          <div className="relative w-20 h-24 mb-4 flex items-end justify-center">
-            {/* Shadow that grows/shrinks with bounce */}
-            <div className="absolute bottom-0 w-12 h-3 bg-black bg-opacity-20 rounded-full animate-pulse"></div>
+          {/* Animated Club Logo */}
+          <div className="relative w-24 h-28 mb-4 flex items-end justify-center">
+            {/* Dynamic shadow that responds to animation */}
+            <div className="absolute bottom-0 w-16 h-4 bg-black bg-opacity-20 rounded-full animate-pulse" style={{
+              animation: 'pulse 1s infinite ease-in-out'
+            }}></div>
             
-            {/* Bouncing tennis ball with C */}
-            <div className="relative w-16 h-16 bg-gradient-to-br from-[#9ACD32] to-[#7CB342] rounded-full shadow-2xl animate-bounce" style={{
-              animation: 'bounce 1s infinite ease-in-out',
-              filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))'
+            {/* Bouncing Club Logo */}
+            <div className="relative animate-bounce" style={{
+              animation: 'bounce 1.2s infinite ease-in-out',
+              filter: 'drop-shadow(0 10px 20px rgba(93, 31, 31, 0.3))'
             }}>
-              {/* Tennis ball curves */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 64 64">
-                <path d="M 8 32 Q 32 20 56 32" stroke="white" strokeWidth="2.5" fill="none" opacity="0.9"/>
-                <path d="M 8 32 Q 32 44 56 32" stroke="white" strokeWidth="2.5" fill="none" opacity="0.9"/>
-              </svg>
+              <img 
+                src="/club-logo.png" 
+                alt="Cawood Tennis Club" 
+                className="w-20 h-20 object-contain"
+                style={{
+                  animation: 'subtle-rotate 3s infinite linear'
+                }}
+                onError={(e) => {
+                  // Fallback to tennis ball if logo fails to load
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
               
-              {/* Large C in center */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-white font-bold text-2xl drop-shadow-lg" style={{
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.5)'
-                }}>C</span>
+              {/* Fallback tennis ball (hidden by default) */}
+              <div className="w-20 h-20 bg-gradient-to-br from-[#9ACD32] to-[#7CB342] rounded-full flex items-center justify-center" style={{display: 'none'}}>
+                <span className="text-white font-bold text-3xl drop-shadow-lg">C</span>
               </div>
               
-              {/* Subtle highlight for 3D effect */}
-              <div className="absolute top-2 left-2 w-4 h-4 bg-white bg-opacity-30 rounded-full blur-sm"></div>
-              
-              {/* Inner glow */}
-              <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/10 to-transparent"></div>
+              {/* Subtle glow effect around logo */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent blur-sm opacity-50"></div>
             </div>
           </div>
+
+          {/* Add custom keyframes for subtle rotation */}
+          <style jsx>{`
+            @keyframes subtle-rotate {
+              0% { transform: rotate(0deg) scale(1); }
+              25% { transform: rotate(2deg) scale(1.05); }
+              50% { transform: rotate(0deg) scale(1); }
+              75% { transform: rotate(-2deg) scale(1.05); }
+              100% { transform: rotate(0deg) scale(1); }
+            }
+          `}</style>
           
           <h2 className="text-xl font-semibold text-gray-800 mb-2">
             Cawood Tennis Club
