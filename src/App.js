@@ -185,25 +185,12 @@ const TennisLadderApp = () => {
       {user && (
       <ErrorBoundary>
         <div className="min-h-screen bg-gray-50">
-        {/* Clean Compact Header */}
+        {/* Ultra Compact Header - Logo embedded in season selector */}
         <header className="bg-[#5D1F1F] text-white shadow-sm">
           <div className="max-w-7xl mx-auto px-3 py-2">
             <div className="flex items-center justify-between h-12">
-              {/* Left: Club Logo */}
-              <div className="flex items-center flex-shrink-0">
-                <img 
-                  src="/club-logo.png" 
-                  alt="Cawood Tennis Club" 
-                  className="h-8 w-auto object-contain"
-                  onError={(e) => {
-                    e.target.src = '/c-ball.png';
-                    e.target.className = 'w-8 h-8 object-contain';
-                  }}
-                />
-              </div>
-              
-              {/* Center: Season Selector */}
-              <div className="flex-1 max-w-[200px] mx-4">
+              {/* Left: Season Selector with embedded logo */}
+              <div className="flex-1 max-w-[280px] sm:max-w-[320px]">
                 <SeasonSelector 
                   seasons={seasons}
                   selectedSeason={selectedSeason}
