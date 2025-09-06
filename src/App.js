@@ -185,85 +185,39 @@ const TennisLadderApp = () => {
       {user && (
       <ErrorBoundary>
         <div className="min-h-screen bg-gray-50">
-        {/* UPDATED Header with SeasonSelector */}
-        <header className="bg-[#5D1F1F] text-white shadow-lg">
-          <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
-            {/* Mobile Layout - Stack vertically */}
-            <div className="sm:hidden">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2 flex-1 min-w-0">
-                  <img 
-                    src="/c-ball.png" 
-                    alt="Cawood Tennis Club" 
-                    className="w-8 h-8 shadow object-contain flex-shrink-0"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <div className="w-8 h-8 bg-[#4A1818] rounded-full flex items-center justify-center shadow" style={{display: 'none'}}>
-                    <span className="text-white font-bold text-sm">C</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h1 className="text-sm font-bold truncate">Cawood Tennis Club</h1>
-                    <p className="text-red-100 text-xs truncate">Welcome, {user?.name}</p>
-                  </div>
-                </div>
-                
-                {/* Mobile Sign Out - Right side */}
-                <button
-                  onClick={async () => {
-                    if (authActions?.signOut) {
-                      try {
-                        await authActions.signOut();
-                      } catch (error) {
-                        console.error('❌ Logout failed:', error);
-                        alert('Error signing out. Please try again.');
-                      }
-                    }
-                  }}
-                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-4 py-3 rounded text-sm transition-colors flex-shrink-0 ml-2 min-h-[44px]"
-                  style={{ touchAction: 'manipulation' }}
-                >
-                  Sign Out
-                </button>
-              </div>
-              
-              {/* Mobile Season Selector - Full width below */}
-              <div className="w-full">
-                <SeasonSelector 
-                  seasons={seasons}
-                  selectedSeason={selectedSeason}
-                  onSeasonSelect={seasonActions?.setSelectedSeason}
-                  loading={seasonLoading}
-                />
-              </div>
-            </div>
-
-            {/* Desktop Layout - Single row */}
-            <div className="hidden sm:flex items-center justify-between">
-              <div className="flex items-center space-x-3 flex-shrink-0">
+        {/* Compact Header - Maximum content space */}
+        <header className="bg-[#5D1F1F] text-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-3 py-2">
+            <div className="flex items-center justify-between h-12">
+              {/* Left: Logo + Current Context */}
+              <div className="flex items-center space-x-3 min-w-0">
                 <img 
                   src="/c-ball.png" 
-                  alt="Cawood Tennis Club" 
-                  className="w-10 h-10 shadow object-contain"
+                  alt="Tennis Club" 
+                  className="w-8 h-8 object-contain flex-shrink-0"
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.nextSibling.style.display = 'flex';
                   }}
                 />
-                <div className="w-10 h-10 bg-[#4A1818] rounded-full flex items-center justify-center shadow" style={{display: 'none'}}>
-                  <span className="text-white font-bold text-lg">C</span>
+                <div className="w-8 h-8 bg-[#4A1818] rounded-full flex items-center justify-center" style={{display: 'none'}}>
+                  <span className="text-white font-bold text-sm">C</span>
                 </div>
-                <div className="min-w-0">
-                  <h1 className="text-xl font-bold truncate">Cawood Tennis Club</h1>
-                  <p className="text-red-100 text-sm truncate">Welcome, {user?.name}</p>
+                
+                {/* Context Info - What matters most */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <span className="font-medium truncate">{selectedSeason?.name || 'Loading...'}</span>
+                    <span className="text-red-200 hidden sm:inline">•</span>
+                    <span className="text-red-200 truncate hidden sm:inline">{user?.name}</span>
+                  </div>
                 </div>
               </div>
               
-              {/* Desktop right side */}
-              <div className="flex items-center space-x-4">
-                <div className="max-w-xs">
+              {/* Right: Quick Actions */}
+              <div className="flex items-center space-x-2">
+                {/* Season Selector - Minimal */}
+                <div className="max-w-[120px] sm:max-w-[160px]">
                   <SeasonSelector 
                     seasons={seasons}
                     selectedSeason={selectedSeason}
@@ -272,6 +226,7 @@ const TennisLadderApp = () => {
                   />
                 </div>
                 
+                {/* Sign Out - Icon only on mobile */}
                 <button
                   onClick={async () => {
                     if (authActions?.signOut) {
@@ -283,10 +238,14 @@ const TennisLadderApp = () => {
                       }
                     }
                   }}
-                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-4 py-3 rounded text-sm transition-colors flex-shrink-0 min-h-[44px]"
+                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white p-2 rounded transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                   style={{ touchAction: 'manipulation' }}
+                  title="Sign Out"
                 >
-                  Sign Out
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span className="ml-1 hidden sm:inline text-xs">Out</span>
                 </button>
               </div>
             </div>
