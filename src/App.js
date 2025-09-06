@@ -185,48 +185,35 @@ const TennisLadderApp = () => {
       {user && (
       <ErrorBoundary>
         <div className="min-h-screen bg-gray-50">
-        {/* Compact Header - Maximum content space */}
+        {/* Clean Compact Header */}
         <header className="bg-[#5D1F1F] text-white shadow-sm">
           <div className="max-w-7xl mx-auto px-3 py-2">
             <div className="flex items-center justify-between h-12">
-              {/* Left: Logo + Current Context */}
-              <div className="flex items-center space-x-3 min-w-0">
+              {/* Left: Club Logo */}
+              <div className="flex items-center flex-shrink-0">
                 <img 
-                  src="/c-ball.png" 
-                  alt="Tennis Club" 
-                  className="w-8 h-8 object-contain flex-shrink-0"
+                  src="/club-logo.png" 
+                  alt="Cawood Tennis Club" 
+                  className="h-8 w-auto object-contain"
                   onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'flex';
+                    e.target.src = '/c-ball.png';
+                    e.target.className = 'w-8 h-8 object-contain';
                   }}
                 />
-                <div className="w-8 h-8 bg-[#4A1818] rounded-full flex items-center justify-center" style={{display: 'none'}}>
-                  <span className="text-white font-bold text-sm">C</span>
-                </div>
-                
-                {/* Context Info - What matters most */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <span className="font-medium truncate">{selectedSeason?.name || 'Loading...'}</span>
-                    <span className="text-red-200 hidden sm:inline">•</span>
-                    <span className="text-red-200 truncate hidden sm:inline">{user?.name}</span>
-                  </div>
-                </div>
               </div>
               
-              {/* Right: Quick Actions */}
-              <div className="flex items-center space-x-2">
-                {/* Season Selector - Minimal */}
-                <div className="max-w-[120px] sm:max-w-[160px]">
-                  <SeasonSelector 
-                    seasons={seasons}
-                    selectedSeason={selectedSeason}
-                    onSeasonSelect={seasonActions?.setSelectedSeason}
-                    loading={seasonLoading}
-                  />
-                </div>
-                
-                {/* Sign Out - Icon only on mobile */}
+              {/* Center: Season Selector */}
+              <div className="flex-1 max-w-[200px] mx-4">
+                <SeasonSelector 
+                  seasons={seasons}
+                  selectedSeason={selectedSeason}
+                  onSeasonSelect={seasonActions?.setSelectedSeason}
+                  loading={seasonLoading}
+                />
+              </div>
+              
+              {/* Right: User + Sign Out */}
+              <div className="flex flex-col items-end">
                 <button
                   onClick={async () => {
                     if (authActions?.signOut) {
@@ -238,15 +225,18 @@ const TennisLadderApp = () => {
                       }
                     }
                   }}
-                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white p-2 rounded transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-3 py-1.5 rounded transition-colors min-h-[44px] flex items-center text-sm"
                   style={{ touchAction: 'manipulation' }}
-                  title="Sign Out"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
-                  <span className="ml-1 hidden sm:inline text-xs">Out</span>
+                  <span className="hidden sm:inline">Sign Out</span>
+                  <span className="sm:hidden">Out</span>
                 </button>
+                <div className="text-xs text-red-200 mt-1 truncate max-w-[80px]">
+                  {user?.name?.split(' ').map(n => n[0]).join('') || user?.name}
+                </div>
               </div>
             </div>
           </div>
