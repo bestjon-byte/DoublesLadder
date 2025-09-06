@@ -98,17 +98,27 @@ const PlayerMergeModal = ({
     try {
       // Starting merge process for CSV player to real user account
 
-      // Step 1: Update season_players to point to real user
+      // Step 1: Find which seasons the CSV player is in, then update ALL of them
+      const { data: seasonsToUpdate } = await supabase
+        .from('season_players')
+        .select('season_id, rank, games_played, games_won')
+        .eq('player_id', selectedCsvPlayer.id);
+
+      // Update ALL season_players records to point to real user (not just selected season)
       const { error: seasonError } = await supabase
         .from('season_players')
         .update({
           player_id: selectedRealUser.id,
           updated_at: new Date().toISOString()
         })
-        .eq('season_id', selectedSeason.id)
         .eq('player_id', selectedCsvPlayer.id);
 
       if (seasonError) throw seasonError;
+      
+      // Log which seasons were updated
+      if (seasonsToUpdate && seasonsToUpdate.length > 0) {
+        toast.info(`Updated ${seasonsToUpdate.length} season(s) for ${selectedCsvPlayer.name}`);
+      }
 
       // Step 2: Update match fixtures to use real user ID (be more thorough)
       // Updating match fixtures to use real user ID
