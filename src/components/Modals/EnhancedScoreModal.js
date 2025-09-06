@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Flag, Eye } from 'lucide-react';
 import { useAppToast } from '../../contexts/ToastContext';
+import { haptics } from '../../utils/haptics';
 
 const EnhancedScoreModal = ({ 
   showModal, 
@@ -40,10 +41,12 @@ const EnhancedScoreModal = ({
 
   const handleSubmit = async () => {
     if (!pair1Score || !pair2Score) {
+      haptics.warning(); // Haptic feedback for validation error
       toast.warning('Please enter scores for both pairs');
       return;
     }
 
+    haptics.impact(); // Strong haptic feedback for score submission
     setLoading(true);
     
     try {
@@ -67,10 +70,12 @@ const EnhancedScoreModal = ({
         setTimeout(() => window.location.reload(), 2000);
       } else if (result?.success) {
         // Success case
+        haptics.success(); // Success haptic feedback
         toast.success('Score submitted successfully!');
         closeModal();
       }
     } catch (error) {
+      haptics.error(); // Error haptic feedback
       toast.error(`Error submitting score: ${error.message}`);
     } finally {
       setLoading(false);
@@ -94,9 +99,11 @@ const EnhancedScoreModal = ({
         reason: challengeReason
       });
       
+      haptics.success(); // Success haptic for challenge
       toast.success('Challenge submitted! An admin will review your dispute.');
       closeModal();
     } catch (error) {
+      haptics.error(); // Error haptic for challenge
       toast.error(`Error submitting challenge: ${error.message}`);
     } finally {
       setLoading(false);

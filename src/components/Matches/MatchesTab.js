@@ -1,6 +1,7 @@
 // src/components/Matches/MatchesTab.js - FIXED for today's dates
 import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { haptics } from '../../utils/haptics';
 
 const MatchesTab = ({ 
   currentUser, 
@@ -146,11 +147,12 @@ const MatchesTab = ({
             
             return (
               <div key={match.id} className="bg-white rounded-lg shadow">
-                {/* Collapsible Header */}
+                {/* Enhanced Progressive Disclosure Header */}
                 <div 
-                  className={`p-6 ${courtFixtures.length > 0 || matchStatus === 'future-no-fixtures' ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors`}
+                  className={`p-4 sm:p-6 ${courtFixtures.length > 0 || matchStatus === 'future-no-fixtures' ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100' : ''} transition-colors`}
                   onClick={() => {
                     if (courtFixtures.length > 0 || matchStatus === 'future-no-fixtures') {
+                      haptics.tap(); // Haptic feedback for card expansion
                       toggleMatchExpansion(match.id);
                     }
                   }}
@@ -191,10 +193,22 @@ const MatchesTab = ({
                         )}
                       </div>
                       
-                      {/* Availability Info (only for future matches without fixtures) */}
-                      {matchStatus === 'future-no-fixtures' && !actuallyExpanded && (
-                        <div className="mt-2 text-sm text-gray-600">
-                          Availability: {stats.available} available, {stats.pending} pending
+                      {/* Smart Summary - Show key info when collapsed */}
+                      {!actuallyExpanded && (
+                        <div className="mt-2 sm:mt-3">
+                          {matchStatus === 'future-no-fixtures' && (
+                            <div className="text-sm text-gray-600">
+                              Availability: {stats.available} available, {stats.pending} pending
+                            </div>
+                          )}
+                          {courtFixtures.length > 0 && (
+                            <div className="flex items-center space-x-4 text-sm text-gray-600">
+                              <span>{courtFixtures.length} matches</span>
+                              {matchStatus === 'completed' && <span className="text-green-600">All scores recorded</span>}
+                              {matchStatus === 'partially-complete' && <span className="text-yellow-600">Some scores pending</span>}
+                              {matchStatus === 'past-in-progress' && <span className="text-orange-600">Scores needed</span>}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -213,10 +227,15 @@ const MatchesTab = ({
                         </button>
                       )}
                       
-                      {/* Expand/Collapse Icon */}
+                      {/* Enhanced Expand/Collapse Indicator */}
                       {(courtFixtures.length > 0 || matchStatus === 'future-no-fixtures') && (
-                        <div className="text-gray-400">
-                          {actuallyExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500 hidden sm:inline">
+                            {actuallyExpanded ? 'Collapse' : 'Expand'}
+                          </span>
+                          <div className="text-gray-400 p-1 rounded-full bg-gray-100 transition-all duration-200 hover:bg-gray-200">
+                            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${actuallyExpanded ? 'rotate-180' : 'rotate-0'}`} />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -305,6 +324,7 @@ const MatchesTab = ({
                                       <button 
                                         onClick={(e) => {
                                           e.stopPropagation();
+                                          haptics.click(); // Haptic feedback for score action
                                           openScoreModal({
                                             fixtureId: fixture.id,
                                             pair1: pair1Names,
