@@ -22,23 +22,26 @@ const PlayerMergeModal = ({
 
   // Filter CSV players vs real users
   useEffect(() => {
-    if (!allUsers || !ladderPlayers) return;
+    if (!allUsers) return;
 
-    // CSV players: those in the season but with generated emails
-    const csvPlayersList = ladderPlayers.filter(player => 
-      player.email && player.email.includes('@example.com')
+    // CSV players: approved users with @example.com email, excluding fake test data
+    const csvPlayersList = allUsers.filter(player => 
+      player.email && 
+      player.email.includes('@example.com') && 
+      player.status === 'approved' &&
+      // Exclude obvious test/fake players
+      !['Bob Smith', 'Alice Johnson', 'Charlie Brown', 'Diana Prince', 'Eve Wilson', 'Frank Miller', 'Admin User', 'Emma Brown', 'David Wilson', 'Grace Taylor', 'Henry Garcia', 'Iris Martinez', 'Jack Thompson'].includes(player.name)
     );
 
-    // Real users: approved users not in current season or with real emails
+    // Real users: approved users with real emails (not @example.com)
     const realUsersList = allUsers.filter(user => 
       user.status === 'approved' && 
-      (!user.email.includes('@example.com') || 
-       !ladderPlayers.find(lp => lp.id === user.id))
+      user.email && !user.email.includes('@example.com')
     );
 
     setCsvPlayers(csvPlayersList);
     setRealUsers(realUsersList);
-  }, [allUsers, ladderPlayers]);
+  }, [allUsers]);
 
   const filteredCsvPlayers = csvPlayers.filter(player =>
     player.name.toLowerCase().includes(searchTerm.toLowerCase())
