@@ -16,28 +16,22 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
     <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
         <div className="flex flex-col items-center">
-          {/* Tennis racket */}
+          {/* Modern loading animation */}
           <div className="relative w-16 h-16 mb-4">
-            {/* Modern Tennis racket SVG */}
-            <svg 
-              className="w-16 h-16 text-[#5D1F1F] animate-pulse" 
-              viewBox="0 0 100 100" 
-              fill="currentColor"
-            >
-              {/* Racket head (modern oval with gradient effect) */}
-              <ellipse cx="50" cy="35" rx="20" ry="27" fill="none" stroke="currentColor" strokeWidth="4"/>
-              <ellipse cx="50" cy="35" rx="16" ry="23" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3"/>
-              
-              {/* Simplified string pattern - just a subtle crosshatch */}
-              <path d="M 35 20 Q 50 25 65 20 Q 50 35 35 45 Q 50 45 65 50 Q 50 45 35 20" 
-                    fill="none" stroke="currentColor" strokeWidth="0.5" opacity="0.2"/>
-              
-              {/* Modern handle */}
-              <rect x="46" y="58" width="8" height="32" rx="4" fill="currentColor"/>
-              
-              {/* Subtle handle detail */}
-              <rect x="48" y="62" width="4" height="24" rx="2" fill="white" opacity="0.3"/>
-            </svg>
+            {/* Animated tennis ball */}
+            <div className="relative w-16 h-16 bg-[#9ACD32] rounded-full shadow-lg animate-bounce">
+              {/* Tennis ball curve */}
+              <div className="absolute inset-0 rounded-full border-2 border-white opacity-80">
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white transform -translate-y-px"></div>
+                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white transform -translate-y-px rotate-180"></div>
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 64 64">
+                  <path d="M 4 32 Q 32 16 60 32" stroke="white" strokeWidth="2" fill="none"/>
+                  <path d="M 4 32 Q 32 48 60 32" stroke="white" strokeWidth="2" fill="none"/>
+                </svg>
+              </div>
+              {/* Subtle highlight */}
+              <div className="absolute top-3 left-3 w-3 h-3 bg-white bg-opacity-40 rounded-full"></div>
+            </div>
           </div>
           
           <h2 className="text-xl font-semibold text-gray-800 mb-2">

@@ -189,28 +189,29 @@ const TennisLadderApp = () => {
         <header className="bg-[#5D1F1F] text-white shadow-lg">
           <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
-                <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-                  <img 
-                    src="/club-logo.png" 
-                    alt="Cawood Tennis Club" 
-                    className="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-white p-0.5 shadow object-contain"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#4A1818] rounded-full flex items-center justify-center shadow" style={{display: 'none'}}>
-                    <span className="text-white font-bold text-sm sm:text-lg">C</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h1 className="text-sm sm:text-xl font-bold truncate">Cawood Tennis Club</h1>
-                    <p className="text-red-100 text-xs sm:text-sm truncate">Welcome, {user?.name}</p>
-                  </div>
+              <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+                <img 
+                  src="/c-ball.png" 
+                  alt="Cawood Tennis Club" 
+                  className="w-8 sm:w-10 h-8 sm:h-10 shadow object-contain"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="w-8 sm:w-10 h-8 sm:h-10 bg-[#4A1818] rounded-full flex items-center justify-center shadow" style={{display: 'none'}}>
+                  <span className="text-white font-bold text-sm sm:text-lg">C</span>
                 </div>
-
-                {/* NEW: Season Selector - responsive */}
-                <div className="hidden sm:block">
+                <div className="min-w-0">
+                  <h1 className="text-sm sm:text-xl font-bold truncate">Cawood Tennis Club</h1>
+                  <p className="text-red-100 text-xs sm:text-sm truncate">Welcome, {user?.name}</p>
+                </div>
+              </div>
+              
+              {/* Center area for Season Selector and Sign Out */}
+              <div className="flex items-center space-x-3 sm:space-x-4 flex-1 justify-end max-w-md">
+                {/* Season Selector */}
+                <div className="flex-1 max-w-xs">
                   <SeasonSelector 
                     seasons={seasons}
                     selectedSeason={selectedSeason}
@@ -218,34 +219,24 @@ const TennisLadderApp = () => {
                     loading={seasonLoading}
                   />
                 </div>
-              </div>
-              
-              <button
-                onClick={async () => {
-                  if (authActions?.signOut) {
-                    try {
-                      await authActions.signOut();
-                    } catch (error) {
-                      console.error('❌ Logout failed:', error);
-                      alert('Error signing out. Please try again.');
+                
+                {/* Sign Out Button */}
+                <button
+                  onClick={async () => {
+                    if (authActions?.signOut) {
+                      try {
+                        await authActions.signOut();
+                      } catch (error) {
+                        console.error('❌ Logout failed:', error);
+                        alert('Error signing out. Please try again.');
+                      }
                     }
-                  }
-                }}
-                className="text-red-100 hover:text-white text-xs sm:text-sm transition-colors flex-shrink-0 ml-2"
-              >
-                <span className="hidden sm:inline">Sign Out</span>
-                <span className="sm:hidden">Out</span>
-              </button>
-            </div>
-            
-            {/* Mobile Season Selector */}
-            <div className="sm:hidden mt-2">
-              <SeasonSelector 
-                seasons={seasons}
-                selectedSeason={selectedSeason}
-                onSeasonSelect={seasonActions?.setSelectedSeason}
-                loading={seasonLoading}
-              />
+                  }}
+                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-3 py-1.5 rounded text-xs sm:text-sm transition-colors flex-shrink-0"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
         </header>
