@@ -18,30 +18,25 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
         <div className="flex flex-col items-center">
           {/* Tennis racket */}
           <div className="relative w-16 h-16 mb-4">
-            {/* Tennis racket SVG */}
+            {/* Modern Tennis racket SVG */}
             <svg 
               className="w-16 h-16 text-[#5D1F1F] animate-pulse" 
               viewBox="0 0 100 100" 
               fill="currentColor"
             >
-              {/* Racket head (oval) */}
-              <ellipse cx="50" cy="35" rx="18" ry="25" fill="none" stroke="currentColor" strokeWidth="3"/>
-              {/* String pattern */}
-              <line x1="35" y1="20" x2="35" y2="50" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
-              <line x1="42" y1="15" x2="42" y2="55" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
-              <line x1="50" y1="10" x2="50" y2="60" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
-              <line x1="58" y1="15" x2="58" y2="55" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
-              <line x1="65" y1="20" x2="65" y2="50" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
-              {/* Horizontal strings */}
-              <line x1="32" y1="25" x2="68" y2="25" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
-              <line x1="35" y1="35" x2="65" y2="35" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
-              <line x1="32" y1="45" x2="68" y2="45" stroke="currentColor" strokeWidth="0.8" opacity="0.6"/>
-              {/* Handle */}
-              <rect x="47" y="55" width="6" height="35" rx="3" fill="currentColor"/>
-              {/* Handle grip lines */}
-              <line x1="45" y1="65" x2="55" y2="65" stroke="white" strokeWidth="1"/>
-              <line x1="45" y1="72" x2="55" y2="72" stroke="white" strokeWidth="1"/>
-              <line x1="45" y1="79" x2="55" y2="79" stroke="white" strokeWidth="1"/>
+              {/* Racket head (modern oval with gradient effect) */}
+              <ellipse cx="50" cy="35" rx="20" ry="27" fill="none" stroke="currentColor" strokeWidth="4"/>
+              <ellipse cx="50" cy="35" rx="16" ry="23" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3"/>
+              
+              {/* Simplified string pattern - just a subtle crosshatch */}
+              <path d="M 35 20 Q 50 25 65 20 Q 50 35 35 45 Q 50 45 65 50 Q 50 45 35 20" 
+                    fill="none" stroke="currentColor" strokeWidth="0.5" opacity="0.2"/>
+              
+              {/* Modern handle */}
+              <rect x="46" y="58" width="8" height="32" rx="4" fill="currentColor"/>
+              
+              {/* Subtle handle detail */}
+              <rect x="48" y="62" width="4" height="24" rx="2" fill="white" opacity="0.3"/>
             </svg>
           </div>
           

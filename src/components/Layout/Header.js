@@ -8,9 +8,9 @@ const Header = ({ currentUser, onSignOut }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img 
-              src="/club-logo.png" 
+              src="/c-ball.png" 
               alt="Cawood Tennis Club" 
-              className="w-10 h-10 rounded-full bg-white p-0.5 shadow object-contain"
+              className="w-10 h-10 shadow object-contain"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextSibling.style.display = 'flex';
