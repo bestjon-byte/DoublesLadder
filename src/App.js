@@ -187,7 +187,7 @@ const TennisLadderApp = () => {
         <div className="min-h-screen bg-gray-50">
         {/* Ultra Compact Header - Logo embedded in season selector */}
         <header className="bg-[#5D1F1F] text-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-3 py-2">
+          <div className="max-w-7xl mx-auto px-3 py-3 pb-4">
             <div className="flex items-center justify-between h-12">
               {/* Left: Season Selector with embedded logo */}
               <div className="flex-1 max-w-[280px] sm:max-w-[320px]">
@@ -199,8 +199,8 @@ const TennisLadderApp = () => {
                 />
               </div>
               
-              {/* Right: User + Sign Out */}
-              <div className="flex flex-col items-end">
+              {/* Right: Sign Out Only */}
+              <div className="flex items-center">
                 <button
                   onClick={async () => {
                     if (authActions?.signOut) {
@@ -214,6 +214,7 @@ const TennisLadderApp = () => {
                   }}
                   className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-3 py-1.5 rounded transition-colors min-h-[44px] flex items-center text-sm"
                   style={{ touchAction: 'manipulation' }}
+                  title={`Sign out ${user?.name || ''}`}
                 >
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -221,9 +222,6 @@ const TennisLadderApp = () => {
                   <span className="hidden sm:inline">Sign Out</span>
                   <span className="sm:hidden">Out</span>
                 </button>
-                <div className="text-xs text-red-200 mt-1 truncate max-w-[80px]">
-                  {user?.name?.split(' ').map(n => n[0]).join('') || user?.name}
-                </div>
               </div>
             </div>
           </div>

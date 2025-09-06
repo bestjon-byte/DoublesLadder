@@ -16,21 +16,35 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
     <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
         <div className="flex flex-col items-center">
-          {/* Modern loading animation */}
-          <div className="relative w-16 h-16 mb-4">
-            {/* Animated tennis ball */}
-            <div className="relative w-16 h-16 bg-[#9ACD32] rounded-full shadow-lg animate-bounce">
-              {/* Tennis ball curve */}
-              <div className="absolute inset-0 rounded-full border-2 border-white opacity-80">
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white transform -translate-y-px"></div>
-                <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white transform -translate-y-px rotate-180"></div>
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 64 64">
-                  <path d="M 4 32 Q 32 16 60 32" stroke="white" strokeWidth="2" fill="none"/>
-                  <path d="M 4 32 Q 32 48 60 32" stroke="white" strokeWidth="2" fill="none"/>
-                </svg>
+          {/* Smooth bouncing tennis ball with C */}
+          <div className="relative w-20 h-24 mb-4 flex items-end justify-center">
+            {/* Shadow that grows/shrinks with bounce */}
+            <div className="absolute bottom-0 w-12 h-3 bg-black bg-opacity-20 rounded-full animate-pulse"></div>
+            
+            {/* Bouncing tennis ball with C */}
+            <div className="relative w-16 h-16 bg-gradient-to-br from-[#9ACD32] to-[#7CB342] rounded-full shadow-2xl animate-bounce" style={{
+              animation: 'bounce 1s infinite ease-in-out',
+              filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))'
+            }}>
+              {/* Tennis ball curves */}
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 64 64">
+                <path d="M 8 32 Q 32 20 56 32" stroke="white" strokeWidth="2.5" fill="none" opacity="0.9"/>
+                <path d="M 8 32 Q 32 44 56 32" stroke="white" strokeWidth="2.5" fill="none" opacity="0.9"/>
+              </svg>
+              
+              {/* Large C in center */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-white font-bold text-2xl drop-shadow-lg" style={{
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                }}>C</span>
               </div>
-              {/* Subtle highlight */}
-              <div className="absolute top-3 left-3 w-3 h-3 bg-white bg-opacity-40 rounded-full"></div>
+              
+              {/* Subtle highlight for 3D effect */}
+              <div className="absolute top-2 left-2 w-4 h-4 bg-white bg-opacity-30 rounded-full blur-sm"></div>
+              
+              {/* Inner glow */}
+              <div className="absolute inset-1 rounded-full bg-gradient-to-br from-white/10 to-transparent"></div>
             </div>
           </div>
           
