@@ -20,27 +20,63 @@ const PlayerMergeModal = ({
   const [csvPlayers, setCsvPlayers] = useState([]);
   const [realUsers, setRealUsers] = useState([]);
 
-  // Filter CSV players vs real users
+  // Filter CSV players vs real users and fetch their stats
   useEffect(() => {
-    if (!allUsers) return;
+    const fetchCsvPlayersWithStats = async () => {
+      if (!allUsers) return;
 
-    // CSV players: approved users with @example.com email, excluding fake test data
-    const csvPlayersList = allUsers.filter(player => 
-      player.email && 
-      player.email.includes('@example.com') && 
-      player.status === 'approved' &&
-      // Exclude obvious test/fake players
-      !['Bob Smith', 'Alice Johnson', 'Charlie Brown', 'Diana Prince', 'Eve Wilson', 'Frank Miller', 'Admin User', 'Emma Brown', 'David Wilson', 'Grace Taylor', 'Henry Garcia', 'Iris Martinez', 'Jack Thompson'].includes(player.name)
-    );
+      // CSV players: approved users with @example.com email, excluding fake test data
+      const baseCsvPlayersList = allUsers.filter(player => 
+        player.email && 
+        player.email.includes('@example.com') && 
+        player.status === 'approved' &&
+        // Exclude obvious test/fake players
+        !['Bob Smith', 'Alice Johnson', 'Charlie Brown', 'Diana Prince', 'Eve Wilson', 'Frank Miller', 'Admin User', 'Emma Brown', 'David Wilson', 'Grace Taylor', 'Henry Garcia', 'Iris Martinez', 'Jack Thompson'].includes(player.name)
+      );
 
-    // Real users: approved users with real emails (not @example.com)
-    const realUsersList = allUsers.filter(user => 
-      user.status === 'approved' && 
-      user.email && !user.email.includes('@example.com')
-    );
+      // Fetch season stats for CSV players
+      const csvPlayersWithStats = await Promise.all(
+        baseCsvPlayersList.map(async (player) => {
+          try {
+            const { data: seasonStats } = await supabase
+              .from('season_players')
+              .select('games_played, games_won, matches_played, matches_won')
+              .eq('player_id', player.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
 
-    setCsvPlayers(csvPlayersList);
-    setRealUsers(realUsersList);
+            return {
+              ...player,
+              games_played: seasonStats?.games_played || 0,
+              games_won: seasonStats?.games_won || 0,
+              matches_played: seasonStats?.matches_played || 0,
+              matches_won: seasonStats?.matches_won || 0
+            };
+          } catch (error) {
+            // Return player with zero stats if query fails
+            return {
+              ...player,
+              games_played: 0,
+              games_won: 0,
+              matches_played: 0,
+              matches_won: 0
+            };
+          }
+        })
+      );
+
+      // Real users: approved users with real emails (not @example.com)
+      const realUsersList = allUsers.filter(user => 
+        user.status === 'approved' && 
+        user.email && !user.email.includes('@example.com')
+      );
+
+      setCsvPlayers(csvPlayersWithStats);
+      setRealUsers(realUsersList);
+    };
+
+    fetchCsvPlayersWithStats();
   }, [allUsers]);
 
   const filteredCsvPlayers = csvPlayers.filter(player =>
