@@ -80,7 +80,8 @@ const ProfileTab = ({
               {selectedPlayerId && selectedPlayerId !== currentUser?.id && (
                 <button
                   onClick={() => onPlayerClear && onPlayerClear()}
-                  className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full transition-colors"
+                  className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-full transition-colors min-h-[44px]"
+                  style={{ touchAction: 'manipulation' }}
                 >
                   View My Profile
                 </button>

@@ -311,11 +311,12 @@ const MatchesTab = ({
                                             pair2: pair2Names
                                           });
                                         }}
-                                        className={`text-xs px-3 py-1 rounded transition-colors ${
+                                        className={`text-sm px-4 py-3 rounded transition-colors min-h-[44px] ${
                                           existingScore 
                                             ? 'bg-blue-600 text-white hover:bg-blue-700' 
                                             : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
                                         }`}
+                                        style={{ touchAction: 'manipulation' }}
                                       >
                                         {existingScore ? 'View/Challenge' : 'Enter Score'}
                                       </button>

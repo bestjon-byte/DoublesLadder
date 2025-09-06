@@ -127,7 +127,8 @@ const AdminTab = ({
                 <button
                   onClick={() => handleApproveUser(user.id)}
                   disabled={loading}
-                  className="bg-[#5D1F1F] text-white px-3 py-1 rounded text-sm hover:bg-[#4A1818] disabled:opacity-50"
+                  className="bg-[#5D1F1F] text-white px-4 py-3 rounded text-sm hover:bg-[#4A1818] disabled:opacity-50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  style={{ touchAction: 'manipulation' }}
                 >
                   <Check className="w-4 h-4" />
                 </button>

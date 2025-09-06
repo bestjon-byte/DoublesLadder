@@ -222,7 +222,8 @@ const TennisLadderApp = () => {
                       }
                     }
                   }}
-                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-3 py-1.5 rounded text-xs transition-colors flex-shrink-0 ml-2"
+                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-4 py-3 rounded text-sm transition-colors flex-shrink-0 ml-2 min-h-[44px]"
+                  style={{ touchAction: 'manipulation' }}
                 >
                   Sign Out
                 </button>
@@ -282,7 +283,8 @@ const TennisLadderApp = () => {
                       }
                     }
                   }}
-                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-4 py-2 rounded text-sm transition-colors flex-shrink-0"
+                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-4 py-3 rounded text-sm transition-colors flex-shrink-0 min-h-[44px]"
+                  style={{ touchAction: 'manipulation' }}
                 >
                   Sign Out
                 </button>
@@ -298,7 +300,7 @@ const TennisLadderApp = () => {
           ladderPlayers={ladderPlayers}
         />
         
-        <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
+        <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-6">
           {activeTab === 'ladder' && (
             <LadderTab 
               currentUser={user}

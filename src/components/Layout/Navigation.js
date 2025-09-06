@@ -3,74 +3,79 @@ import React from 'react';
 import { Users, Calendar, Trophy, Settings, User } from 'lucide-react';
 
 const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers }) => {
+  const tabs = [
+    { id: 'ladder', icon: Trophy, label: 'Ladder', show: true },
+    { id: 'matches', icon: Calendar, label: 'Matches', show: true },
+    { 
+      id: 'profile', 
+      icon: User, 
+      label: 'Profile', 
+      show: ladderPlayers?.find(player => player.id === currentUser?.id) 
+    },
+    { 
+      id: 'availability', 
+      icon: Users, 
+      label: 'Available', 
+      show: ladderPlayers?.find(player => player.id === currentUser?.id) 
+    },
+    { 
+      id: 'admin', 
+      icon: Settings, 
+      label: 'Admin', 
+      show: currentUser?.role === 'admin' 
+    }
+  ].filter(tab => tab.show);
+
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4">
-        <div className="flex overflow-x-auto scrollbar-hide">
-          <button
-            onClick={() => setActiveTab('ladder')}
-            className={`flex-shrink-0 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 ${
-              activeTab === 'ladder' 
-                ? 'border-[#5D1F1F] text-[#5D1F1F]' 
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Trophy className="w-4 h-4 inline mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Ladder</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('matches')}
-            className={`flex-shrink-0 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 ${
-              activeTab === 'matches' 
-                ? 'border-[#5D1F1F] text-[#5D1F1F]' 
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Calendar className="w-4 h-4 inline mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Matches</span>
-          </button>
-          {ladderPlayers?.find(player => player.id === currentUser?.id) && (
-            <>
+    <>
+      {/* Desktop Navigation - Top */}
+      <nav className="hidden sm:block bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex overflow-x-auto scrollbar-hide">
+            {tabs.map(({ id, icon: Icon, label }) => (
               <button
-                onClick={() => setActiveTab('profile')}
-                className={`flex-shrink-0 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 ${
-                  activeTab === 'profile' 
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex-shrink-0 px-6 py-4 text-sm font-medium border-b-2 min-h-[60px] flex items-center ${
+                  activeTab === id 
                     ? 'border-[#5D1F1F] text-[#5D1F1F]' 
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                <User className="w-4 h-4 inline mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Profile</span>
+                <Icon className="w-5 h-5 mr-2" />
+                {label}
               </button>
-              <button
-                onClick={() => setActiveTab('availability')}
-                className={`flex-shrink-0 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 ${
-                  activeTab === 'availability' 
-                    ? 'border-[#5D1F1F] text-[#5D1F1F]' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Users className="w-4 h-4 inline mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Available</span>
-              </button>
-            </>
-          )}
-          {currentUser?.role === 'admin' && (
-            <button
-              onClick={() => setActiveTab('admin')}
-              className={`flex-shrink-0 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium border-b-2 ${
-                activeTab === 'admin' 
-                  ? 'border-[#5D1F1F] text-[#5D1F1F]' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Settings className="w-4 h-4 inline mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Admin</span>
-            </button>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile Navigation - Bottom */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-pb">
+        <div className="flex">
+          {tabs.map(({ id, icon: Icon, label }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[64px] transition-colors ${
+                activeTab === id 
+                  ? 'text-[#5D1F1F] bg-red-50' 
+                  : 'text-gray-500 hover:text-gray-700 active:bg-gray-100'
+              }`}
+              style={{ touchAction: 'manipulation' }}
+            >
+              <Icon className={`w-6 h-6 mb-1 ${activeTab === id ? 'text-[#5D1F1F]' : ''}`} />
+              <span className={`text-xs font-medium ${activeTab === id ? 'text-[#5D1F1F]' : ''}`}>
+                {label}
+              </span>
+              {activeTab === id && (
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#5D1F1F]"></div>
+              )}
+            </button>
+          ))}
+        </div>
+      </nav>
+    </>
   );
 };
 

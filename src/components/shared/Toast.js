@@ -115,9 +115,10 @@ const Toast = ({ id, message, type, onClose }) => {
           e.stopPropagation();
           handleClose();
         }}
-        className={`p-1 rounded-full hover:bg-gray-100 transition-colors ${getTextColor().replace('800', '600')}`}
+        className={`p-3 rounded-full hover:bg-gray-100 transition-colors ${getTextColor().replace('800', '600')} min-h-[44px] min-w-[44px] flex items-center justify-center`}
+        style={{ touchAction: 'manipulation' }}
       >
-        <X className="w-4 h-4" />
+        <X className="w-5 h-5" />
       </button>
     </div>
   );

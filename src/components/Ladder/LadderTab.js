@@ -83,9 +83,10 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                       <div>
                         <button
                           onClick={() => onPlayerSelect && onPlayerSelect(player.id)}
-                          className={`font-semibold text-left hover:underline transition-colors ${
+                          className={`font-semibold text-left hover:underline transition-colors py-2 px-1 min-h-[44px] flex items-center ${
                             isCurrentUser ? 'text-[#5D1F1F] hover:text-red-800' : 'text-gray-900 hover:text-[#5D1F1F]'
                           }`}
+                          style={{ touchAction: 'manipulation' }}
                         >
                           {player.name}
                         </button>
@@ -155,9 +156,10 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => onPlayerSelect && onPlayerSelect(player.id)}
-                            className={`text-sm font-medium hover:underline transition-colors text-left ${
+                            className={`text-sm font-medium hover:underline transition-colors text-left py-2 px-1 min-h-[44px] flex items-center ${
                               isCurrentUser ? 'text-[#5D1F1F] hover:text-red-800' : 'text-gray-900 hover:text-[#5D1F1F]'
                             }`}
+                            style={{ touchAction: 'manipulation' }}
                           >
                             {player.name} {isCurrentUser && <span className="text-xs">(You)</span>}
                           </button>
