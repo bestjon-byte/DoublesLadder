@@ -851,7 +851,23 @@ export const useApp = (userId, selectedSeasonId) => {
         if (fixtures && fixtures.length > 0) {
           const fixtureIds = fixtures.map(f => f.id);
           
-          // Delete match results
+          // First, delete score challenges for these fixtures
+          // Deleting score challenges for season fixtures
+          const { error: challengesError } = await supabase
+            .from('score_challenges')
+            .delete()
+            .in('fixture_id', fixtureIds);
+          if (challengesError) throw challengesError;
+          
+          // Delete score conflicts for these fixtures
+          // Deleting score conflicts for season fixtures  
+          const { error: conflictsError } = await supabase
+            .from('score_conflicts')
+            .delete()
+            .in('fixture_id', fixtureIds);
+          if (conflictsError) throw conflictsError;
+          
+          // Now we can safely delete match results
           // Deleting match results for season fixtures
           const { error: resultsError } = await supabase
             .from('match_results')
