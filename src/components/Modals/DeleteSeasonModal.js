@@ -63,7 +63,9 @@ const DeleteSeasonModal = ({
         setConfirmText('');
         setSelectedSeasonToDelete('');
       } else {
-        alert('❌ Failed to delete season. Please try again or contact support.');
+        console.error('Season deletion failed:', result?.error);
+        const errorMsg = result?.error?.message || result?.error?.details || result?.error || 'Unknown error';
+        alert(`❌ Failed to delete season: ${errorMsg}\n\nPlease try again or contact support.`);
       }
     } catch (error) {
       console.error('Error deleting season:', error);

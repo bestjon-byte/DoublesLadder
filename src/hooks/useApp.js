@@ -836,7 +836,7 @@ export const useApp = (userId, selectedSeasonId) => {
       // 1. Delete match results for this season's matches
       const { data: seasonMatches } = await supabase
         .from('matches')
-        .select('id')
+        .select('id, match_date')
         .eq('season_id', seasonId);
         
       if (seasonMatches && seasonMatches.length > 0) {
@@ -868,13 +868,16 @@ export const useApp = (userId, selectedSeasonId) => {
           .in('match_id', matchIds);
         if (fixturesError) throw fixturesError;
         
-        // Delete availability records for these matches
-        // Deleting availability records for season matches
-        const { error: availabilityError } = await supabase
-          .from('availability')
-          .delete()
-          .in('match_id', matchIds);
-        if (availabilityError) throw availabilityError;
+        // Delete availability records for these match dates
+        // First get the match dates for this season
+        const matchDates = seasonMatches.map(m => m.match_date);
+        if (matchDates.length > 0) {
+          const { error: availabilityError } = await supabase
+            .from('availability')
+            .delete()
+            .in('match_date', matchDates);
+          if (availabilityError) throw availabilityError;
+        }
         
         // Delete matches
         // Deleting season matches
@@ -920,7 +923,15 @@ export const useApp = (userId, selectedSeasonId) => {
       return { success: true };
     } catch (error) {
       console.error('Error deleting season:', error);
-      return { success: false, error };
+      // More detailed error information
+      const detailedError = {
+        message: error.message,
+        details: error.details || error.hint || 'No additional details',
+        code: error.code,
+        constraint: error.constraint || 'Unknown constraint'
+      };
+      console.error('Detailed error:', detailedError);
+      return { success: false, error: detailedError };
     }
   }, [fetchUsers, fetchSeasons, fetchAvailability, fetchMatchFixtures, fetchMatchResults]);
 

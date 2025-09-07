@@ -64,7 +64,32 @@ echo "📤 Committing: $CUSTOM_MESSAGE"
 # Stage, commit, and push
 git add .
 git commit -m "$COMMIT_MESSAGE"
-git push
+
+# Try to push, with better error handling
+echo "🚀 Pushing to GitHub..."
+if git push; then
+    echo "✅ Successfully pushed to GitHub!"
+else
+    echo "❌ Push failed. This is likely an authentication issue."
+    echo ""
+    echo "To fix this, you have a few options:"
+    echo ""
+    echo "1. Use GitHub CLI (recommended):"
+    echo "   • Install: curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg"
+    echo "   • Then: gh auth login"
+    echo ""
+    echo "2. Or use a Personal Access Token:"
+    echo "   • Go to GitHub Settings > Developer Settings > Personal Access Tokens"
+    echo "   • Create a token with 'repo' permissions"
+    echo "   • Run: git remote set-url origin https://bestjon-byte:YOUR_TOKEN@github.com/bestjon-byte/DoublesLadder.git"
+    echo ""
+    echo "3. Or push manually with credentials:"
+    echo "   • Run: git push"
+    echo "   • Enter your GitHub username and token when prompted"
+    echo ""
+    echo "The commit was created successfully, so you just need to push it."
+    exit 1
+fi
 
 echo ""
 echo "✅ Deploy complete!"
