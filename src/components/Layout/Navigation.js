@@ -55,7 +55,7 @@ const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers }) => 
       </nav>
 
       {/* Mobile Navigation - Bottom */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-pb">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex">
           {tabs.map(({ id, icon: Icon, label }) => (
             <button

@@ -14,7 +14,7 @@
     
     <!-- Apple Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Tennis Ladder" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
     
@@ -27,6 +27,27 @@
     
     <title>Tennis Ladder App</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Safe Area Support for iOS PWA */
+      :root {
+        --safe-area-inset-top: env(safe-area-inset-top, 0px);
+        --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+        --safe-area-inset-left: env(safe-area-inset-left, 0px);
+        --safe-area-inset-right: env(safe-area-inset-right, 0px);
+      }
+      
+      /* Ensure body takes full height and handles safe areas */
+      html, body, #root {
+        height: 100vh;
+        height: 100dvh; /* Dynamic viewport height for mobile */
+      }
+      
+      /* Additional safe area utilities */
+      .safe-top { padding-top: env(safe-area-inset-top); }
+      .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+      .safe-left { padding-left: env(safe-area-inset-left); }
+      .safe-right { padding-right: env(safe-area-inset-right); }
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
