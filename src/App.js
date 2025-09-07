@@ -17,6 +17,7 @@ import ScheduleModal from './components/Modals/ScheduleModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
+import UpdateNotification from './components/shared/UpdateNotification';
 import SeasonSelector from './components/Season/SeasonSelector';
 import { ToastProvider } from './contexts/ToastContext';
 
@@ -341,6 +342,9 @@ const TennisLadderApp = () => {
         </div>
       </ErrorBoundary>
       )}
+      
+      {/* Update Notification - Available globally */}
+      <UpdateNotification />
     </ToastProvider>
   );
 };

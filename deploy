@@ -1,0 +1,4 @@
+#!/bin/bash
+# Simple deploy command - just run "./deploy" 
+cd "$(dirname "$0")"
+./scripts/quick-deploy.sh "$@"
