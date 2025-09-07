@@ -96,6 +96,12 @@ const VersionDisplay = ({ className = "", position = "bottom-right" }) => {
                     🔄 Update available
                   </div>
                 )}
+                <button 
+                  onClick={() => versionManager.clearCacheAndReload()}
+                  className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded text-left hover:bg-red-200"
+                >
+                  🗑️ Force Refresh
+                </button>
               </div>
             </div>
           )}
