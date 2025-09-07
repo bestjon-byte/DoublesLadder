@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
+import { SwipeableCard } from '../../utils/swipeActions';
 
 const MatchesTab = ({ 
   currentUser, 
@@ -143,7 +144,6 @@ const MatchesTab = ({
             today.setHours(0, 0, 0, 0);
             const matchDate = new Date(match.match_date);
             matchDate.setHours(0, 0, 0, 0);
-            const isPastDate = matchDate < today;
             
             return (
               <div key={match.id} className="bg-white rounded-lg shadow">
@@ -306,49 +306,69 @@ const MatchesTab = ({
                                 const pair2Names = [fixture.player3?.name, fixture.player4?.name].filter(Boolean);
                                 
                                 return (
-                                  <div key={fixture.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                    <div className="flex-1">
-                                      <span className="text-sm">
-                                        {pair1Names.join(' & ')} vs {pair2Names.join(' & ')}
-                                        {fixture.sitting_player && ` (${fixture.sitting_player.name} sitting)`}
-                                      </span>
-                                      {existingScore && (
-                                        <div className="text-xs text-gray-600 mt-1">
-                                          Score: {existingScore.pair1_score} - {existingScore.pair2_score}
-                                        </div>
+                                  <SwipeableCard
+                                    key={fixture.id}
+                                    className="bg-gray-50 rounded"
+                                    onSwipeRight={canEnterScore && matchStatus !== 'future-no-fixtures' ? () => {
+                                      haptics.click();
+                                      openScoreModal({
+                                        fixtureId: fixture.id,
+                                        pair1: pair1Names,
+                                        pair2: pair2Names
+                                      });
+                                    } : null}
+                                    rightAction={canEnterScore && matchStatus !== 'future-no-fixtures' ? "🎾 Score" : null}
+                                    disabled={!canEnterScore || matchStatus === 'future-no-fixtures'}
+                                  >
+                                    <div className="flex justify-between items-center p-2">
+                                      <div className="flex-1">
+                                        <span className="text-sm">
+                                          {pair1Names.join(' & ')} vs {pair2Names.join(' & ')}
+                                          {fixture.sitting_player && ` (${fixture.sitting_player.name} sitting)`}
+                                        </span>
+                                        {existingScore && (
+                                          <div className="text-xs text-gray-600 mt-1">
+                                            Score: {existingScore.pair1_score} - {existingScore.pair2_score}
+                                          </div>
+                                        )}
+                                        {canEnterScore && matchStatus !== 'future-no-fixtures' && (
+                                          <div className="text-xs text-blue-600 mt-1 sm:hidden">
+                                            👉 Swipe right to enter score
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Score Entry/View Button - Desktop Only */}
+                                      {canEnterScore && matchStatus !== 'future-no-fixtures' && (
+                                        <button 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            haptics.click(); // Haptic feedback for score action
+                                            openScoreModal({
+                                              fixtureId: fixture.id,
+                                              pair1: pair1Names,
+                                              pair2: pair2Names
+                                            });
+                                          }}
+                                          className={`hidden sm:block text-sm px-4 py-3 rounded transition-colors min-h-[44px] ${
+                                            existingScore 
+                                              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                              : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
+                                          }`}
+                                          style={{ touchAction: 'manipulation' }}
+                                        >
+                                          {existingScore ? 'View/Challenge' : 'Enter Score'}
+                                        </button>
+                                      )}
+
+                                      {/* Score Status for non-players */}
+                                      {existingScore && !canEnterScore && (
+                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                          Complete
+                                        </span>
                                       )}
                                     </div>
-                                    
-                                    {/* Score Entry/View Button */}
-                                    {canEnterScore && matchStatus !== 'future-no-fixtures' && (
-                                      <button 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          haptics.click(); // Haptic feedback for score action
-                                          openScoreModal({
-                                            fixtureId: fixture.id,
-                                            pair1: pair1Names,
-                                            pair2: pair2Names
-                                          });
-                                        }}
-                                        className={`text-sm px-4 py-3 rounded transition-colors min-h-[44px] ${
-                                          existingScore 
-                                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                                            : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
-                                        }`}
-                                        style={{ touchAction: 'manipulation' }}
-                                      >
-                                        {existingScore ? 'View/Challenge' : 'Enter Score'}
-                                      </button>
-                                    )}
-
-                                    {/* Score Status for non-players */}
-                                    {existingScore && !canEnterScore && (
-                                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                        Complete
-                                      </span>
-                                    )}
-                                  </div>
+                                  </SwipeableCard>
                                 );
                               })}
                             </div>
