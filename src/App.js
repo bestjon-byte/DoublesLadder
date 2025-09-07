@@ -18,6 +18,7 @@ import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import UpdateNotification from './components/shared/UpdateNotification';
+import VersionDisplay from './components/shared/VersionDisplay';
 import SeasonSelector from './components/Season/SeasonSelector';
 import { ToastProvider } from './contexts/ToastContext';
 
@@ -345,6 +346,9 @@ const TennisLadderApp = () => {
       
       {/* Update Notification - Available globally */}
       <UpdateNotification />
+      
+      {/* Version Display - Shows current version */}
+      <VersionDisplay position="bottom-right" />
     </ToastProvider>
   );
 };
