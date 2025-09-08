@@ -121,7 +121,6 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
             <span className="text-white font-bold text-3xl">C</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-800">Cawood Tennis Club</h1>
-          <p className="text-gray-600">Doubles Ladder</p>
         </div>
 
         <div className="flex rounded-lg bg-gray-100 p-1 mb-6">

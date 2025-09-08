@@ -96,7 +96,7 @@ const UpdateNotification = () => {
             
             <div className="mb-6">
               <p className="text-gray-600">
-                A new version of the Tennis Ladder app is available. Update now to get the latest features and improvements.
+                A new version of the Cawood Tennis app is available. Update now to get the latest features and improvements.
               </p>
             </div>
             

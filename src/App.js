@@ -22,7 +22,7 @@ import VersionDisplay from './components/shared/VersionDisplay';
 import SeasonSelector from './components/Season/SeasonSelector';
 import { ToastProvider } from './contexts/ToastContext';
 
-const TennisLadderApp = () => {
+const CawoodTennisApp = () => {
   // Authentication hook
   const authData = useAuth();
   const { 
@@ -353,4 +353,4 @@ const TennisLadderApp = () => {
   );
 };
 
-export default TennisLadderApp;
+export default CawoodTennisApp;

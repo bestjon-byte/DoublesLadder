@@ -60,7 +60,7 @@ const NotificationSettings = ({ currentUser, onSettingsUpdate }) => {
           
           // Show success notification
           notificationManager.showLocalNotification(
-            '🎾 Tennis Ladder Notifications Enabled',
+            '🎾 Tennis Notifications Enabled',
             {
               body: 'You\'ll now receive updates about matches, rankings, and more!',
               tag: 'welcome-notification'
