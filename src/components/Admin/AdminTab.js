@@ -38,6 +38,7 @@ const AdminTab = ({
   const [showCreateSeason, setShowCreateSeason] = useState(false);
   const [newSeasonName, setNewSeasonName] = useState('');
   const [newSeasonStartDate, setNewSeasonStartDate] = useState('');
+  const [newSeasonType, setNewSeasonType] = useState('ladder');
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [showUserRoleModal, setShowUserRoleModal] = useState(false);
   const [showAddToLadderModal, setShowAddToLadderModal] = useState(false);
@@ -65,14 +66,16 @@ const AdminTab = ({
     const result = await seasonActions.createNewSeason({
       name: newSeasonName.trim(),
       start_date: newSeasonStartDate,
-      carryOverPlayers: false // Start with empty ladder
+      season_type: newSeasonType,
+      carryOverPlayers: false // Start with empty ladder/league
     });
     
     if (result.success) {
       setShowCreateSeason(false);
       setNewSeasonName('');
       setNewSeasonStartDate('');
-      alert(`New season "${newSeasonName}" created successfully!`);
+      setNewSeasonType('ladder');
+      alert(`New ${newSeasonType} season "${newSeasonName}" created successfully!`);
     }
     setLoading(false);
   };
@@ -152,42 +155,47 @@ const AdminTab = ({
         <p className="text-sm text-gray-600 mb-6">Quick access to administrative functions</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-          {/* Season Management */}
-          <div className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors ${
-            activeSeason?.status === 'active' ? 'border-orange-200 bg-orange-50' : 'border-gray-200'
-          }`}>
+          {/* Create New Season */}
+          <div className="border border-green-200 rounded-lg p-4 hover:bg-green-50 transition-colors">
             <div className="flex items-center space-x-3 mb-3">
-              <div className={`p-2 rounded-full ${
-                activeSeason?.status === 'active' ? 'bg-orange-100' : 'bg-green-100'
-              }`}>
-                <Calendar className={`w-5 h-5 ${
-                  activeSeason?.status === 'active' ? 'text-orange-600' : 'text-green-600'
-                }`} />
+              <div className="bg-green-100 p-2 rounded-full">
+                <Calendar className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900">
-                  {activeSeason?.status === 'active' ? 'Complete Season' : 'Create Season'}
-                </h4>
-                <p className="text-xs text-gray-500">
-                  {activeSeason?.status === 'active' 
-                    ? `End: ${activeSeason.name}` 
-                    : 'Start new season'
-                  }
-                </p>
+                <h4 className="font-semibold text-gray-900">Create Season</h4>
+                <p className="text-xs text-gray-500">Start new ladder/league season</p>
               </div>
             </div>
             <button
-              onClick={activeSeason?.status === 'active' ? handleCompleteSeason : () => setShowCreateSeason(true)}
+              onClick={() => setShowCreateSeason(true)}
               disabled={loading}
-              className={`w-full px-3 py-2 rounded-md transition-colors text-sm ${
-                activeSeason?.status === 'active'
-                  ? 'bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50'
-                  : 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-50'
-              }`}
+              className="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors text-sm"
             >
-              {activeSeason?.status === 'active' ? 'Complete Season' : 'Create New Season'}
+              Create New Season
             </button>
           </div>
+
+          {/* Complete Season */}
+          {activeSeason?.status === 'active' && (
+            <div className="border border-orange-200 rounded-lg p-4 hover:bg-orange-50 transition-colors bg-orange-50">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="bg-orange-100 p-2 rounded-full">
+                  <Calendar className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Complete Season</h4>
+                  <p className="text-xs text-gray-500">End: {activeSeason.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleCompleteSeason}
+                disabled={loading}
+                className="w-full bg-orange-600 text-white px-3 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50 transition-colors text-sm"
+              >
+                Complete Season
+              </button>
+            </div>
+          )}
 
           {/* User Role Management */}
           <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
@@ -503,13 +511,27 @@ const AdminTab = ({
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Season Type
+                  </label>
+                  <select
+                    value={newSeasonType}
+                    onChange={(e) => setNewSeasonType(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+                  >
+                    <option value="ladder">Ladder (Internal Competition)</option>
+                    <option value="league">League (External Matches)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Season Name
                   </label>
                   <input
                     type="text"
                     value={newSeasonName}
                     onChange={(e) => setNewSeasonName(e.target.value)}
-                    placeholder="e.g., Spring 2025"
+                    placeholder={newSeasonType === 'ladder' ? 'e.g., Spring Ladder 2025' : 'e.g., Winter League 2025'}
                     className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
                   />
                 </div>
@@ -525,6 +547,22 @@ const AdminTab = ({
                     className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
                   />
                 </div>
+
+                {newSeasonType === 'ladder' && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <p className="text-sm text-blue-700">
+                      <strong>Ladder Season:</strong> For internal club competitions with ranking system
+                    </p>
+                  </div>
+                )}
+
+                {newSeasonType === 'league' && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-md p-3">
+                    <p className="text-sm text-emerald-700">
+                      <strong>League Season:</strong> For matches against external clubs
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
@@ -541,6 +579,7 @@ const AdminTab = ({
                     setShowCreateSeason(false);
                     setNewSeasonName('');
                     setNewSeasonStartDate('');
+                    setNewSeasonType('ladder');
                   }}
                   disabled={loading}
                   className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 disabled:opacity-50 transition-colors"
