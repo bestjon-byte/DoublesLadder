@@ -7,6 +7,7 @@ import UserRoleModal from '../Modals/UserRoleModal';
 import AddToLadderModal from '../Modals/AddToLadderModal';
 import DeleteSeasonModal from '../Modals/DeleteSeasonModal';
 import DeleteUserModal from '../Modals/DeleteUserModal';
+import LeagueMatchImporter from './LeagueMatchImporter';
 
 const AdminTab = ({ 
   users, 
@@ -40,6 +41,7 @@ const AdminTab = ({
   const [showAddToLadderModal, setShowAddToLadderModal] = useState(false);
   const [showDeleteSeasonModal, setShowDeleteSeasonModal] = useState(false);
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
+  const [showLeagueImporter, setShowLeagueImporter] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -218,6 +220,25 @@ const AdminTab = ({
               className="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm"
             >
               Add Players
+            </button>
+          </div>
+
+          {/* League Match Importer */}
+          <div className="border border-indigo-200 rounded-lg p-4 hover:bg-indigo-50 transition-colors">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="bg-indigo-100 p-2 rounded-full">
+                <Calendar className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">League Import</h4>
+                <p className="text-xs text-gray-500">Import match screenshots</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowLeagueImporter(true)}
+              className="w-full bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 transition-colors text-sm"
+            >
+              Import Matches
             </button>
           </div>
 
@@ -485,6 +506,27 @@ const AdminTab = ({
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* League Match Importer Modal */}
+      {showLeagueImporter && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-5/6 flex flex-col">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">League Match Importer</h3>
+              <button
+                onClick={() => setShowLeagueImporter(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <span className="sr-only">Close</span>
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <LeagueMatchImporter />
             </div>
           </div>
         </div>
