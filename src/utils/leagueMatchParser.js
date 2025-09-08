@@ -46,11 +46,10 @@ export const parseLeagueMatchData = (rawText) => {
 
     // Parse player pairs and match results
     const pairs = [];
-    let rubberIndex = 0;
-    
-    // Look for score patterns to identify rubbers
     const scorePattern = /(\d+)\s*-\s*(\d+)/g;
     
+    // Find all lines with scores (3 rubber scores per line)
+    const scoreLines = [];
     for (let i = currentLineIndex; i < lines.length; i++) {
       const line = lines[i];
       
@@ -59,55 +58,119 @@ export const parseLeagueMatchData = (rawText) => {
         break;
       }
       
-      // Look for score lines (containing multiple "X - Y" patterns)
       const scores = [...line.matchAll(scorePattern)];
-      
       if (scores.length >= 3) {
-        // This line contains rubber scores
-        const rubber1 = { home: parseInt(scores[0][1]), away: parseInt(scores[0][2]) };
-        const rubber2 = { home: parseInt(scores[1][1]), away: parseInt(scores[1][2]) };
-        const rubber3 = { home: parseInt(scores[2][1]), away: parseInt(scores[2][2]) };
-        
-        // Look for total scores (next two numbers after the rubber scores)
-        const remainingText = line.substring(scores[2].index + scores[2][0].length);
-        const totalMatch = remainingText.match(/(\d+)\s+(\d+)/);
-        
-        let totalHome = 0, totalAway = 0;
-        if (totalMatch) {
-          totalHome = parseInt(totalMatch[1]);
-          totalAway = parseInt(totalMatch[2]);
+        scoreLines.push({ lineIndex: i, line: line, scores: scores });
+      }
+    }
+    
+    // For each score line, find the corresponding player names
+    for (let scoreLineIndex = 0; scoreLineIndex < scoreLines.length; scoreLineIndex++) {
+      const { lineIndex, line, scores } = scoreLines[scoreLineIndex];
+      
+      // Parse rubber scores
+      const rubber1 = { home: parseInt(scores[0][1]), away: parseInt(scores[0][2]) };
+      const rubber2 = { home: parseInt(scores[1][1]), away: parseInt(scores[1][2]) };
+      const rubber3 = { home: parseInt(scores[2][1]), away: parseInt(scores[2][2]) };
+      
+      // Look for total scores
+      const remainingText = line.substring(scores[2].index + scores[2][0].length);
+      const totalMatch = remainingText.match(/(\d+)\s+(\d+)/);
+      
+      let totalHome = 0, totalAway = 0;
+      if (totalMatch) {
+        totalHome = parseInt(totalMatch[1]);
+        totalAway = parseInt(totalMatch[2]);
+      }
+      
+      // Extract player names from the lines before the score line
+      // Look for pattern: Player names appear in lines before scores
+      let homePlayer1 = '', homePlayer2 = '', awayPlayer1 = '', awayPlayer2 = '';
+      
+      // Start from a few lines before the score line and work backwards
+      const startSearchIndex = Math.max(currentLineIndex, lineIndex - 6);
+      const playerLines = [];
+      
+      for (let j = startSearchIndex; j < lineIndex; j++) {
+        const playerLine = lines[j];
+        if (playerLine && !playerLine.includes('-') && !scorePattern.test(playerLine) && 
+            !playerLine.includes('GF') && !playerLine.includes('GA') &&
+            playerLine.trim().length > 0) {
+          playerLines.push(playerLine.trim());
         }
-        
-        // Find player names - look backwards from score line
-        let homePlayer1 = '', homePlayer2 = '', awayPlayer1 = '', awayPlayer2 = '';
-        
-        // Try to extract player names from lines before the scores
-        for (let j = Math.max(0, i - 3); j < i; j++) {
-          const playerLine = lines[j];
-          if (playerLine && !playerLine.includes('-') && !scorePattern.test(playerLine)) {
-            const names = playerLine.split(/\s{2,}/).filter(name => name.trim());
-            if (names.length >= 2) {
-              if (!homePlayer1) {
-                [homePlayer1, awayPlayer1] = names;
-              } else if (!homePlayer2) {
-                [homePlayer2, awayPlayer2] = names;
-              }
+      }
+      
+      // Try different strategies to extract player names
+      // Strategy 1: Look for lines with multiple names separated by whitespace
+      for (const playerLine of playerLines.slice(-4)) { // Take last 4 potential player lines
+        if (playerLine.includes('    ') || playerLine.includes('\t')) {
+          // Line contains multiple names separated by significant whitespace
+          const parts = playerLine.split(/\s{2,}/).filter(part => part.trim());
+          if (parts.length >= 2) {
+            if (!homePlayer1) {
+              homePlayer1 = parts[0].trim();
+              awayPlayer1 = parts[1].trim();
+            } else if (!homePlayer2) {
+              homePlayer2 = parts[0].trim();
+              awayPlayer2 = parts[1].trim();
+              break; // We have both pairs
             }
           }
         }
-        
-        pairs.push({
-          pairNumber: pairs.length + 1,
-          homePlayer1: homePlayer1 || `Player ${pairs.length * 2 + 1}`,
-          homePlayer2: homePlayer2 || `Player ${pairs.length * 2 + 2}`,
-          awayPlayer1: awayPlayer1 || `Player ${pairs.length * 2 + 3}`,
-          awayPlayer2: awayPlayer2 || `Player ${pairs.length * 2 + 4}`,
-          rubbers: [rubber1, rubber2, rubber3],
-          totalGames: { home: totalHome, away: totalAway }
-        });
-        
-        rubberIndex++;
       }
+      
+      // Strategy 2: If we didn't get players from whitespace separation, try sequential lines
+      if (!homePlayer1 || !homePlayer2) {
+        // Reset and try sequential approach
+        homePlayer1 = homePlayer2 = awayPlayer1 = awayPlayer2 = '';
+        
+        const candidateLines = playerLines.slice(-6).filter(line => 
+          line && line.trim().length > 0 && 
+          !line.toLowerCase().includes('team') &&
+          !line.toLowerCase().includes('club')
+        );
+        
+        // Look for pairs of names in the format of your example
+        let pairCount = 0;
+        for (let k = 0; k < candidateLines.length && pairCount < 2; k++) {
+          const line = candidateLines[k];
+          
+          // Try splitting by significant whitespace first
+          let parts = line.split(/\s{4,}/).filter(part => part.trim());
+          
+          // If no significant whitespace, try tabs
+          if (parts.length < 2) {
+            parts = line.split(/\t+/).filter(part => part.trim());
+          }
+          
+          // If still no luck, split by multiple spaces
+          if (parts.length < 2) {
+            parts = line.split(/\s{2,}/).filter(part => part.trim());
+          }
+          
+          if (parts.length >= 2) {
+            if (pairCount === 0) {
+              homePlayer1 = parts[0].trim();
+              awayPlayer1 = parts[1].trim();
+              pairCount++;
+            } else if (pairCount === 1) {
+              homePlayer2 = parts[0].trim();
+              awayPlayer2 = parts[1].trim();
+              pairCount++;
+            }
+          }
+        }
+      }
+      
+      pairs.push({
+        pairNumber: pairs.length + 1,
+        homePlayer1: homePlayer1 || `Home Player ${pairs.length * 2 + 1}`,
+        homePlayer2: homePlayer2 || `Home Player ${pairs.length * 2 + 2}`,
+        awayPlayer1: awayPlayer1 || `Away Player ${pairs.length * 2 + 1}`,
+        awayPlayer2: awayPlayer2 || `Away Player ${pairs.length * 2 + 2}`,
+        rubbers: [rubber1, rubber2, rubber3],
+        totalGames: { home: totalHome, away: totalAway }
+      });
     }
     
     // If we couldn't parse pairs properly, try a different approach
@@ -179,5 +242,7 @@ Keigan Freeman Hacker    6 - 6    5 - 7    11 - 1    22    14
 Market Weighton    8.5    3.5    Cawood 2
 67    41`;
 
-  return parseLeagueMatchData(exampleText);
+  const result = parseLeagueMatchData(exampleText);
+  console.log('Parse Result:', JSON.stringify(result, null, 2));
+  return result;
 };
