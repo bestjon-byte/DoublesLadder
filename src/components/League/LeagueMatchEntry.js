@@ -2,10 +2,11 @@
 // This component handles entering results for league matches (9 rubbers)
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Save, AlertCircle, Users, Calendar, Trophy } from 'lucide-react';
+import { X, Plus, Save, AlertCircle, Users, Calendar, Trophy, FileText } from 'lucide-react';
 import { validateLeagueMatchRubbers, generateLeagueRubberStructure } from '../../utils/helpers';
 import { getExternalClubs, searchExternalPlayers, createExternalPlayer } from '../../utils/externalPlayerManager';
 import { createLeagueMatch, submitLeagueMatchResults } from '../../utils/leagueMatchManager';
+import { parseLeagueMatchData } from '../../utils/leagueMatchParser';
 
 const LeagueMatchEntry = ({ 
   isOpen, 
@@ -34,6 +35,8 @@ const LeagueMatchEntry = ({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState([]);
   const [step, setStep] = useState(1); // 1: Match Details, 2: Rubber Results
+  const [showParser, setShowParser] = useState(false);
+  const [parseText, setParseText] = useState('');
 
   // Initialize rubber structure
   useEffect(() => {
@@ -139,6 +142,70 @@ const LeagueMatchEntry = ({
     const updatedRubbers = [...rubbers];
     updatedRubbers[index] = { ...updatedRubbers[index], [field]: value };
     setRubbers(updatedRubbers);
+  };
+
+  // Parse league match data from text
+  const handleParseData = async () => {
+    if (!parseText.trim()) {
+      alert('Please paste the league match data first');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const parseResult = parseLeagueMatchData(parseText);
+      
+      if (!parseResult.success) {
+        alert(`Error parsing data: ${parseResult.error}`);
+        return;
+      }
+
+      const { data } = parseResult;
+      
+      // Update match data
+      if (data.matchDate) {
+        setMatchData(prev => ({
+          ...prev,
+          match_date: data.matchDate,
+          opponent_club: data.awayTeam === 'Cawood 2' || data.awayTeam === 'Cawood' ? data.homeTeam : data.awayTeam
+        }));
+      }
+
+      // Update rubber data with parsed results
+      if (data.pairs && data.pairs.length > 0) {
+        const updatedRubbers = rubbers.map((rubber, index) => {
+          const pairIndex = Math.floor(index / 3);
+          const rubberIndex = index % 3;
+          
+          if (data.pairs[pairIndex] && data.pairs[pairIndex].rubbers[rubberIndex]) {
+            const parsedRubber = data.pairs[pairIndex].rubbers[rubberIndex];
+            const parsedPair = data.pairs[pairIndex];
+            
+            return {
+              ...rubber,
+              opponent_player1_name: rubberIndex === 0 ? parsedPair.awayPlayer1 : rubber.opponent_player1_name,
+              opponent_player2_name: rubberIndex === 0 ? parsedPair.awayPlayer2 : rubber.opponent_player2_name,
+              cawood_games_won: parsedRubber.home.toString(),
+              opponent_games_won: parsedRubber.away.toString()
+            };
+          }
+          return rubber;
+        });
+        
+        setRubbers(updatedRubbers);
+      }
+
+      // Close parser and move to rubber entry
+      setShowParser(false);
+      setParseText('');
+      setStep(2);
+      alert('Match data parsed successfully! Please review and complete the remaining fields.');
+      
+    } catch (error) {
+      alert(`Error parsing data: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Validate and submit match
@@ -251,6 +318,54 @@ const LeagueMatchEntry = ({
           {/* Step 1: Match Details */}
           {step === 1 && (
             <div className="p-6 space-y-6">
+              {/* Parse Data Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-medium text-blue-900">Quick Data Entry</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowParser(!showParser)}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    {showParser ? 'Hide Parser' : 'Parse from Website'}
+                  </button>
+                </div>
+                
+                {showParser && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-blue-700">
+                      Copy and paste match results from the league website to auto-fill most fields:
+                    </p>
+                    <textarea
+                      value={parseText}
+                      onChange={(e) => setParseText(e.target.value)}
+                      placeholder="Paste league match results here (e.g., from website)..."
+                      className="w-full h-32 px-3 py-2 border border-blue-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleParseData}
+                        disabled={!parseText.trim() || loading}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                      >
+                        Parse Data
+                      </button>
+                      <button
+                        onClick={() => {
+                          setParseText('');
+                          setShowParser(false);
+                        }}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
