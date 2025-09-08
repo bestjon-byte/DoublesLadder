@@ -8,7 +8,7 @@ export const useSeasonManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch all seasons
+  // Fetch all seasons (NEW: includes league expansion support)
   const fetchSeasons = useCallback(async () => {
     try {
       setLoading(true);
@@ -23,28 +23,32 @@ export const useSeasonManager = () => {
 
       if (error) throw error;
 
-      // Process the data to add counts and matches
+      // Process the data to add counts, matches, and league info
       const processedSeasons = data?.map(season => ({
         ...season,
         player_count: season.season_players?.[0]?.count || 0,
         match_count: season.matches?.length || 0,
-        matches: season.matches || [] // Include actual matches data
+        matches: season.matches || [],
+        // NEW: Parse league_info JSON and add season type
+        season_type: season.season_type || 'ladder',
+        league_info: season.league_info || {},
+        // NEW: Helper properties for UI display
+        display_name: season.name + (season.season_type === 'league' ? ` (${season.season_type})` : ''),
+        is_league: season.season_type === 'league'
       })) || [];
-
-      // Processed seasons with player counts and matches data
 
       setSeasons(processedSeasons);
       
-      // Find and set active season
-      const active = processedSeasons.find(s => s.status === 'active');
-      setActiveSeason(active);
+      // NEW: Find all active seasons (multiple allowed now)
+      const activeSeasons = processedSeasons.filter(s => s.status === 'active');
       
-      // Set active season (status === 'active')
+      // Keep track of the "primary" active season for backward compatibility
+      const primaryActive = activeSeasons.length > 0 ? activeSeasons[0] : null;
+      setActiveSeason(primaryActive);
       
-      // Set selected season to active if none selected  
-      if (!selectedSeason && active) {
-        setSelectedSeason(active);
-        // Auto-selected active season as default
+      // Set selected season to primary active if none selected  
+      if (!selectedSeason && primaryActive) {
+        setSelectedSeason(primaryActive);
       }
 
       return processedSeasons;
@@ -57,13 +61,14 @@ export const useSeasonManager = () => {
     }
   }, [selectedSeason]);
 
-  // Create new season
+  // Create new season (NEW: supports league seasons and multiple active seasons)
   const createNewSeason = useCallback(async (seasonData) => {
     try {
       setLoading(true);
       
-      // 1. Mark current season as completed
-      if (activeSeason) {
+      // NEW: Don't auto-complete existing seasons - allow multiple active seasons
+      // Only complete if explicitly requested for ladder seasons
+      if (seasonData.completeExistingSeason && activeSeason && seasonData.season_type === 'ladder') {
         await supabase
           .from('seasons')
           .update({ 
@@ -73,21 +78,24 @@ export const useSeasonManager = () => {
           .eq('id', activeSeason.id);
       }
 
-      // 2. Create new season
+      // Create new season with league expansion support
       const { data: newSeason, error: seasonError } = await supabase
         .from('seasons')
         .insert({
           name: seasonData.name,
           start_date: seasonData.start_date,
-          status: 'active'
+          status: 'active',
+          // NEW: League expansion fields
+          season_type: seasonData.season_type || 'ladder',
+          league_info: seasonData.league_info || {}
         })
         .select()
         .single();
 
       if (seasonError) throw seasonError;
 
-      // 3. Copy players from previous season if requested
-      if (seasonData.carryOverPlayers && activeSeason) {
+      // Copy players from previous season if requested (only for ladder seasons)
+      if (seasonData.carryOverPlayers && seasonData.season_type === 'ladder' && activeSeason) {
         const { data: previousPlayers, error: playersError } = await supabase
           .from('season_players')
           .select('*')
@@ -191,17 +199,40 @@ export const useSeasonManager = () => {
     return () => window.removeEventListener('refreshSeasonData', handleRefreshSeasonData);
   }, [fetchSeasons]);
 
+  // NEW: Get active seasons (multiple allowed now)
+  const getActiveSeasons = useCallback(() => {
+    return seasons.filter(s => s.status === 'active');
+  }, [seasons]);
+
+  // NEW: Get seasons by type
+  const getSeasonsByType = useCallback((type) => {
+    return seasons.filter(s => s.season_type === type);
+  }, [seasons]);
+
+  // NEW: Check if season is league type
+  const isLeagueSeason = useCallback((season) => {
+    return season?.season_type === 'league';
+  }, []);
+
   return {
     seasons,
     activeSeason,
     selectedSeason,
     loading,
     error,
+    // NEW: Additional data for league expansion
+    activeSeasons: getActiveSeasons(),
+    ladderSeasons: getSeasonsByType('ladder'),
+    leagueSeasons: getSeasonsByType('league'),
     actions: {
       createNewSeason,
       completeSeason,
       setSelectedSeason,
-      fetchSeasons
+      fetchSeasons,
+      // NEW: Helper functions
+      getActiveSeasons,
+      getSeasonsByType,
+      isLeagueSeason
     }
   };
 };

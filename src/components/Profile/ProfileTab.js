@@ -141,7 +141,9 @@ const ProfileTab = ({
                 >
                   <option value="">Select a season...</option>
                   {seasons.map(season => (
-                    <option key={season.id} value={season.id}>{season.name}</option>
+                    <option key={season.id} value={season.id}>
+                      {season.name} ({season.season_type === 'league' ? 'League' : 'Ladder'})
+                    </option>
                   ))}
                 </select>
               )}

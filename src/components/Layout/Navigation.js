@@ -5,7 +5,7 @@ import { haptics } from '../../utils/haptics';
 
 const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers }) => {
   const tabs = [
-    { id: 'ladder', icon: Trophy, label: 'Ladder', show: true },
+    { id: 'ladder', icon: Trophy, label: 'League', show: true }, // RENAMED: Ladder → League
     { id: 'matches', icon: Calendar, label: 'Matches', show: true },
     { 
       id: 'profile', 

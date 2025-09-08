@@ -1,10 +1,13 @@
-// src/components/Ladder/LadderTab.js
+// src/components/Ladder/LadderTab.js - RENAMED to support League expansion
 import React from 'react';
-import { getLadderData, getRankMovementDisplay } from '../../utils/helpers';
+import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo, formatLeagueStats } from '../../utils/helpers';
 
 const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect }) => {
-  const ladderData = getLadderData(users, selectedSeason);
+  // NEW: Use unified ranking data for both ladder and league seasons
+  const rankingData = getUnifiedRankingData(users, selectedSeason);
   const isSeasonCompleted = selectedSeason?.status === 'completed';
+  const isLeagueSeason = selectedSeason?.season_type === 'league';
+  const seasonInfo = getSeasonDisplayInfo(selectedSeason);
 
   const getRankIcon = (rank) => {
     if (rank === 1) return '🏆';
@@ -25,12 +28,20 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
+      {/* Header - NEW: Dynamic based on season type */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            {selectedSeason?.name || 'Current'} Ladder
-          </h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+              {seasonInfo.title} {isLeagueSeason ? 'League' : 'Ladder'}
+            </h2>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${seasonInfo.badgeColor}`}>
+              {seasonInfo.badge}
+            </span>
+          </div>
+          <p className="text-sm text-gray-600">
+            {seasonInfo.subtitle}
+          </p>
           {isSeasonCompleted && (
             <p className="text-sm text-blue-600 mt-1">
               🏆 This season has been completed
@@ -52,15 +63,15 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
         )}
       </div>
 
-      {ladderData.length === 0 ? (
+      {rankingData.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
-          No players in ladder yet
+          No players in {isLeagueSeason ? 'league' : 'ladder'} yet
         </div>
       ) : (
         <>
           {/* Mobile Card View */}
           <div className="block sm:hidden space-y-3">
-            {ladderData.map((player, index) => {
+            {rankingData.map((player, index) => {
               const isCurrentUser = player.id === currentUser?.id;
               const winPercentage = getWinPercentage(player);
               const { rankIcon, movement } = getRankWithMovement(player);
@@ -99,7 +110,9 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                   
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-xs text-gray-500 uppercase font-medium">Matches</div>
+                      <div className="text-xs text-gray-500 uppercase font-medium">
+                        {isLeagueSeason ? 'Rubbers' : 'Matches'}
+                      </div>
                       <div className="text-sm font-semibold text-gray-900">
                         {player.matches_won || 0}/{player.matches_played || 0}
                       </div>
@@ -130,13 +143,15 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matches</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {isLeagueSeason ? 'Rubbers' : 'Matches'}
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Games</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win %</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {ladderData.map((player, index) => {
+                  {rankingData.map((player, index) => {
                     const isCurrentUser = player.id === currentUser?.id;
                     const winPercentage = getWinPercentage(player);
                     const { rankIcon, movement } = getRankWithMovement(player);

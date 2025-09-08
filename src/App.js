@@ -8,7 +8,7 @@ import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/s
 // Components
 import AuthScreen from './components/Auth/AuthScreen';
 import Navigation from './components/Layout/Navigation';
-import LadderTab from './components/Ladder/LadderTab';
+import LeagueTab from './components/Ladder/LadderTab'; // RENAMED: Will be moved to League/LeagueTab later
 import MatchesTab from './components/Matches/MatchesTab';
 import ProfileTab from './components/Profile/ProfileTab';
 import AvailabilityTab from './components/Availability/AvailabilityTab';
@@ -238,7 +238,7 @@ const CawoodTennisApp = () => {
         
         <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-6">
           {activeTab === 'ladder' && (
-            <LadderTab 
+            <LeagueTab 
               currentUser={user}
               users={ladderPlayers} // CHANGED: Use ladderPlayers
               updateRankings={actions?.updateRankings || (() => alert('Update rankings not available'))}
