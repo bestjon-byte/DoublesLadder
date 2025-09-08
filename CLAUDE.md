@@ -1,10 +1,10 @@
-# Cawood Tennis App - Project Context
-*Auto-updated by Claude Code startup hook on 2025-09-08 08:57:16*
+# Tennis Ladder App - Project Context
+*Auto-updated by Claude Code startup hook on 2025-09-08 17:15:05*
 
 ## Project Overview
-- **Name**: Cawood Tennis App (rebranded from Tennis Ladder App)
-- **Type**: Web application for managing tennis competitions (ladders and leagues)
-- **Current Status**: Production (v1.0.6) - Recently rebranded, League expansion planned
+- **Name**: Tennis Ladder App
+- **Type**: Web application for managing tennis ladder competitions
+- **Current Status**: In development
 - **Framework**: "react"
 
 ## Code Location
@@ -50,41 +50,15 @@
 - **Access Token**: Configured in .mcp.json
 
 ## Recent Work
-- **v1.0.6 Rebranding**: Complete rebrand from "Tennis Ladder App" to "Cawood Tennis App"
-  - Updated all titles, metadata, and branding while preserving ladder functionality
-  - Login screen now shows "Cawood Tennis Club" without "Doubles Ladder" subtitle
-  - Component renamed from `TennisLadderApp` to `CawoodTennisApp`
 - Database schema design with multi-season support
 - Authentication system implementation
 - Match scheduling and result tracking
 
-## Planned League Expansion (Major Feature)
-**Full specification available in: `/LEAGUE_EXPANSION_SPEC.md`**
-
-### Key Expansion Goals:
-1. **Multi-Season Support**: Multiple concurrent active seasons (not just one)
-2. **League Tab**: Rename "Ladder Tab" to "League Tab" supporting both formats
-3. **External League Matches**: Track Cawood members playing in local leagues
-   - 3 Cawood pairs vs 3 opponent pairs
-   - 9 rubbers per match (each pair plays 3 rubbers of 12 games)
-   - Track external club players (non-members) for stats/nemesis features
-
-### Implementation Phases:
-- **Phase 1**: Database & backend changes (multi-season, league match structure)
-- **Phase 2**: UI components (league match entry, enhanced displays)
-- **Phase 3**: Integration & testing (stats, admin tools, validation)
-
-### Database Schema Additions Needed:
-- `seasons.season_type` ('ladder'/'league') and `seasons.status`
-- `external_players` table for opponent club players
-- `league_match_rubbers` table for detailed match tracking
-- Enhanced match fixtures for team info (1sts/2nds) and opponent clubs
-
 ## Next Steps
-- Begin League Expansion Phase 1 (use LEAGUE_EXPANSION_SPEC.md as implementation guide)
-- Complete multi-season backend support
-- Implement external player management
-- Create league match entry system
+- Complete frontend implementation
+- Add match scoring interface
+- Implement ladder ranking algorithms
+- Add email notifications
 
 ---
 *This file is automatically updated by Claude Code startup hooks to provide current project context.*
