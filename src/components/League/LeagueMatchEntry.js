@@ -7,6 +7,7 @@ import { validateLeagueMatchRubbers, generateLeagueRubberStructure } from '../..
 import { getExternalClubs, searchExternalPlayers, createExternalPlayer } from '../../utils/externalPlayerManager';
 import { createLeagueMatch, submitLeagueMatchResults } from '../../utils/leagueMatchManager';
 import { parseLeagueMatchData } from '../../utils/leagueMatchParser';
+import { parseLeagueMatchFromURL } from '../../utils/leagueURLParser';
 
 const LeagueMatchEntry = ({ 
   isOpen, 
@@ -37,6 +38,8 @@ const LeagueMatchEntry = ({
   const [step, setStep] = useState(1); // 1: Match Details, 2: Rubber Results
   const [showParser, setShowParser] = useState(false);
   const [parseText, setParseText] = useState('');
+  const [parseURL, setParseURL] = useState('');
+  const [parseMode, setParseMode] = useState('url'); // 'text' or 'url'
 
   // Initialize rubber structure
   useEffect(() => {
@@ -144,16 +147,27 @@ const LeagueMatchEntry = ({
     setRubbers(updatedRubbers);
   };
 
-  // Parse league match data from text
+  // Parse league match data from text or URL
   const handleParseData = async () => {
-    if (!parseText.trim()) {
+    if (parseMode === 'text' && !parseText.trim()) {
       alert('Please paste the league match data first');
+      return;
+    }
+    
+    if (parseMode === 'url' && !parseURL.trim()) {
+      alert('Please enter the league match URL first');
       return;
     }
 
     try {
       setLoading(true);
-      const parseResult = parseLeagueMatchData(parseText);
+      
+      let parseResult;
+      if (parseMode === 'url') {
+        parseResult = await parseLeagueMatchFromURL(parseURL);
+      } else {
+        parseResult = parseLeagueMatchData(parseText);
+      }
       
       if (!parseResult.success) {
         alert(`Error parsing data: ${parseResult.error}`);
@@ -198,6 +212,7 @@ const LeagueMatchEntry = ({
       // Close parser and move to rubber entry
       setShowParser(false);
       setParseText('');
+      setParseURL('');
       setStep(2);
       alert('Match data parsed successfully! Please review and complete the remaining fields.');
       
@@ -334,27 +349,73 @@ const LeagueMatchEntry = ({
                 </div>
                 
                 {showParser && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-blue-700">
-                      Copy and paste match results from the league website to auto-fill most fields:
-                    </p>
-                    <textarea
-                      value={parseText}
-                      onChange={(e) => setParseText(e.target.value)}
-                      placeholder="Paste league match results here (e.g., from website)..."
-                      className="w-full h-32 px-3 py-2 border border-blue-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    />
+                  <div className="space-y-4">
+                    {/* Parse Mode Toggle */}
+                    <div className="flex space-x-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          value="url"
+                          checked={parseMode === 'url'}
+                          onChange={(e) => setParseMode(e.target.value)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm font-medium text-blue-700">From URL (Recommended)</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          value="text"
+                          checked={parseMode === 'text'}
+                          onChange={(e) => setParseMode(e.target.value)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm font-medium text-blue-700">From Text</span>
+                      </label>
+                    </div>
+
+                    {parseMode === 'url' ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-blue-700">
+                          Enter the York Men's Tennis League match URL to automatically fetch all data:
+                        </p>
+                        <input
+                          type="url"
+                          value={parseURL}
+                          onChange={(e) => setParseURL(e.target.value)}
+                          placeholder="https://www.yorkmenstennisleague.co.uk/fixtures/339"
+                          className="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        />
+                        <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                          💡 <strong>Example:</strong> https://www.yorkmenstennisleague.co.uk/fixtures/339
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-blue-700">
+                          Copy and paste match results from the league website:
+                        </p>
+                        <textarea
+                          value={parseText}
+                          onChange={(e) => setParseText(e.target.value)}
+                          placeholder="Paste league match results here..."
+                          className="w-full h-32 px-3 py-2 border border-blue-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        />
+                      </div>
+                    )}
+
                     <div className="flex space-x-2">
                       <button
                         onClick={handleParseData}
-                        disabled={!parseText.trim() || loading}
+                        disabled={(parseMode === 'url' ? !parseURL.trim() : !parseText.trim()) || loading}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
                       >
-                        Parse Data
+                        {loading ? 'Parsing...' : `Parse ${parseMode === 'url' ? 'URL' : 'Text'}`}
                       </button>
                       <button
                         onClick={() => {
                           setParseText('');
+                          setParseURL('');
                           setShowParser(false);
                         }}
                         className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
