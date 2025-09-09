@@ -116,11 +116,6 @@ const parseStructuredData = (dataLines, awayTeamHeaderIndex, homeTeam, awayTeam)
   for (let i = awayTeamHeaderIndex + 1; i < dataLines.length; i++) {
     const line = dataLines[i].trim();
     
-    // Stop when we hit "GF GA" 
-    if (line.includes('GF') && line.includes('GA')) {
-      break;
-    }
-    
     // Stop if we see score patterns
     if (line.match(/\d+\s*-\s*\d+/)) {
       break;
@@ -135,16 +130,29 @@ const parseStructuredData = (dataLines, awayTeamHeaderIndex, homeTeam, awayTeam)
       cleanLine = cleanLine.substring(homeTeam.length).trim();
     }
     
+    // Remove "GF GA" if present but continue processing the line
+    cleanLine = cleanLine.replace(/GF\s*GA.*$/, '').trim();
+    
     // Split by significant whitespace (4+ spaces or tabs)
     const names = cleanLine.split(/\s{4,}|\t+/).filter(name => name.trim().length > 0);
     
     // Add all names found on this line
     names.forEach(name => {
       const cleanName = name.trim();
-      if (cleanName && !cleanName.includes('GF') && !cleanName.includes('GA')) {
+      if (cleanName && cleanName.length > 1) {
         awayPlayers.push(cleanName);
       }
     });
+    
+    // Also check if this line has a single name (like "Mark Bottomley" alone)
+    if (names.length === 0 && cleanLine && !cleanLine.includes('GF') && !cleanLine.includes('GA')) {
+      awayPlayers.push(cleanLine);
+    }
+    
+    // Stop after we hit the line with "GF GA"
+    if (line.includes('GF') && line.includes('GA')) {
+      break;
+    }
   }
   
   // Group away players into pairs
