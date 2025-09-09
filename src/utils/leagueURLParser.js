@@ -1,5 +1,5 @@
-// League Match URL Parser
-// Fetches and parses match data directly from York Men's Tennis League website
+// League Match URL Parser - New Implementation
+// Parses York Men's Tennis League match results from URLs
 
 export const parseLeagueMatchFromURL = async (url) => {
   try {
@@ -8,57 +8,25 @@ export const parseLeagueMatchFromURL = async (url) => {
       throw new Error('Please provide a valid York Men\'s Tennis League URL');
     }
 
-    // Use a CORS proxy to fetch the webpage content
-    // Try multiple proxy services for reliability
-    const corsProxies = [
-      'https://api.codetabs.com/v1/proxy?quest=',
-      'https://cors-anywhere.herokuapp.com/',
-      'https://api.allorigins.win/get?url='
-    ];
+    // Fetch the webpage content
+    const response = await fetch(url);
     
-    let response;
-    let lastError;
-    
-    for (const proxy of corsProxies) {
-      try {
-        const proxyUrl = proxy + encodeURIComponent(url);
-        response = await fetch(proxyUrl);
-        if (response.ok) break;
-      } catch (error) {
-        lastError = error;
-        continue;
+    if (!response.ok) {
+      // Try with a CORS proxy as fallback
+      const corsProxy = 'https://api.allorigins.win/get?url=';
+      const proxyResponse = await fetch(corsProxy + encodeURIComponent(url));
+      
+      if (!proxyResponse.ok) {
+        throw new Error('Failed to fetch match data from URL');
       }
+      
+      const jsonData = await proxyResponse.json();
+      const html = jsonData.contents;
+      return parseHTMLContent(html);
+    } else {
+      const html = await response.text();
+      return parseHTMLContent(html);
     }
-    
-    if (!response || !response.ok) {
-      throw new Error(`Failed to fetch match data. CORS blocked or network error: ${lastError?.message || 'Unknown error'}`);
-    }
-
-    let html = await response.text();
-    
-    // Some proxies return JSON, extract the HTML content
-    try {
-      const jsonResponse = JSON.parse(html);
-      if (jsonResponse.contents) {
-        html = jsonResponse.contents;
-      } else if (jsonResponse.data) {
-        html = jsonResponse.data;
-      }
-    } catch (e) {
-      // Not JSON, use as-is
-    }
-    
-    // Create a DOM parser to parse the HTML
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // Extract match information from the webpage
-    const matchData = extractMatchDataFromHTML(doc);
-
-    return {
-      success: true,
-      data: matchData
-    };
 
   } catch (error) {
     console.error('Error parsing league match from URL:', error);
@@ -70,186 +38,275 @@ export const parseLeagueMatchFromURL = async (url) => {
   }
 };
 
-const extractMatchDataFromHTML = (doc) => {
-  // Extract date and time
-  const dateElement = doc.querySelector('.match-date, .fixture-date, h2, h3');
-  let matchDate = null;
-  let matchTime = null;
+const parseHTMLContent = (html) => {
+  try {
+    // Create a DOM parser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
 
-  if (dateElement) {
-    const dateText = dateElement.textContent;
-    const dateMatch = dateText.match(/(\d{1,2}\s+\w+\s+\d{4})/);
-    const timeMatch = dateText.match(/(\d{1,2}:\d{2})/);
+    // Extract match date and time
+    const { matchDate, matchTime } = extractDateTime(doc);
     
-    if (dateMatch) {
-      const parsedDate = new Date(dateMatch[1]);
-      if (!isNaN(parsedDate.getTime())) {
-        matchDate = parsedDate.toISOString().split('T')[0];
+    // Extract team names
+    const { homeTeam, awayTeam } = extractTeamNames(doc);
+    
+    // Extract the scoring matrix
+    const matchData = extractScoringMatrix(doc, homeTeam, awayTeam);
+
+    return {
+      success: true,
+      data: {
+        matchDate,
+        matchTime,
+        homeTeam,
+        awayTeam,
+        ...matchData
       }
-    }
-    if (timeMatch) {
-      matchTime = timeMatch[1];
-    }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      data: null
+    };
   }
-
-  // Extract team names
-  const teamElements = doc.querySelectorAll('.team-name, .club-name, h2, h3');
-  let homeTeam = '';
-  let awayTeam = '';
-
-  for (const element of teamElements) {
-    const text = element.textContent.trim();
-    if (text.includes('v') || text.includes('vs')) {
-      const teams = text.split(/\s+v[s]?\s+/);
-      if (teams.length === 2) {
-        homeTeam = teams[0].trim();
-        awayTeam = teams[1].trim();
-        break;
-      }
-    }
-  }
-
-  // If we didn't find teams in vs format, look for separate team headings
-  if (!homeTeam || !awayTeam) {
-    const possibleTeams = Array.from(teamElements)
-      .map(el => el.textContent.trim())
-      .filter(text => 
-        text.length > 0 && 
-        !text.includes('Match') && 
-        !text.includes('Result') &&
-        !text.includes(':') &&
-        text.length < 50
-      );
-
-    if (possibleTeams.length >= 2) {
-      homeTeam = possibleTeams[0];
-      awayTeam = possibleTeams[1];
-    }
-  }
-
-  // Extract match results - look for table structure or score patterns
-  const pairs = extractMatchPairs(doc);
-
-  return {
-    matchDate,
-    matchTime,
-    homeTeam: homeTeam || 'Home Team',
-    awayTeam: awayTeam || 'Away Team',
-    pairs,
-    source: 'url'
-  };
 };
 
-const extractMatchPairs = (doc) => {
-  const pairs = [];
+const extractDateTime = (doc) => {
+  // Look for date/time pattern like "27 April 2025 - 10:00"
+  const textContent = doc.body.textContent || '';
+  const dateTimeMatch = textContent.match(/(\d{1,2}\s+\w+\s+\d{4})\s*-\s*(\d{1,2}:\d{2})/);
+  
+  let matchDate = null;
+  let matchTime = null;
+  
+  if (dateTimeMatch) {
+    const [, dateStr, timeStr] = dateTimeMatch;
+    const parsedDate = new Date(dateStr);
+    if (!isNaN(parsedDate.getTime())) {
+      matchDate = parsedDate.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
+    }
+    matchTime = timeStr;
+  }
+  
+  return { matchDate, matchTime };
+};
 
-  // Strategy 1: Look for table structure
+const extractTeamNames = (doc) => {
+  // Look for team names - typically in headings or prominent text
+  const textContent = doc.body.textContent || '';
+  
+  // Pattern 1: Look for "Team A v Team B" or "Team A vs Team B"
+  let homeTeam = '';
+  let awayTeam = '';
+  
+  const vsMatch = textContent.match(/([^v\n]+?)\s+v[s]?\s+([^v\n]+?)(?:\n|$)/i);
+  if (vsMatch) {
+    homeTeam = vsMatch[1].trim();
+    awayTeam = vsMatch[2].trim();
+  }
+  
+  // If not found, look for patterns in the HTML structure
+  if (!homeTeam || !awayTeam) {
+    // Try to find team names from table headers or prominent elements
+    const headings = doc.querySelectorAll('h1, h2, h3, th, .team-name');
+    const teamCandidates = [];
+    
+    headings.forEach(element => {
+      const text = element.textContent.trim();
+      if (text && text.length > 3 && text.length < 50 && 
+          !text.includes('Match') && !text.includes('Result') && 
+          !text.includes('GF') && !text.includes('GA')) {
+        teamCandidates.push(text);
+      }
+    });
+    
+    // Look for Cawood in candidates
+    const cawoodCandidate = teamCandidates.find(name => name.includes('Cawood'));
+    const otherCandidate = teamCandidates.find(name => !name.includes('Cawood') && name !== cawoodCandidate);
+    
+    if (cawoodCandidate && otherCandidate) {
+      // Determine which is home/away based on typical league structure
+      // Usually the non-Cawood team is listed first (home)
+      homeTeam = otherCandidate;
+      awayTeam = cawoodCandidate;
+    }
+  }
+  
+  return { homeTeam, awayTeam };
+};
+
+const extractScoringMatrix = (doc) => {
+  // Look for the table structure containing the scoring matrix
   const tables = doc.querySelectorAll('table');
   
   for (const table of tables) {
+    const matrixData = tryParseTable(table);
+    if (matrixData.success) {
+      return matrixData.data;
+    }
+  }
+  
+  // If no table found, try parsing from structured text
+  return parseFromStructuredText(doc);
+};
+
+const tryParseTable = (table) => {
+  try {
     const rows = table.querySelectorAll('tr');
+    if (rows.length < 4) return { success: false }; // Need header + 3 data rows minimum
     
-    for (const row of rows) {
+    // Extract data from table
+    const homeTeamPairs = [];
+    const awayTeamPairs = [];
+    const scores = [];
+    
+    // Parse table structure
+    let headerRow = null;
+    const dataRows = [];
+    
+    rows.forEach((row, index) => {
       const cells = row.querySelectorAll('td, th');
-      
-      // Look for rows with player names and scores
-      if (cells.length >= 5) {
-        const scorePattern = /(\d+)\s*[-–]\s*(\d+)/g;
-        const rowText = row.textContent;
-        const scores = [...rowText.matchAll(scorePattern)];
-        
-        if (scores.length >= 3) {
-          // This row contains match results
-          const cellTexts = Array.from(cells).map(cell => cell.textContent.trim());
-          
-          // Try to identify player names (usually in first few columns)
-          const playerCells = cellTexts.slice(0, 4).filter(text => 
-            text.length > 0 && 
-            !scorePattern.test(text) &&
-            isNaN(parseInt(text))
-          );
-
-          let homePlayer1 = '', homePlayer2 = '', awayPlayer1 = '', awayPlayer2 = '';
-          
-          if (playerCells.length >= 2) {
-            homePlayer1 = playerCells[0];
-            awayPlayer1 = playerCells[1];
-          }
-          if (playerCells.length >= 4) {
-            homePlayer2 = playerCells[2];
-            awayPlayer2 = playerCells[3];
-          }
-
-          // Extract rubber scores
-          const rubber1 = { home: parseInt(scores[0][1]), away: parseInt(scores[0][2]) };
-          const rubber2 = { home: parseInt(scores[1][1]), away: parseInt(scores[1][2]) };
-          const rubber3 = { home: parseInt(scores[2][1]), away: parseInt(scores[2][2]) };
-
-          pairs.push({
-            pairNumber: pairs.length + 1,
-            homePlayer1: homePlayer1 || `Home Player ${pairs.length * 2 + 1}`,
-            homePlayer2: homePlayer2 || `Home Player ${pairs.length * 2 + 2}`,
-            awayPlayer1: awayPlayer1 || `Away Player ${pairs.length * 2 + 1}`,
-            awayPlayer2: awayPlayer2 || `Away Player ${pairs.length * 2 + 2}`,
-            rubbers: [rubber1, rubber2, rubber3],
-            totalGames: { home: 0, away: 0 }
+      if (cells.length >= 4) { // Need at least team name + 3 scores
+        if (index === 0 || row.querySelector('th')) {
+          headerRow = cells;
+        } else {
+          dataRows.push(cells);
+        }
+      }
+    });
+    
+    if (!headerRow || dataRows.length < 3) {
+      return { success: false };
+    }
+    
+    // Parse header to get away team pairs
+    for (let i = 1; i < headerRow.length - 1; i++) { // Skip first (team name) and last (totals)
+      const cellText = headerRow[i].textContent.trim();
+      if (cellText && !cellText.includes('GF') && !cellText.includes('GA')) {
+        // Parse player names - might be on separate lines
+        const players = parsePlayerNames(cellText);
+        if (players.length >= 2) {
+          awayTeamPairs.push({
+            player1: players[0],
+            player2: players[1]
           });
         }
       }
     }
-  }
-
-  // Strategy 2: Look for div-based structure if no table found
-  if (pairs.length === 0) {
-    const scoreElements = doc.querySelectorAll('*');
     
-    for (const element of scoreElements) {
-      const text = element.textContent;
-      const scorePattern = /(\d+)\s*[-–]\s*(\d+)/g;
-      const scores = [...text.matchAll(scorePattern)];
+    // Parse data rows for home team pairs and scores
+    dataRows.forEach((row, rowIndex) => {
+      if (rowIndex >= 3) return; // Only process first 3 pairs
       
-      if (scores.length >= 3) {
-        // Found a section with 3 scores - this might be a match pair
-        const rubber1 = { home: parseInt(scores[0][1]), away: parseInt(scores[0][2]) };
-        const rubber2 = { home: parseInt(scores[1][1]), away: parseInt(scores[1][2]) };
-        const rubber3 = { home: parseInt(scores[2][1]), away: parseInt(scores[2][2]) };
-
-        // Try to find player names in nearby elements
-        const parent = element.parentElement;
-        const siblings = parent ? Array.from(parent.children) : [];
-        const playerNames = [];
-
-        for (const sibling of siblings) {
-          const siblingText = sibling.textContent.trim();
-          if (siblingText && 
-              !scorePattern.test(siblingText) &&
-              siblingText.length > 2 &&
-              siblingText.length < 30 &&
-              isNaN(parseInt(siblingText))) {
-            playerNames.push(siblingText);
-          }
-        }
-
-        pairs.push({
-          pairNumber: pairs.length + 1,
-          homePlayer1: playerNames[0] || `Home Player ${pairs.length * 2 + 1}`,
-          homePlayer2: playerNames[1] || `Home Player ${pairs.length * 2 + 2}`,
-          awayPlayer1: playerNames[2] || `Away Player ${pairs.length * 2 + 1}`,
-          awayPlayer2: playerNames[3] || `Away Player ${pairs.length * 2 + 2}`,
-          rubbers: [rubber1, rubber2, rubber3],
-          totalGames: { home: 0, away: 0 }
+      const cells = Array.from(row);
+      
+      // First cell contains home team pair names
+      const homeTeamCell = cells[0].textContent.trim();
+      const homePlayers = parsePlayerNames(homeTeamCell);
+      if (homePlayers.length >= 2) {
+        homeTeamPairs.push({
+          player1: homePlayers[0],
+          player2: homePlayers[1]
         });
+      }
+      
+      // Next 3 cells contain scores against away team pairs
+      const rowScores = [];
+      for (let i = 1; i <= 3 && i < cells.length; i++) {
+        const scoreText = cells[i].textContent.trim();
+        const scoreMatch = scoreText.match(/(\d+)\s*-\s*(\d+)/);
+        if (scoreMatch) {
+          rowScores.push({
+            homeScore: parseInt(scoreMatch[1]),
+            awayScore: parseInt(scoreMatch[2])
+          });
+        }
+      }
+      scores.push(rowScores);
+    });
+    
+    return {
+      success: true,
+      data: {
+        homeTeamPairs,
+        awayTeamPairs,
+        scoringMatrix: scores
+      }
+    };
+    
+  } catch (error) {
+    return { success: false };
+  }
+};
+
+const parseFromStructuredText = (doc) => {
+  // Fallback parsing from structured text content
+  const textContent = doc.body.textContent || '';
+  const lines = textContent.split('\n').map(line => line.trim()).filter(line => line);
+  
+  // This would need to be implemented based on the specific text structure
+  // For now, return empty structure
+  return {
+    homeTeamPairs: [],
+    awayTeamPairs: [],
+    scoringMatrix: []
+  };
+};
+
+const parsePlayerNames = (text) => {
+  // Handle different formats of player names
+  // Could be "Player1 Player2" or "Player1\nPlayer2" or other variations
+  
+  // Clean up the text
+  const cleanText = text.replace(/\s+/g, ' ').trim();
+  
+  // Try different splitting strategies
+  let players = [];
+  
+  // Strategy 1: Split by common separators
+  if (cleanText.includes('&')) {
+    players = cleanText.split('&').map(p => p.trim());
+  } else if (cleanText.includes('\n')) {
+    players = cleanText.split('\n').map(p => p.trim()).filter(p => p);
+  } else {
+    // Strategy 2: Split by multiple spaces or assume two names
+    const words = cleanText.split(/\s+/);
+    if (words.length >= 4) {
+      // Assume first two words are player 1, last two are player 2
+      const midPoint = Math.floor(words.length / 2);
+      players = [
+        words.slice(0, midPoint).join(' '),
+        words.slice(midPoint).join(' ')
+      ];
+    } else if (words.length >= 2) {
+      // Try to split by finding where second name starts (capital letter)
+      let splitIndex = -1;
+      for (let i = 2; i < words.length; i++) {
+        if (words[i].charAt(0) === words[i].charAt(0).toUpperCase()) {
+          splitIndex = i;
+          break;
+        }
+      }
+      
+      if (splitIndex > 0) {
+        players = [
+          words.slice(0, splitIndex).join(' '),
+          words.slice(splitIndex).join(' ')
+        ];
       }
     }
   }
-
-  return pairs.slice(0, 3); // Limit to 3 pairs max
+  
+  return players.filter(p => p && p.length > 1);
 };
 
 // Test function for development
 export const testURLParser = async () => {
   const testURL = 'https://www.yorkmenstennisleague.co.uk/fixtures/339';
+  console.log('Testing URL parser...');
   const result = await parseLeagueMatchFromURL(testURL);
-  console.log('URL Parse Result:', JSON.stringify(result, null, 2));
+  console.log('Parse Result:', JSON.stringify(result, null, 2));
   return result;
 };

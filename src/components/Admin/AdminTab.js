@@ -1,15 +1,13 @@
 // src/components/Admin/AdminTab.js - COMPLETE FIXED VERSION
 import React, { useState } from 'react';
-import { Check, Users, ShieldCheck, Trash2, Calendar, Plus, Trophy } from 'lucide-react';
+import { Check, Users, ShieldCheck, Trash2, Calendar, Plus, Globe } from 'lucide-react';
 import ScoreChallengesSection from './ScoreChallengesSection';
 import PlayerMergeModal from './PlayerMergeModal';
 import UserRoleModal from '../Modals/UserRoleModal';
 import AddToLadderModal from '../Modals/AddToLadderModal';
 import DeleteSeasonModal from '../Modals/DeleteSeasonModal';
 import DeleteUserModal from '../Modals/DeleteUserModal';
-import LeagueMatchImporter from './LeagueMatchImporter';
-import LeagueMatchEntry from '../League/LeagueMatchEntry';
-import ExternalPlayerManager from '../League/ExternalPlayerManager';
+import LeagueImportModal from './LeagueImportModal';
 
 const AdminTab = ({ 
   users, 
@@ -45,8 +43,6 @@ const AdminTab = ({
   const [showDeleteSeasonModal, setShowDeleteSeasonModal] = useState(false);
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [showLeagueImporter, setShowLeagueImporter] = useState(false);
-  const [showLeagueMatchEntry, setShowLeagueMatchEntry] = useState(false);
-  const [showExternalPlayerManager, setShowExternalPlayerManager] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -235,62 +231,25 @@ const AdminTab = ({
             </button>
           </div>
 
-          {/* League Match Importer */}
-          <div className="border border-indigo-200 rounded-lg p-4 hover:bg-indigo-50 transition-colors">
+          {/* League Import */}
+          <div className="border border-blue-200 rounded-lg p-4 hover:bg-blue-50 transition-colors">
             <div className="flex items-center space-x-3 mb-3">
-              <div className="bg-indigo-100 p-2 rounded-full">
-                <Calendar className="w-5 h-5 text-indigo-600" />
+              <div className="bg-blue-100 p-2 rounded-full">
+                <Globe className="w-5 h-5 text-blue-600" />
               </div>
               <div>
                 <h4 className="font-semibold text-gray-900">League Import</h4>
-                <p className="text-xs text-gray-500">Import match screenshots</p>
+                <p className="text-xs text-gray-500">Import match from URL</p>
               </div>
             </div>
             <button
               onClick={() => setShowLeagueImporter(true)}
-              className="w-full bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 transition-colors text-sm"
+              className="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
             >
-              Import Matches
+              Import Match
             </button>
           </div>
 
-          {/* League Match Entry */}
-          <div className="border border-emerald-200 rounded-lg p-4 hover:bg-emerald-50 transition-colors">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="bg-emerald-100 p-2 rounded-full">
-                <Trophy className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900">League Match</h4>
-                <p className="text-xs text-gray-500">Enter league match results</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowLeagueMatchEntry(true)}
-              className="w-full bg-emerald-600 text-white px-3 py-2 rounded-md hover:bg-emerald-700 transition-colors text-sm"
-            >
-              Enter Match
-            </button>
-          </div>
-
-          {/* External Player Manager */}
-          <div className="border border-teal-200 rounded-lg p-4 hover:bg-teal-50 transition-colors">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="bg-teal-100 p-2 rounded-full">
-                <Users className="w-5 h-5 text-teal-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900">External Players</h4>
-                <p className="text-xs text-gray-500">Manage opposition players</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowExternalPlayerManager(true)}
-              className="w-full bg-teal-600 text-white px-3 py-2 rounded-md hover:bg-teal-700 transition-colors text-sm"
-            >
-              Manage Players
-            </button>
-          </div>
 
           {/* Merge Players */}
           <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
@@ -592,39 +551,12 @@ const AdminTab = ({
         </div>
       )}
 
-      {/* League Match Importer Modal */}
-      {showLeagueImporter && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-5/6 flex flex-col">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">League Match Importer</h3>
-              <button
-                onClick={() => setShowLeagueImporter(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <span className="sr-only">Close</span>
-                ✕
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto">
-              <LeagueMatchImporter />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* League Match Entry Modal */}
-      <LeagueMatchEntry
-        isOpen={showLeagueMatchEntry}
-        onClose={() => setShowLeagueMatchEntry(false)}
-        seasons={seasons?.filter(s => s.season_type === 'league') || []}
+      {/* League Import Modal */}
+      <LeagueImportModal 
+        isOpen={showLeagueImporter}
+        onClose={() => setShowLeagueImporter(false)}
       />
 
-      {/* External Player Manager Modal */}
-      <ExternalPlayerManager
-        isOpen={showExternalPlayerManager}
-        onClose={() => setShowExternalPlayerManager(false)}
-      />
     </div>
   );
 };
