@@ -42,10 +42,12 @@ const calculateSimilarity = (str1, str2) => {
 };
 
 // Find potential matches for a player name
-export const findPlayerMatches = (playerName, existingPlayers, threshold = 70) => {
+export const findPlayerMatches = (playerName, existingPlayers, threshold = 60) => {
   if (!playerName || !existingPlayers || existingPlayers.length === 0) {
     return [];
   }
+  
+  console.log('Finding matches for:', playerName, 'against', existingPlayers.length, 'players');
   
   const matches = [];
   
@@ -57,15 +59,25 @@ export const findPlayerMatches = (playerName, existingPlayers, threshold = 70) =
     const nameVariations = generateNameVariations(playerName);
     const playerVariations = generateNameVariations(player.name);
     
+    console.log('Checking', playerName, 'vs', player.name);
+    console.log('Name variations:', nameVariations);
+    console.log('Player variations:', playerVariations);
+    console.log('Direct score:', directScore);
+    
     let bestScore = directScore;
     
     // Check all variation combinations
     nameVariations.forEach(variation1 => {
       playerVariations.forEach(variation2 => {
         const score = calculateSimilarity(variation1, variation2);
-        bestScore = Math.max(bestScore, score);
+        if (score > bestScore) {
+          console.log('Better score found:', variation1, 'vs', variation2, '=', score);
+          bestScore = score;
+        }
       });
     });
+    
+    console.log('Best score for', player.name, ':', bestScore);
     
     if (bestScore >= threshold) {
       matches.push({
@@ -79,6 +91,7 @@ export const findPlayerMatches = (playerName, existingPlayers, threshold = 70) =
   // Sort by score (highest first)
   matches.sort((a, b) => b.score - a.score);
   
+  console.log('Final matches:', matches);
   return matches.slice(0, 5); // Return top 5 matches
 };
 
@@ -148,6 +161,18 @@ const generateNameVariations = (name) => {
     // First and last name only
     variations.push(`${words[0]} ${words[words.length - 1]}`);
     variations.push(`${words[0].charAt(0).toUpperCase() + words[0].slice(1)} ${words[words.length - 1].charAt(0).toUpperCase() + words[words.length - 1].slice(1)}`);
+  }
+  
+  // Add just first name variations for partial matches
+  if (words.length >= 1) {
+    variations.push(words[0]); // Just first name
+    variations.push(words[0].charAt(0).toUpperCase() + words[0].slice(1)); // Capitalized first name
+  }
+  
+  // Add just last name if multiple words
+  if (words.length > 1) {
+    variations.push(words[words.length - 1]); // Just last name
+    variations.push(words[words.length - 1].charAt(0).toUpperCase() + words[words.length - 1].slice(1)); // Capitalized last name
   }
   
   // Remove duplicates and return
