@@ -558,6 +558,7 @@ const AdminTab = ({
         isOpen={showLeagueImporter}
         onClose={() => setShowLeagueImporter(false)}
         supabase={supabase}
+        selectedSeason={selectedSeason}
       />
 
     </div>

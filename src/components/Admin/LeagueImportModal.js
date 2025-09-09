@@ -5,7 +5,7 @@ import { parseLeagueMatchFromURL } from '../../utils/leagueURLParser';
 import { parseLeagueMatchFromText } from '../../utils/leagueTextParser';
 import { findPlayerMatches, identifyCawoodPlayers, generateDummyEmail } from '../../utils/playerMatcher';
 
-const LeagueImportModal = ({ isOpen, onClose, supabase }) => {
+const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
   const [mode, setMode] = useState('url'); // 'url' or 'text'
   const [url, setUrl] = useState('');
   const [textData, setTextData] = useState('');
@@ -16,6 +16,7 @@ const LeagueImportModal = ({ isOpen, onClose, supabase }) => {
   const [existingPlayers, setExistingPlayers] = useState([]);
   const [playerMatches, setPlayerMatches] = useState([]);
   const [matchingData, setMatchingData] = useState(null);
+  const [importSuccess, setImportSuccess] = useState(false);
 
   // Fetch existing players on component mount
   useEffect(() => {
@@ -387,6 +388,166 @@ const LeagueImportModal = ({ isOpen, onClose, supabase }) => {
     );
   };
 
+  // Import to database
+  const handleImport = async () => {
+    if (!selectedSeason || !matchingData || !playerMatches || !result || !supabase) {
+      setError('Missing required data for import');
+      return;
+    }
+
+    // Validate season type
+    if (selectedSeason.season_type !== 'league') {
+      setError('League matches can only be imported to league seasons. Please select a league season.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { matchDate, homeTeam, awayTeam, scoringMatrix } = result;
+      const { cawoodPlayers, opponentPlayers, opponentClub, cawoodIsHome } = matchingData;
+
+      // Extract team name (1sts or 2nds) from Cawood team name
+      const cawoodTeamName = cawoodIsHome ? homeTeam : awayTeam;
+      const team = cawoodTeamName.toLowerCase().includes('2') ? '2nds' : '1sts';
+
+      // 1. Create or find the match record
+      const { data: matchRecord, error: matchError } = await supabase
+        .from('matches')
+        .insert({
+          season_id: selectedSeason.id,
+          week_number: 1, // TODO: Calculate based on existing matches
+          match_date: matchDate
+        })
+        .select()
+        .single();
+
+      if (matchError) throw matchError;
+
+      // 2. Create external players for opponents
+      const externalPlayerIds = {};
+      for (const opponentName of opponentPlayers) {
+        const { data: existingExternal } = await supabase
+          .from('external_players')
+          .select('id')
+          .eq('name', opponentName)
+          .eq('club_name', opponentClub)
+          .maybeSingle();
+
+        if (existingExternal) {
+          externalPlayerIds[opponentName] = existingExternal.id;
+        } else {
+          const { data: newExternal, error: externalError } = await supabase
+            .from('external_players')
+            .insert({
+              name: opponentName,
+              club_name: opponentClub
+            })
+            .select('id')
+            .single();
+
+          if (externalError) throw externalError;
+          externalPlayerIds[opponentName] = newExternal.id;
+        }
+      }
+
+      // 3. Create new Cawood players if needed
+      const cawoodPlayerIds = {};
+      for (const match of playerMatches) {
+        if (match.createNew && match.newPlayerData.name.trim()) {
+          // Create new profile
+          const { data: newProfile, error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              name: match.newPlayerData.name,
+              email: match.newPlayerData.email,
+              status: 'approved',
+              role: 'player'
+            })
+            .select('id')
+            .single();
+
+          if (profileError) throw profileError;
+          cawoodPlayerIds[match.parsedName] = newProfile.id;
+        } else if (match.selectedMatch) {
+          cawoodPlayerIds[match.parsedName] = match.selectedMatch.id;
+        }
+      }
+
+      // 4. Create match fixture
+      const cawoodPlayersList = Object.values(cawoodPlayerIds);
+      if (cawoodPlayersList.length !== 6) {
+        throw new Error(`Expected 6 Cawood players, got ${cawoodPlayersList.length}`);
+      }
+
+      const { data: fixture, error: fixtureError } = await supabase
+        .from('match_fixtures')
+        .insert({
+          match_id: matchRecord.id,
+          court_number: 1,
+          game_number: 1,
+          player1_id: cawoodPlayersList[0],
+          player2_id: cawoodPlayersList[1],
+          player3_id: cawoodPlayersList[2],
+          player4_id: cawoodPlayersList[3],
+          pair1_player1_id: cawoodPlayersList[4] || null,
+          pair1_player2_id: cawoodPlayersList[5] || null,
+          match_type: 'league',
+          team: team,
+          opponent_club: opponentClub
+        })
+        .select()
+        .single();
+
+      if (fixtureError) throw fixtureError;
+
+      // 5. Create league match rubbers
+      const cawoodPairs = cawoodIsHome ? result.homeTeamPairs : result.awayTeamPairs;
+      const opponentPairs = cawoodIsHome ? result.awayTeamPairs : result.homeTeamPairs;
+      
+      let rubberNumber = 1;
+      for (let pairIndex = 0; pairIndex < Math.min(cawoodPairs.length, 3); pairIndex++) {
+        const cawoodPair = cawoodPairs[pairIndex];
+        
+        for (let oppPairIndex = 0; oppPairIndex < Math.min(opponentPairs.length, 3); oppPairIndex++) {
+          const opponentPair = opponentPairs[oppPairIndex];
+          const rubber = scoringMatrix[pairIndex]?.[oppPairIndex];
+          
+          if (rubber) {
+            const cawoodGames = cawoodIsHome ? rubber.homeScore : rubber.awayScore;
+            const opponentGames = cawoodIsHome ? rubber.awayScore : rubber.homeScore;
+            
+            const { error: rubberError } = await supabase
+              .from('league_match_rubbers')
+              .insert({
+                match_fixture_id: fixture.id,
+                rubber_number: rubberNumber,
+                cawood_player1_id: cawoodPlayerIds[cawoodPair.player1],
+                cawood_player2_id: cawoodPlayerIds[cawoodPair.player2],
+                opponent_player1_id: externalPlayerIds[opponentPair.player1],
+                opponent_player2_id: externalPlayerIds[opponentPair.player2],
+                cawood_games_won: cawoodGames,
+                opponent_games_won: opponentGames
+              });
+
+            if (rubberError) throw rubberError;
+            rubberNumber++;
+          }
+        }
+      }
+
+      setImportSuccess(true);
+      setStep('success');
+      
+    } catch (err) {
+      console.error('Import error:', err);
+      setError(`Import failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -598,15 +759,79 @@ Market Weighton    8.5    3.5    Cawood 2
           {step === 'match' && renderPlayerMatching()}
 
           {step === 'import' && (
+            <div className="space-y-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <h3 className="font-semibold text-yellow-800">Ready to Import</h3>
+                </div>
+                <div className="text-sm text-yellow-700 space-y-2">
+                  <p><strong>Season:</strong> {selectedSeason?.name} ({selectedSeason?.season_type})</p>
+                  <p><strong>Match:</strong> {result?.homeTeam} vs {result?.awayTeam}</p>
+                  <p><strong>Date:</strong> {result?.matchDate}</p>
+                  <p><strong>Cawood Team:</strong> {matchingData?.cawoodIsHome ? 'Home' : 'Away'} ({matchingData?.cawoodPlayers?.length || 0} players)</p>
+                  <p><strong>Opponent:</strong> {matchingData?.opponentClub} ({matchingData?.opponentPlayers?.length || 0} players)</p>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={() => setStep('match')}
+                  disabled={loading}
+                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                >
+                  ← Back to Matching
+                </button>
+                <button
+                  onClick={handleImport}
+                  disabled={loading || selectedSeason?.season_type !== 'league'}
+                  className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Importing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Import to Database</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 'success' && (
             <div className="text-center py-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Import Implementation</h3>
-              <p className="text-gray-600">Database import functionality coming next!</p>
-              <button
-                onClick={() => setStep('match')}
-                className="mt-4 px-4 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
-              >
-                ← Back to Matching
-              </button>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-green-800 mb-2">Import Successful!</h3>
+                <p className="text-green-700 mb-4">
+                  League match has been imported to the database. All players, rubbers, and results have been saved.
+                </p>
+                <div className="space-y-2 text-sm text-green-600">
+                  <p>✓ Match record created</p>
+                  <p>✓ External players added</p>
+                  <p>✓ League rubbers recorded</p>
+                  <p>✓ Stats will be updated in profiles</p>
+                </div>
+              </div>
+              <div className="mt-6 space-x-3">
+                <button
+                  onClick={handleReset}
+                  className="px-4 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
+                >
+                  Import Another Match
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           )}
         </div>
