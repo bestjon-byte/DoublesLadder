@@ -8,25 +8,60 @@ export const parseLeagueMatchFromURL = async (url) => {
       throw new Error('Please provide a valid York Men\'s Tennis League URL');
     }
 
-    // Fetch the webpage content
-    const response = await fetch(url);
+    // Use CORS proxy directly since direct fetch will be blocked
+    const corsProxies = [
+      'https://api.allorigins.win/get?url=',
+      'https://cors-anywhere.herokuapp.com/',
+      'https://api.codetabs.com/v1/proxy?quest='
+    ];
     
-    if (!response.ok) {
-      // Try with a CORS proxy as fallback
-      const corsProxy = 'https://api.allorigins.win/get?url=';
-      const proxyResponse = await fetch(corsProxy + encodeURIComponent(url));
-      
-      if (!proxyResponse.ok) {
-        throw new Error('Failed to fetch match data from URL');
+    let html = null;
+    let lastError = null;
+    
+    // Try each CORS proxy
+    for (const proxy of corsProxies) {
+      try {
+        console.log(`Trying CORS proxy: ${proxy}`);
+        const proxyUrl = proxy + encodeURIComponent(url);
+        const response = await fetch(proxyUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        let responseData = await response.text();
+        
+        // Handle different proxy response formats
+        if (proxy.includes('allorigins')) {
+          try {
+            const jsonData = JSON.parse(responseData);
+            html = jsonData.contents;
+          } catch (e) {
+            // If not JSON, use as-is
+            html = responseData;
+          }
+        } else {
+          html = responseData;
+        }
+        
+        // If we got HTML, break out of the loop
+        if (html && html.length > 100) {
+          console.log('Successfully fetched HTML content');
+          break;
+        }
+        
+      } catch (error) {
+        console.warn(`CORS proxy ${proxy} failed:`, error.message);
+        lastError = error;
+        continue;
       }
-      
-      const jsonData = await proxyResponse.json();
-      const html = jsonData.contents;
-      return parseHTMLContent(html);
-    } else {
-      const html = await response.text();
-      return parseHTMLContent(html);
     }
+    
+    if (!html) {
+      throw new Error(`All CORS proxies failed. Last error: ${lastError?.message || 'Unknown error'}`);
+    }
+    
+    return parseHTMLContent(html);
 
   } catch (error) {
     console.error('Error parsing league match from URL:', error);
