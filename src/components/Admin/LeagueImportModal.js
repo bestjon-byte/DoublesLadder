@@ -140,10 +140,10 @@ const LeagueImportModal = ({ isOpen, onClose }) => {
                 <table className="min-w-full border border-gray-300 text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="border border-gray-300 px-2 py-1">Home Pair</th>
+                      <th className="border border-gray-300 px-2 py-1">Home Pair ({result.homeTeam})</th>
                       {result.awayTeamPairs?.map((pair, index) => (
                         <th key={index} className="border border-gray-300 px-2 py-1">
-                          vs Away Pair {index + 1}
+                          vs {pair.player1} & {pair.player2}
                         </th>
                       ))}
                     </tr>
@@ -152,7 +152,10 @@ const LeagueImportModal = ({ isOpen, onClose }) => {
                     {result.scoringMatrix.map((row, rowIndex) => (
                       <tr key={rowIndex}>
                         <td className="border border-gray-300 px-2 py-1 font-medium">
-                          Home Pair {rowIndex + 1}
+                          {result.homeTeamPairs?.[rowIndex] ? 
+                            `${result.homeTeamPairs[rowIndex].player1} & ${result.homeTeamPairs[rowIndex].player2}` : 
+                            `Home Pair ${rowIndex + 1}`
+                          }
                         </td>
                         {row.map((score, colIndex) => (
                           <td key={colIndex} className="border border-gray-300 px-2 py-1 text-center">
