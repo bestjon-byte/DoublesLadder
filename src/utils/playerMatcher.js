@@ -41,58 +41,30 @@ const calculateSimilarity = (str1, str2) => {
   return Math.round(((maxLength - distance) / maxLength) * 100);
 };
 
-// Find potential matches for a player name
-export const findPlayerMatches = (playerName, existingPlayers, threshold = 60) => {
+// Find potential matches for a player name - SIMPLIFIED VERSION
+export const findPlayerMatches = (playerName, existingPlayers) => {
   if (!playerName || !existingPlayers || existingPlayers.length === 0) {
     return [];
   }
   
-  console.log('Finding matches for:', playerName, 'against', existingPlayers.length, 'players');
+  const firstLetter = playerName.charAt(0).toLowerCase();
   
-  const matches = [];
-  
-  existingPlayers.forEach(player => {
-    // Direct name comparison
-    const directScore = calculateSimilarity(playerName, player.name);
-    
-    // Try common nickname variations
-    const nameVariations = generateNameVariations(playerName);
-    const playerVariations = generateNameVariations(player.name);
-    
-    console.log('Checking', playerName, 'vs', player.name);
-    console.log('Name variations:', nameVariations);
-    console.log('Player variations:', playerVariations);
-    console.log('Direct score:', directScore);
-    
-    let bestScore = directScore;
-    
-    // Check all variation combinations
-    nameVariations.forEach(variation1 => {
-      playerVariations.forEach(variation2 => {
-        const score = calculateSimilarity(variation1, variation2);
-        if (score > bestScore) {
-          console.log('Better score found:', variation1, 'vs', variation2, '=', score);
-          bestScore = score;
-        }
-      });
+  // Get all players whose name starts with the same first letter
+  const matches = existingPlayers
+    .filter(player => player.name.charAt(0).toLowerCase() === firstLetter)
+    .map(player => ({
+      player: player,
+      score: 85, // Give a consistent score for display
+      isExact: player.name.toLowerCase() === playerName.toLowerCase()
+    }))
+    .sort((a, b) => {
+      // Sort exact matches first, then alphabetically
+      if (a.isExact && !b.isExact) return -1;
+      if (!a.isExact && b.isExact) return 1;
+      return a.player.name.localeCompare(b.player.name);
     });
-    
-    console.log('Best score for', player.name, ':', bestScore);
-    
-    if (bestScore >= threshold) {
-      matches.push({
-        player: player,
-        score: bestScore,
-        isExact: bestScore === 100
-      });
-    }
-  });
   
-  // Sort by score (highest first)
-  matches.sort((a, b) => b.score - a.score);
-  
-  console.log('Final matches:', matches);
-  return matches.slice(0, 5); // Return top 5 matches
+  return matches; // Return all matches starting with same letter
 };
 
 // Generate name variations for better matching

@@ -291,7 +291,7 @@ const LeagueImportModal = ({ isOpen, onClose, supabase }) => {
                   Parsed Name: <span className="text-blue-600">{match.parsedName}</span>
                 </h4>
                 <div className="text-sm text-gray-500">
-                  {match.suggestions.length} suggestion{match.suggestions.length !== 1 ? 's' : ''} found
+                  {match.suggestions.length} player{match.suggestions.length !== 1 ? 's' : ''} starting with "{match.parsedName.charAt(0).toUpperCase()}"
                 </div>
               </div>
 
@@ -299,7 +299,7 @@ const LeagueImportModal = ({ isOpen, onClose, supabase }) => {
               {match.suggestions.length > 0 && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select existing player:
+                    Players starting with "{match.parsedName.charAt(0).toUpperCase()}":
                   </label>
                   <div className="space-y-2">
                     {match.suggestions.map((suggestion, suggestionIndex) => (
@@ -317,11 +317,8 @@ const LeagueImportModal = ({ isOpen, onClose, supabase }) => {
                           <div className="text-sm text-gray-500">{suggestion.player.email}</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-medium text-green-600">
-                            {suggestion.score}% match
-                          </div>
                           {suggestion.isExact && (
-                            <div className="text-xs text-green-500">Exact match</div>
+                            <div className="text-sm font-medium text-green-600">Exact match</div>
                           )}
                         </div>
                       </label>
