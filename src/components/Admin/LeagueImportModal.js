@@ -26,7 +26,7 @@ const LeagueImportModal = ({ isOpen, onClose, supabase }) => {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, name, email')
-          .eq('role', 'player')
+          .in('role', ['player', 'admin'])  // Include both players and admins
           .eq('status', 'approved')
           .order('name');
         
