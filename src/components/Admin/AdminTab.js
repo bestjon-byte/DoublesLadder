@@ -30,7 +30,9 @@ const AdminTab = ({
   seasonActions,
   // NEW: Season data for DeleteSeasonModal
   selectedSeason,
-  seasons
+  seasons,
+  // NEW: Supabase instance for LeagueImportModal
+  supabase
 }) => {
   const [loading, setLoading] = useState(false);
   const [showCreateSeason, setShowCreateSeason] = useState(false);
@@ -555,6 +557,7 @@ const AdminTab = ({
       <LeagueImportModal 
         isOpen={showLeagueImporter}
         onClose={() => setShowLeagueImporter(false)}
+        supabase={supabase}
       />
 
     </div>

@@ -1147,6 +1147,8 @@ export const useApp = (userId, selectedSeasonId) => {
     // NEW: Provide both season players (for ladder) and all users (for admin)
     ladderPlayers: state.seasonPlayers, // Use this for ladder display
     allUsers: state.users, // Use this for admin user management
+    // Add supabase instance for components that need direct access
+    supabase,
     actions: {
       approveUser,
       updateUserRole,

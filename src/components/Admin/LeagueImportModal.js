@@ -1,22 +1,55 @@
 // League Import Modal - New Implementation
-import React, { useState } from 'react';
-import { X, Globe, AlertCircle, CheckCircle, Download, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Globe, AlertCircle, CheckCircle, Download, FileText, Users, UserPlus } from 'lucide-react';
 import { parseLeagueMatchFromURL } from '../../utils/leagueURLParser';
 import { parseLeagueMatchFromText } from '../../utils/leagueTextParser';
+import { findPlayerMatches, identifyCawoodPlayers, generateDummyEmail } from '../../utils/playerMatcher';
 
-const LeagueImportModal = ({ isOpen, onClose }) => {
+const LeagueImportModal = ({ isOpen, onClose, supabase }) => {
   const [mode, setMode] = useState('url'); // 'url' or 'text'
   const [url, setUrl] = useState('');
   const [textData, setTextData] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [step, setStep] = useState('parse'); // 'parse', 'match', 'import'
+  const [existingPlayers, setExistingPlayers] = useState([]);
+  const [playerMatches, setPlayerMatches] = useState([]);
+  const [matchingData, setMatchingData] = useState(null);
+
+  // Fetch existing players on component mount
+  useEffect(() => {
+    const fetchExistingPlayers = async () => {
+      if (!supabase) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .eq('role', 'player')
+          .eq('status', 'approved')
+          .order('name');
+        
+        if (error) throw error;
+        setExistingPlayers(data || []);
+      } catch (err) {
+        console.error('Failed to fetch existing players:', err);
+      }
+    };
+
+    if (isOpen) {
+      fetchExistingPlayers();
+    }
+  }, [isOpen, supabase]);
 
   const handleReset = () => {
     setUrl('');
     setTextData('');
     setResult(null);
     setError('');
+    setStep('parse');
+    setPlayerMatches([]);
+    setMatchingData(null);
   };
 
   const handleClose = () => {
@@ -56,6 +89,28 @@ const LeagueImportModal = ({ isOpen, onClose }) => {
       if (parseResult.success) {
         setResult(parseResult.data);
         setError('');
+        
+        // Identify Cawood players and start matching process
+        const playerData = identifyCawoodPlayers(parseResult.data);
+        setMatchingData(playerData);
+        
+        // Generate matches for each Cawood player
+        const matches = playerData.cawoodPlayers.map(playerName => {
+          const suggestions = findPlayerMatches(playerName, existingPlayers);
+          return {
+            parsedName: playerName,
+            suggestions: suggestions,
+            selectedMatch: null,
+            createNew: false,
+            newPlayerData: {
+              name: playerName,
+              email: generateDummyEmail(playerName)
+            }
+          };
+        });
+        
+        setPlayerMatches(matches);
+        setStep('match');
       } else {
         setError(parseResult.error || `Failed to parse ${mode}`);
         setResult(null);
@@ -184,6 +239,157 @@ const LeagueImportModal = ({ isOpen, onClose }) => {
     );
   };
 
+  const renderPlayerMatching = () => {
+    if (!matchingData || !playerMatches.length) return null;
+
+    const handleMatchSelection = (index, selectedPlayer) => {
+      const newMatches = [...playerMatches];
+      newMatches[index].selectedMatch = selectedPlayer;
+      newMatches[index].createNew = false;
+      setPlayerMatches(newMatches);
+    };
+
+    const handleCreateNew = (index, checked) => {
+      const newMatches = [...playerMatches];
+      newMatches[index].createNew = checked;
+      if (checked) {
+        newMatches[index].selectedMatch = null;
+      }
+      setPlayerMatches(newMatches);
+    };
+
+    const handleNewPlayerChange = (index, field, value) => {
+      const newMatches = [...playerMatches];
+      newMatches[index].newPlayerData[field] = value;
+      setPlayerMatches(newMatches);
+    };
+
+    const canProceed = playerMatches.every(match => 
+      match.selectedMatch || (match.createNew && match.newPlayerData.name.trim() && match.newPlayerData.email.trim())
+    );
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <Users className="w-5 h-5 text-blue-600" />
+            <h3 className="font-semibold text-blue-800">Player Matching Required</h3>
+          </div>
+          <p className="text-sm text-blue-700">
+            Match the {matchingData.cawoodPlayers.length} Cawood players from the parsed data with existing users, or create new accounts.
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            <strong>Opponent club:</strong> {matchingData.opponentClub} ({matchingData.opponentPlayers.length} players)
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {playerMatches.map((match, index) => (
+            <div key={index} className="border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-gray-900">
+                  Parsed Name: <span className="text-blue-600">{match.parsedName}</span>
+                </h4>
+                <div className="text-sm text-gray-500">
+                  {match.suggestions.length} suggestion{match.suggestions.length !== 1 ? 's' : ''} found
+                </div>
+              </div>
+
+              {/* Existing player suggestions */}
+              {match.suggestions.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select existing player:
+                  </label>
+                  <div className="space-y-2">
+                    {match.suggestions.map((suggestion, suggestionIndex) => (
+                      <label key={suggestionIndex} className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50">
+                        <input
+                          type="radio"
+                          name={`player-${index}`}
+                          checked={match.selectedMatch?.id === suggestion.player.id}
+                          onChange={() => handleMatchSelection(index, suggestion.player)}
+                          disabled={match.createNew}
+                          className="text-blue-600"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium">{suggestion.player.name}</div>
+                          <div className="text-sm text-gray-500">{suggestion.player.email}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-green-600">
+                            {suggestion.score}% match
+                          </div>
+                          {suggestion.isExact && (
+                            <div className="text-xs text-green-500">Exact match</div>
+                          )}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Create new user option */}
+              <div className="border-t pt-4">
+                <label className="flex items-center space-x-3 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={match.createNew}
+                    onChange={(e) => handleCreateNew(index, e.target.checked)}
+                    className="text-blue-600"
+                  />
+                  <span className="font-medium text-gray-700">Create new user</span>
+                  <UserPlus className="w-4 h-4 text-gray-400" />
+                </label>
+
+                {match.createNew && (
+                  <div className="ml-6 space-y-3 bg-gray-50 p-3 rounded">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Name</label>
+                      <input
+                        type="text"
+                        value={match.newPlayerData.name}
+                        onChange={(e) => handleNewPlayerChange(index, 'name', e.target.value)}
+                        className="mt-1 w-full px-3 py-1 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Email</label>
+                      <input
+                        type="email"
+                        value={match.newPlayerData.email}
+                        onChange={(e) => handleNewPlayerChange(index, 'email', e.target.value)}
+                        className="mt-1 w-full px-3 py-1 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Dummy email format recommended</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-between items-center pt-4 border-t">
+          <button
+            onClick={() => setStep('parse')}
+            className="px-4 py-2 text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
+          >
+            ← Back to Parsing
+          </button>
+          <button
+            onClick={() => setStep('import')}
+            disabled={!canProceed}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Proceed to Import →
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -208,6 +414,7 @@ const LeagueImportModal = ({ isOpen, onClose }) => {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
+          {step === 'parse' && (
           <div className="space-y-6">
             {/* Mode Selection */}
             <div>
@@ -389,12 +596,28 @@ Market Weighton    8.5    3.5    Cawood 2
             {/* Parsed Data Display */}
             {renderParsedData()}
           </div>
+          )}
+
+          {step === 'match' && renderPlayerMatching()}
+
+          {step === 'import' && (
+            <div className="text-center py-8">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Import Implementation</h3>
+              <p className="text-gray-600">Database import functionality coming next!</p>
+              <button
+                onClick={() => setStep('match')}
+                className="mt-4 px-4 py-2 text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
+              >
+                ← Back to Matching
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div className="border-t border-gray-200 p-4 bg-gray-50">
           <div className="flex justify-end space-x-3">
-            {result && (
+            {(result && step === 'parse') && (
               <button
                 onClick={handleReset}
                 className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
@@ -408,17 +631,6 @@ Market Weighton    8.5    3.5    Cawood 2
             >
               Close
             </button>
-            {result && (
-              <button
-                onClick={() => {
-                  // TODO: Implement data import to database
-                  alert('Import functionality will be implemented next!');
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-              >
-                Import to Database
-              </button>
-            )}
           </div>
         </div>
       </div>

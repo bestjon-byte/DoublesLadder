@@ -55,7 +55,8 @@ const CawoodTennisApp = () => {
     error = null,
     actions = {},
     helpers = {},
-    refetch = {}
+    refetch = {},
+    supabase = null // Add supabase instance
   } = appData || {};
 
   // UI State
@@ -317,6 +318,8 @@ const CawoodTennisApp = () => {
               selectedSeason={selectedSeason}
               seasonActions={seasonActions}
               seasons={seasons}
+              // NEW: Supabase instance for LeagueImportModal
+              supabase={supabase}
             />
           )}
         </main>
