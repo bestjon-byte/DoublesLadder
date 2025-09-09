@@ -83,10 +83,10 @@ const parseDateTime = (dateTimeLine) => {
 };
 
 const parseMatchData = (dataLines, homeTeam, awayTeam) => {
-  // Find the line with "Cawood 2" (away team header)
+  // Find the line with away team header (e.g., "Cawood 2")
   let awayTeamHeaderIndex = -1;
   for (let i = 0; i < dataLines.length; i++) {
-    if (dataLines[i].includes(awayTeam)) {
+    if (dataLines[i].trim() === awayTeam) {
       awayTeamHeaderIndex = i;
       break;
     }
@@ -96,33 +96,85 @@ const parseMatchData = (dataLines, homeTeam, awayTeam) => {
     throw new Error(`Could not find away team header (${awayTeam})`);
   }
   
-  // Parse away team pairs from the header section
-  const awayTeamPairs = parseAwayTeamPairs(dataLines, awayTeamHeaderIndex);
+  // Parse away team pairs and home team pairs based on the exact structure
+  const { awayTeamPairs, homeTeamPairs, scoringMatrix } = parseStructuredData(dataLines, awayTeamHeaderIndex, homeTeam, awayTeam);
   
-  // Find lines with home team and scores
+  return {
+    homeTeamPairs,
+    awayTeamPairs,
+    scoringMatrix
+  };
+};
+
+const parseStructuredData = (dataLines, awayTeamHeaderIndex, homeTeam, awayTeam) => {
+  const awayTeamPairs = [];
   const homeTeamPairs = [];
   const scoringMatrix = [];
   
-  // Look for lines that start with home team name followed by player names and scores
-  let foundHomeTeamSection = false;
-  
+  // Parse away team section (after header until "GF GA")
+  const awayPlayers = [];
   for (let i = awayTeamHeaderIndex + 1; i < dataLines.length; i++) {
-    const line = dataLines[i];
+    const line = dataLines[i].trim();
     
-    // Skip the final summary lines
-    if (line.includes(homeTeam) && line.includes(awayTeam) && line.match(/\d+\.\d+/)) {
-      break; // This is the final score summary
+    // Stop when we hit "GF GA" 
+    if (line.includes('GF') && line.includes('GA')) {
+      break;
     }
     
-    // Look for lines with scores (pattern: numbers followed by dashes)
+    // Stop if we see score patterns
+    if (line.match(/\d+\s*-\s*\d+/)) {
+      break;
+    }
+    
+    // Extract player names from this line
+    // Line format: "HomeTeam    Player1" or "Player2    Player3" etc.
+    let cleanLine = line;
+    
+    // Remove home team name if present at start
+    if (cleanLine.startsWith(homeTeam)) {
+      cleanLine = cleanLine.substring(homeTeam.length).trim();
+    }
+    
+    // Split by significant whitespace (4+ spaces or tabs)
+    const names = cleanLine.split(/\s{4,}|\t+/).filter(name => name.trim().length > 0);
+    
+    // Add all names found on this line
+    names.forEach(name => {
+      const cleanName = name.trim();
+      if (cleanName && !cleanName.includes('GF') && !cleanName.includes('GA')) {
+        awayPlayers.push(cleanName);
+      }
+    });
+  }
+  
+  // Group away players into pairs
+  for (let i = 0; i < awayPlayers.length; i += 2) {
+    if (i + 1 < awayPlayers.length) {
+      awayTeamPairs.push({
+        player1: awayPlayers[i],
+        player2: awayPlayers[i + 1]
+      });
+    }
+  }
+  
+  // Parse home team section (lines with scores)
+  for (let i = 0; i < dataLines.length; i++) {
+    const line = dataLines[i].trim();
+    
+    // Look for lines with 3 scores (rubber results)
     const scorePattern = /(\d+)\s*-\s*(\d+)/g;
     const scores = [...line.matchAll(scorePattern)];
     
     if (scores.length >= 3) {
-      // This line has match scores, extract the home team pair
-      const homeTeamPair = extractHomeTeamPair(dataLines, i);
-      if (homeTeamPair) {
-        homeTeamPairs.push(homeTeamPair);
+      // Extract home team pair (should be in previous 1-2 lines)
+      const homePlayer1 = i > 0 ? dataLines[i - 1].trim() : '';
+      const homePlayer2Line = line.split(/\d+\s*-\s*\d+/)[0].trim(); // Everything before first score
+      
+      if (homePlayer1 && homePlayer2Line) {
+        homeTeamPairs.push({
+          player1: homePlayer1,
+          player2: homePlayer2Line
+        });
         
         // Extract the three scores
         const rubberScores = scores.slice(0, 3).map(match => ({
@@ -135,58 +187,7 @@ const parseMatchData = (dataLines, homeTeam, awayTeam) => {
     }
   }
   
-  return {
-    homeTeamPairs,
-    awayTeamPairs,
-    scoringMatrix
-  };
-};
-
-const parseAwayTeamPairs = (dataLines, headerIndex) => {
-  const pairs = [];
-  
-  // The away team players should be in the lines immediately after the header
-  // Format: "Steven Walter\nNas Shefta    John Best\nMike Brennan    Mark Bottomley\nSteve Caslake"
-  
-  let currentLine = headerIndex + 1;
-  
-  // Look for the pattern of player names
-  while (currentLine < dataLines.length) {
-    const line = dataLines[currentLine];
-    
-    // Stop when we hit "GF GA" or home team section
-    if (line.includes('GF') && line.includes('GA')) {
-      break;
-    }
-    
-    // Stop if we see score patterns (indicates we've moved to scoring section)
-    if (line.match(/\d+\s*-\s*\d+/)) {
-      break;
-    }
-    
-    // Parse player names from this line
-    // Look for multiple names separated by significant whitespace
-    const playerNames = extractPlayerNamesFromLine(line);
-    
-    if (playerNames.length >= 2) {
-      // Group players into pairs
-      for (let i = 0; i < playerNames.length; i += 2) {
-        if (i + 1 < playerNames.length && pairs.length < 3) {
-          pairs.push({
-            player1: playerNames[i],
-            player2: playerNames[i + 1]
-          });
-        }
-      }
-    }
-    
-    currentLine++;
-    
-    // Stop after processing a reasonable number of lines
-    if (currentLine - headerIndex > 5) break;
-  }
-  
-  return pairs;
+  return { awayTeamPairs, homeTeamPairs, scoringMatrix };
 };
 
 const extractPlayerNamesFromLine = (line) => {
@@ -276,21 +277,22 @@ const extractHomeTeamPair = (dataLines, scoreLineIndex) => {
 
 // Test function
 export const testTextParser = () => {
-  const testText = `Fixtures - Market Weighton v Cawood 2
-27 April 2025 - 10:00
+  const testText = `Fixtures - Selby 2 v Cawood 2
+18 May 2025 - 10:00
+
      Cawood 2          
-Market Weighton    Steven Walter
-Nas Shefta    John Best
-Mike Brennan    Mark Bottomley
-Steve Caslake    GF    GA
-Ian Robson
-Aled Edwards    6 - 6    7 - 5    10 - 2    23    13
-Nick Collins
-Stewart Berry    6 - 6    5 - 7    11 - 1    22    14
-Ken Bottomer
-Keigan Freeman Hacker    6 - 6    5 - 7    11 - 1    22    14
-Market Weighton    8.5    3.5    Cawood 2
-67    41`;
+Selby 2    John Best
+Mike Brennan    Nas Shefta
+Steven Walter    Steve Caslake
+Mark Bottomley    GF    GA
+Charlie Watson
+Marc Hodge    6 - 6    9 - 3    12 - 0    27    9
+Jason Long
+Jim Gabbitas    1 - 11    4 - 8    11 - 1    16    20
+John Reveley
+Steve Parkin    9 - 3    8 - 4    9 - 3    26    10
+Selby 2    9.5    2.5    Cawood 2
+69    39`;
 
   const result = parseLeagueMatchFromText(testText);
   console.log('Text Parse Result:', JSON.stringify(result, null, 2));
