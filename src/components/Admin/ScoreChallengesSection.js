@@ -348,7 +348,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
                               setEditingScore={setEditingScore}
                               editForm={editForm}
                               setEditForm={setEditForm}
-                              saveScoreEdit={saveScoreEdit}
+                              saveScoreEdit={handleSaveEdit}
                             />
                           ))}
                         </div>
@@ -369,164 +369,6 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
         </div>
       )}
 
-      {/* Challenge Card Component */}
-      {false && challenges.map((challenge) => {
-                const isResolved = challenge.status !== 'pending';
-                return (
-                <div key={challenge.id} className={`border rounded-lg transition-all duration-200 ${
-                  challenge.status === 'pending' ? 'border-orange-200 bg-orange-50 p-4' : 'border-gray-200 p-2 hover:p-4'
-                }`}>
-                  {isResolved ? (
-                    // Collapsed view for resolved challenges
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                      <div className="flex flex-col gap-2 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${
-                            challenge.status === 'approved'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {challenge.status.toUpperCase()}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {new Date(challenge.resolved_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          {challenge.fixture ? (
-                            <div className="flex flex-wrap items-center gap-1">
-                              <span>{challenge.fixture.player1?.name}</span>
-                              <span className="text-gray-400">&</span>
-                              <span>{challenge.fixture.player2?.name}</span>
-                              <span className="text-gray-500 mx-1">vs</span>
-                              <span>{challenge.fixture.player3?.name}</span>
-                              <span className="text-gray-400">&</span>
-                              <span>{challenge.fixture.player4?.name}</span>
-                            </div>
-                          ) : (
-                            'Match details unavailable'
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded w-fit">
-                          {challenge.original_result?.pair1_score}-{challenge.original_result?.pair2_score} → {challenge.challenged_pair1_score}-{challenge.challenged_pair2_score}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // Expanded view for pending challenges  
-                    <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className={`px-2 py-1 text-xs font-medium rounded ${
-                            challenge.status === 'pending' 
-                              ? 'bg-orange-100 text-orange-800' 
-                              : challenge.status === 'approved'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {challenge.status.toUpperCase()}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            by {challenge.challenger?.name || 'Unknown'}
-                          </span>
-                        </div>
-                      
-                      {challenge.fixture && (
-                        <div className="mb-3">
-                          <div className="text-sm font-medium text-gray-900 leading-relaxed">
-                            <div className="flex flex-wrap items-center gap-1">
-                              <span className="text-blue-700">{challenge.fixture.player1?.name}</span>
-                              <span className="text-gray-400">&</span>
-                              <span className="text-blue-700">{challenge.fixture.player2?.name}</span>
-                              <span className="text-gray-500 mx-1">vs</span>
-                              <span className="text-green-700">{challenge.fixture.player3?.name}</span>
-                              <span className="text-gray-400">&</span>
-                              <span className="text-green-700">{challenge.fixture.player4?.name}</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              Week {challenge.fixture.match?.week_number}
-                            </span>
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              Court {challenge.fixture.court_number}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 mb-3">
-                        <div className="bg-red-50 p-3 rounded-lg border border-red-100">
-                          <p className="text-xs text-red-600 font-medium mb-1">Original Score:</p>
-                          <p className="font-bold text-lg text-red-800 text-center sm:text-left">
-                            {challenge.original_result?.pair1_score} - {challenge.original_result?.pair2_score}
-                          </p>
-                        </div>
-                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                          <p className="text-xs text-blue-600 font-medium mb-1">Challenged Score:</p>
-                          <p className="font-bold text-lg text-blue-800 text-center sm:text-left">
-                            {challenge.challenged_pair1_score} - {challenge.challenged_pair2_score}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-gray-50 p-2 rounded">
-                        <p className="text-xs text-gray-600 font-medium">Reason:</p>
-                        <p className="text-sm">{challenge.challenge_reason}</p>
-                      </div>
-                      
-                      {challenge.admin_decision && (
-                        <div className="mt-2 bg-yellow-50 p-2 rounded">
-                          <p className="text-xs text-yellow-600 font-medium">Admin Decision:</p>
-                          <p className="text-sm">{challenge.admin_decision}</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                      {challenge.status === 'pending' && (
-                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                          <button
-                            onClick={() => resolveChallenge(challenge.id, 'approved', {
-                              pair1_score: challenge.challenged_pair1_score,
-                              pair2_score: challenge.challenged_pair2_score
-                            })}
-                            disabled={loading || selectedSeason?.status === 'completed'}
-                            className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
-                            title={selectedSeason?.status === 'completed' ? 'Cannot process challenges for completed seasons' : 'Approve challenge and update score'}
-                          >
-                            <Check className="w-4 h-4" />
-                            <span className="sm:hidden">Approve</span>
-                          </button>
-                          <button
-                            onClick={() => resolveChallenge(challenge.id, 'rejected')}
-                            disabled={loading || selectedSeason?.status === 'completed'}
-                            className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
-                            title={selectedSeason?.status === 'completed' ? 'Cannot process challenges for completed seasons' : 'Reject challenge and keep original score'}
-                          >
-                            <X className="w-4 h-4" />
-                            <span className="sm:hidden">Reject</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  
-                    <div className="text-xs text-gray-400">
-                      Submitted: {new Date(challenge.created_at).toLocaleString()}
-                      {challenge.resolved_at && (
-                        <span> • Resolved: {new Date(challenge.resolved_at).toLocaleString()}</span>
-                      )}
-                    </div>
-                  </div>
-                  )}
-                </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Conflicts Tab */}
       {activeTab === 'conflicts' && (
         <div className="bg-white rounded-lg shadow p-6">
@@ -539,17 +381,38 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
             <p className="text-gray-500 text-center py-4">No score conflicts detected</p>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Conflicts occur when two players submit different scores for the same match simultaneously.
-              </p>
               {conflicts.map((conflict) => (
                 <div key={conflict.id} className="border border-red-200 bg-red-50 rounded-lg p-4">
-                  <p className="text-sm text-red-800">
-                    Conflict detected for fixture {conflict.fixture_id}
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {new Date(conflict.created_at).toLocaleString()}
-                  </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
+                          CONFLICT
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          Detected on submission
+                        </span>
+                      </div>
+                      <AlertTriangle className="w-5 h-5 text-red-500" />
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 border">
+                      <div className="space-y-2">
+                        <div className="font-medium text-gray-900">Conflicting Submissions</div>
+                        <div className="text-sm text-gray-700">
+                          <div><strong>Original:</strong> {conflict.first_submission?.pair1_score || 'Unknown'} - {conflict.first_submission?.pair2_score || 'Unknown'}</div>
+                          <div className="mt-1"><strong>New Submission:</strong> {conflict.conflicting_submission?.pair1_score || 'Unknown'} - {conflict.conflicting_submission?.pair2_score || 'Unknown'}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-gray-400">
+                      Detected: {new Date(conflict.created_at).toLocaleString()}
+                      {conflict.resolved_at && (
+                        <span> • Resolved: {new Date(conflict.resolved_at).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -560,93 +423,47 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       {/* Results Tab */}
       {activeTab === 'results' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h4 className="font-semibold mb-4 flex items-center">
-            <Edit className="w-5 h-5 mr-2" />
-            Edit Match Results ({allResults.length})
-          </h4>
-          
-          {/* Show warning for completed seasons */}
-          {selectedSeason?.status === 'completed' && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center">
-                <Clock className="w-5 h-5 text-yellow-600 mr-2" />
-                <div>
-                  <h5 className="font-medium text-yellow-800">Season Completed</h5>
-                  <p className="text-sm text-yellow-700">
-                    This season has been completed and closed. Match scores can no longer be edited. 
-                    Only scores from the current active season can be modified.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          <h4 className="font-semibold mb-4">All Match Results ({allResults.length})</h4>
           
           {allResults.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">
-                {selectedSeason?.status === 'completed' 
-                  ? 'No results available for editing in completed seasons'
-                  : 'No results to display'
-                }
-              </p>
-            </div>
+            <p className="text-gray-500 text-center py-4">No match results found</p>
           ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {allResults.slice(0, 20).map((result) => (
-                <div key={result.id} className="border border-gray-200 rounded p-3 hover:bg-gray-50 transition-colors">
-                  <div className="flex flex-col gap-3">
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {allResults.map((result) => (
+                <div key={result.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      {result.fixture ? (
-                        <div className="space-y-2">
-                          <div className="text-sm font-medium text-gray-800">
-                            <div className="flex flex-wrap items-center gap-1">
-                              <span className="text-blue-700">{result.fixture.player1?.name || 'Player 1'}</span>
-                              <span className="text-gray-400">&</span>
-                              <span className="text-blue-700">{result.fixture.player2?.name || 'Player 2'}</span>
-                              <span className="text-gray-500 mx-1">vs</span>
-                              <span className="text-green-700">{result.fixture.player3?.name || 'Player 3'}</span>
-                              <span className="text-gray-400">&</span>
-                              <span className="text-green-700">{result.fixture.player4?.name || 'Player 4'}</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              Week {result.fixture.match?.week_number || '?'}
-                            </span>
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                              Court {result.fixture.court_number || '?'}
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mb-2">
-                          <p className="text-sm text-gray-500 italic">Match details loading...</p>
-                        </div>
-                      )}
-                      
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-3">
+                      <div className="text-sm font-medium text-gray-900 mb-1">
+                        {result.fixture?.player1?.name || 'Unknown'} & {result.fixture?.player2?.name || 'Unknown'}
+                        <span className="mx-2 text-gray-400">vs</span>
+                        {result.fixture?.player3?.name || 'Unknown'} & {result.fixture?.player4?.name || 'Unknown'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Court {result.fixture?.court_number || '?'} • {result.fixture?.match?.match_date ? new Date(result.fixture.match.match_date).toLocaleDateString() : 'Unknown date'}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
                         {editingScore === result.id ? (
-                          <div className="flex flex-col gap-3 w-full">
-                            <div className="flex items-center justify-center gap-2">
-                              <span className="text-sm text-gray-600 hidden sm:inline">Score:</span>
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-2">
                               <input
                                 type="number"
                                 min="0"
-                                max="20"
+                                className="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
                                 value={editForm.pair1_score}
                                 onChange={(e) => setEditForm({...editForm, pair1_score: e.target.value})}
-                                className="w-16 p-2 border border-gray-300 rounded text-center font-bold"
                                 disabled={loading}
                                 placeholder="0"
                               />
-                              <span className="text-gray-500 font-bold">-</span>
+                              <span className="text-gray-500">-</span>
                               <input
                                 type="number"
                                 min="0"
-                                max="20"
+                                className="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
                                 value={editForm.pair2_score}
                                 onChange={(e) => setEditForm({...editForm, pair2_score: e.target.value})}
-                                className="w-16 p-2 border border-gray-300 rounded text-center font-bold"
                                 disabled={loading}
                                 placeholder="0"
                               />
@@ -729,9 +546,25 @@ const ChallengeCard = ({ challenge, selectedSeason, resolveChallenge, editingSco
         <div className="space-y-2">
           <div className="font-medium text-gray-900">Match Details</div>
           <div className="text-sm text-gray-700">
-            <div><strong>Players:</strong> {challenge.player_names || 'Unknown'}</div>
-            <div className="mt-1"><strong>Original Score:</strong> {challenge.original_score || 'Unknown'}</div>
-            <div className="mt-1"><strong>Challenged By:</strong> {challenge.challenger_name || 'Unknown'}</div>
+            {challenge.fixture ? (
+              <div className="space-y-1">
+                <div>
+                  <strong>Players:</strong> {challenge.fixture.player1?.name} & {challenge.fixture.player2?.name} vs {challenge.fixture.player3?.name} & {challenge.fixture.player4?.name}
+                </div>
+                <div>
+                  <strong>Original Score:</strong> {challenge.original_result?.pair1_score || '?'} - {challenge.original_result?.pair2_score || '?'}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <strong>Players:</strong> Unknown
+                <br />
+                <strong>Original Score:</strong> Unknown
+              </div>
+            )}
+            <div className="mt-1">
+              <strong>Challenged By:</strong> {challenge.challenger?.name || 'Unknown'}
+            </div>
           </div>
         </div>
       </div>
@@ -871,7 +704,7 @@ const ProcessedChallengesSection = ({ challenges }) => {
                     </span>
                   </div>
                   <div className="text-sm text-gray-700">
-                    <strong>{challenge.challenger_name}</strong> challenged score: {challenge.challenged_pair1_score}-{challenge.challenged_pair2_score}
+                    <strong>{challenge.challenger?.name || 'Unknown'}</strong> challenged score: {challenge.challenged_pair1_score}-{challenge.challenged_pair2_score}
                   </div>
                 </div>
                 <div className="text-right">

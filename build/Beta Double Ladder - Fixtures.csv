@@ -1,0 +1,48 @@
+Date,Player A,Player B,Player C,Player D,Player A Score,Player B Score,Player C Score,Player D Score,Court
+2/2/2025,Charlie,Oxy,James,Ben,4,4,4,4,2
+2/2/2025,Charlie,Ben,James,Oxy,6,6,2,2,2
+2/2/2025,Charlie,James,Ben,Oxy,6,6,2,2,2
+2/2/2025,Mike,Bev,Jon,Shealgh,5,5,3,3,1
+2/2/2025,Mike,Shealgh,Jon,Bev,7,7,1,1,1
+2/2/2025,Mike,Jon,Shealgh,Bev,8,8,0,0,1
+2/16/2025,James,Stephen P,Ben,Sid,2,2,8,8,1
+2/16/2025,James,Sid,Ben,Stephen P,9,9,1,1,1
+2/16/2025,James,Ben,Sid,Stephen P,4,4,6,6,1
+2/16/2025,Joanne,Bev,Shelagh,Oxy,1,1,9,9,2
+2/16/2025,Joanne,Oxy,Shelagh,Bev,9,9,1,1,2
+2/16/2025,Joanne,Shelagh,Oxy,Bev,2,2,8,8,2
+2/16/2025,Mark A,Julie,Mark B,Steve C,6,6,4,4,3
+2/16/2025,Mark A,Steve C,Mark B,Julie,3,3,7,7,3
+2/16/2025,Mark A,Mark B,Steve C,Julie,8,8,2,2,3
+2/23/2025,Mike,Dave,Sid,Tim,4,4,6,6,1
+2/23/2025,Mike,Tim,Sid,Dave,1,1,9,9,1
+2/23/2025,Mike,Sid,Tim,Dave,6,6,4,4,1
+2/23/2025,Mark B,Jason,Mark A,Ben,2,2,8,8,2
+2/23/2025,Mark B,Ben,Mark A,Jason,9,9,1,1,2
+2/23/2025,Mark B,Mark A,Ben,Jason,0,0,10,10,2
+2/23/2025,Joanne,Samuel,Stephen P,Bev,2,2,8,8,3
+2/23/2025,Joanne,Bev,Stephen P,Samuel,3,3,7,7,3
+2/23/2025,Joanne,Stephen P,Bev,Samuel,9,9,1,1,3
+3/2/2025,Sid,Oxy,Charlie,Dave M,4,4,6,6,1
+3/2/2025,Sid,Dave M,Charlie,Oxy,8,8,2,2,1
+3/2/2025,Sid,Charlie,Dave M,Oxy,8,8,2,2,1
+3/2/2025,Mike,Joanne,Stephen P,Jon,1,1,9,9,2
+3/2/2025,Mike,Jon,Stephen P,Joanne,9,9,1,1,2
+3/2/2025,Mike,Stephen P,Jon,Joanne,10,10,0,0,2
+3/2/2025,Jason,Liz,Shelagh,Steve C,8,8,2,2,3
+3/2/2025,Jason,Steve C,Shelagh,Liz,8,8,2,2,3
+3/2/2025,Jason,Shelagh,Steve C,Liz,10,10,0,0,3
+3/9/2025,Mike,Jon,Charlie,Mark B,3,3,5,5,1
+3/9/2025,Mike,James,Charlie,Mark B,7,7,1,1,1
+3/9/2025,Mike,Charlie,Mark B,James,7,7,1,1,1
+3/9/2025,Mike,Mark B,James,Charlie,3,3,5,5,1
+3/9/2025,Mark A,Steve C,Shelagh,Tim,3,3,7,7,2
+3/9/2025,Mark A,Tim,Shelagh,Steve C,9,9,1,1,2
+3/9/2025,Mark A,Shelagh,Tim,Steve C,2,2,8,8,2
+3/16/2025,Sid,Jon,Mike,Charlie,4,4,4,4,1
+3/16/2025,Sid,Stephen P,Mike,Jon,7,7,1,1,1
+3/16/2025,Mike,Stephen P,Charlie,Jon,1,1,7,7,1
+3/16/2025,Charlie,Stephen P,Sid,Mike,0,0,8,8,1
+3/16/2025,Mark A,Joanne,Mark B,Shelagh,7,7,3,3,2
+3/16/2025,Mark A,Shelagh,Mark B,Joanne,6,6,4,4,2
+3/16/2025,Mark A,Mark B,Shelagh,Joanne,7,7,3,3,2
