@@ -484,10 +484,10 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
         }
       }
 
-      // 4. Create match fixture
+      // 4. Create match fixture (league matches don't need individual player assignments)
       const cawoodPlayersList = Object.values(cawoodPlayerIds);
-      if (cawoodPlayersList.length !== 6) {
-        throw new Error(`Expected 6 Cawood players, got ${cawoodPlayersList.length}`);
+      if (cawoodPlayersList.length === 0) {
+        throw new Error(`No Cawood players found or created`);
       }
 
       const { data: fixture, error: fixtureError } = await supabase
@@ -496,12 +496,12 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
           match_id: matchRecord.id,
           court_number: 1,
           game_number: 1,
+          // For league matches, we only need these dummy player IDs (required by schema)
           player1_id: cawoodPlayersList[0],
-          player2_id: cawoodPlayersList[1],
-          player3_id: cawoodPlayersList[2],
-          player4_id: cawoodPlayersList[3],
-          pair1_player1_id: cawoodPlayersList[4] || null,
-          pair1_player2_id: cawoodPlayersList[5] || null,
+          player2_id: cawoodPlayersList[1] || cawoodPlayersList[0],
+          player3_id: cawoodPlayersList[2] || cawoodPlayersList[0],
+          player4_id: cawoodPlayersList[3] || cawoodPlayersList[0],
+          // League-specific fields
           match_type: 'league',
           team: team,
           opponent_club: opponentClub
