@@ -1,13 +1,54 @@
 // src/components/Ladder/LadderTab.js - RENAMED to support League expansion
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo, formatLeagueStats } from '../../utils/helpers';
 
-const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect }) => {
+const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect, supabase }) => {
+  // State for team filter
+  const [teamFilter, setTeamFilter] = useState('all'); // 'all', '1sts', '2nds'
+  const [playerTeamData, setPlayerTeamData] = useState({});
+
   // NEW: Use unified ranking data for both ladder and league seasons
   const rankingData = getUnifiedRankingData(users, selectedSeason);
   const isSeasonCompleted = selectedSeason?.status === 'completed';
   const isLeagueSeason = selectedSeason?.season_type === 'league';
   const seasonInfo = getSeasonDisplayInfo(selectedSeason);
+
+  // Fetch player team data for league seasons
+  useEffect(() => {
+    const fetchPlayerTeamData = async () => {
+      if (!isLeagueSeason || !supabase || !selectedSeason?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('league_match_rubbers')
+          .select(`
+            cawood_player1_id,
+            cawood_player2_id,
+            match_fixtures!inner(team, match_id, matches!inner(season_id))
+          `)
+          .eq('match_fixtures.matches.season_id', selectedSeason.id);
+
+        if (error) throw error;
+
+        const teamMap = {};
+        data?.forEach(rubber => {
+          const team = rubber.match_fixtures.team;
+          if (rubber.cawood_player1_id) {
+            teamMap[rubber.cawood_player1_id] = team;
+          }
+          if (rubber.cawood_player2_id) {
+            teamMap[rubber.cawood_player2_id] = team;
+          }
+        });
+
+        setPlayerTeamData(teamMap);
+      } catch (error) {
+        console.error('Error fetching player team data:', error);
+      }
+    };
+
+    fetchPlayerTeamData();
+  }, [isLeagueSeason, supabase, selectedSeason?.id]);
 
   const getRankIcon = (rank) => {
     if (rank === 1) return '🏆';
@@ -24,6 +65,18 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
 
   const getWinPercentage = (player) => {
     return player.games_played > 0 ? Math.round((player.games_won / player.games_played) * 100 * 10) / 10 : 0;
+  };
+
+  // Filter players based on team selection for league seasons
+  const getFilteredRankingData = () => {
+    if (!isLeagueSeason || teamFilter === 'all') {
+      return rankingData;
+    }
+
+    return rankingData.filter(player => {
+      const playerTeam = playerTeamData[player.id];
+      return playerTeam === teamFilter;
+    });
   };
 
   return (
@@ -48,30 +101,55 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
             </p>
           )}
         </div>
-        {currentUser?.role === 'admin' && !isSeasonCompleted && (
-          <button 
-            onClick={updateRankings}
-            className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors text-sm sm:text-base"
-          >
-            Update Rankings
-          </button>
-        )}
-        {currentUser?.role === 'admin' && isSeasonCompleted && (
-          <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-md text-sm sm:text-base">
-            Season Completed
-          </div>
-        )}
+        
+        <div className="flex items-center gap-4">
+          {/* Team Filter Dropdown for League Seasons */}
+          {isLeagueSeason && (
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Team:</label>
+              <select
+                value={teamFilter}
+                onChange={(e) => setTeamFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="all">All Cawood</option>
+                <option value="1sts">Cawood 1sts</option>
+                <option value="2nds">Cawood 2nds</option>
+              </select>
+            </div>
+          )}
+          
+          {/* Admin Controls */}
+          {currentUser?.role === 'admin' && !isSeasonCompleted && (
+            <button 
+              onClick={updateRankings}
+              className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors text-sm sm:text-base"
+            >
+              Update Rankings
+            </button>
+          )}
+          {currentUser?.role === 'admin' && isSeasonCompleted && (
+            <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-md text-sm sm:text-base">
+              Season Completed
+            </div>
+          )}
+        </div>
       </div>
 
-      {rankingData.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
-          No players in {isLeagueSeason ? 'league' : 'ladder'} yet
-        </div>
-      ) : (
-        <>
-          {/* Mobile Card View */}
-          <div className="block sm:hidden space-y-3">
-            {rankingData.map((player, index) => {
+      {(() => {
+        const filteredData = getFilteredRankingData();
+        return filteredData.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+            {teamFilter === 'all' 
+              ? `No players in ${isLeagueSeason ? 'league' : 'ladder'} yet`
+              : `No players found for ${teamFilter === '1sts' ? 'Cawood 1sts' : 'Cawood 2nds'}`
+            }
+          </div>
+        ) : (
+          <>
+            {/* Mobile Card View */}
+            <div className="block sm:hidden space-y-3">
+              {filteredData.map((player, index) => {
               const isCurrentUser = player.id === currentUser?.id;
               const winPercentage = getWinPercentage(player);
               const { rankIcon, movement } = getRankWithMovement(player);
@@ -151,7 +229,7 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {rankingData.map((player, index) => {
+                  {filteredData.map((player, index) => {
                     const isCurrentUser = player.id === currentUser?.id;
                     const winPercentage = getWinPercentage(player);
                     const { rankIcon, movement } = getRankWithMovement(player);
@@ -198,7 +276,8 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
             </div>
           </div>
         </>
-      )}
+        );
+      })()}
     </div>
   );
 };

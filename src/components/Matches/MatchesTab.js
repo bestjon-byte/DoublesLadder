@@ -22,6 +22,8 @@ const MatchesTab = ({
 }) => {
   // State for managing which matches are expanded
   const [expandedMatches, setExpandedMatches] = useState({});
+  // State for team filter
+  const [teamFilter, setTeamFilter] = useState('all'); // 'all', '1sts', '2nds'
 
   // Refresh data when component mounts or season changes
   useEffect(() => {
@@ -120,6 +122,24 @@ const MatchesTab = ({
     return matchFixtures.find(f => f.match_id === matchId && f.match_type === 'league');
   };
 
+  // Filter matches based on team selection
+  const getFilteredMatches = () => {
+    if (!currentSeason?.matches) return [];
+    
+    return currentSeason.matches.filter(match => {
+      // For ladder matches, always show them
+      if (!isLeagueMatch(match.id)) {
+        return teamFilter === 'all' || teamFilter === 'ladder';
+      }
+      
+      // For league matches, filter by team
+      if (teamFilter === 'all') return true;
+      
+      const leagueFixture = getLeagueFixture(match.id);
+      return leagueFixture?.team === teamFilter;
+    });
+  };
+
   const isSeasonCompleted = selectedSeason?.status === 'completed';
 
   return (
@@ -135,32 +155,54 @@ const MatchesTab = ({
             </p>
           )}
         </div>
-        {currentUser?.role === 'admin' && !isSeasonCompleted && (
-          <button
-            onClick={() => setShowScheduleModal(true)}
-            className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors"
-          >
-            <Plus className="w-4 h-4 inline mr-2" />
-            Add Match
-          </button>
-        )}
-        {currentUser?.role === 'admin' && isSeasonCompleted && (
-          <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-md">
-            Season Completed
-          </div>
-        )}
+        <div className="flex items-center space-x-4">
+          {/* Team Filter Dropdown */}
+          {selectedSeason?.season_type === 'league' && (
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Team:</label>
+              <select
+                value={teamFilter}
+                onChange={(e) => setTeamFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="all">All Cawood</option>
+                <option value="1sts">Cawood 1sts</option>
+                <option value="2nds">Cawood 2nds</option>
+              </select>
+            </div>
+          )}
+          
+          {/* Admin Controls */}
+          {currentUser?.role === 'admin' && !isSeasonCompleted && (
+            <button
+              onClick={() => setShowScheduleModal(true)}
+              className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors"
+            >
+              <Plus className="w-4 h-4 inline mr-2" />
+              Add Match
+            </button>
+          )}
+          {currentUser?.role === 'admin' && isSeasonCompleted && (
+            <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-md">
+              Season Completed
+            </div>
+          )}
       </div>
       
-      {!currentSeason?.matches || currentSeason.matches.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-500">No matches scheduled yet.</p>
-          {currentUser?.role === 'admin' && (
-            <p className="text-sm text-gray-400 mt-2">Click "Add Match" to create your first match.</p>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {currentSeason.matches.map((match) => {
+      {(() => {
+        const filteredMatches = getFilteredMatches();
+        return !filteredMatches || filteredMatches.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <p className="text-gray-500">
+              {teamFilter === 'all' ? 'No matches scheduled yet.' : `No matches found for ${teamFilter === '1sts' ? 'Cawood 1sts' : 'Cawood 2nds'}.`}
+            </p>
+            {currentUser?.role === 'admin' && teamFilter === 'all' && (
+              <p className="text-sm text-gray-400 mt-2">Click "Add Match" to create your first match.</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredMatches.map((match) => {
             const stats = getAvailabilityStats(match.id);
             const matchStatus = getMatchStatus(match);
             const isAdmin = currentUser?.role === 'admin';
@@ -414,7 +456,8 @@ const MatchesTab = ({
             );
           })}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

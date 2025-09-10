@@ -246,6 +246,7 @@ const CawoodTennisApp = () => {
               updateRankings={actions?.updateRankings || (() => alert('Update rankings not available'))}
               selectedSeason={selectedSeason} // NEW: Pass selected season
               onPlayerSelect={handlePlayerSelect} // NEW: Player selection handler
+              supabase={supabase} // NEW: Pass supabase for team filtering
             />
           )}
 
