@@ -7,7 +7,14 @@ const LeagueMatchCard = ({ match, fixture, supabase }) => {
   const [rubberDetails, setRubberDetails] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch rubber details when expanded
+  // Fetch rubber details on component mount for immediate score display
+  useEffect(() => {
+    if (!rubberDetails.length) {
+      fetchRubberDetails();
+    }
+  }, []);
+
+  // Additional fetch when expanded if needed
   useEffect(() => {
     if (expanded && !rubberDetails.length) {
       fetchRubberDetails();
