@@ -632,16 +632,184 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [state.selectedSeason, state.currentSeason, state.seasonPlayers, state.users, state.availability, selectedSeasonId, fetchMatchFixtures, fetchSeasons, fetchSelectedSeasonData]);
 
-  // Updated ranking system for season-based stats
-  const updateRankings = useCallback(async () => {
-    if (!selectedSeasonId) {
-      alert('No season selected for ranking update');
-      return;
-    }
-
+  // League season ranking logic
+  const updateLeagueRankings = useCallback(async () => {
     try {
-      // Updating rankings for selected season
-      
+      // Get all league match rubbers for this season
+      const { data: leagueRubbers, error: rubbersError } = await supabase
+        .from('league_match_rubbers')
+        .select(`
+          *,
+          cawood_player1:cawood_player1_id(id, name),
+          cawood_player2:cawood_player2_id(id, name),
+          match_fixture:match_fixture_id!inner (
+            match:match_id!inner (
+              season_id
+            )
+          )
+        `)
+        .eq('match_fixture.match.season_id', selectedSeasonId);
+
+      if (rubbersError) throw rubbersError;
+
+      if (!leagueRubbers || leagueRubbers.length === 0) {
+        // No league rubbers found
+        await supabase
+          .from('season_players')
+          .update({
+            matches_played: 0,
+            matches_won: 0,
+            games_played: 0,
+            games_won: 0
+          })
+          .eq('season_id', selectedSeasonId);
+        
+        await fetchSeasonPlayers(selectedSeasonId);
+        alert('Rankings updated successfully (no league matches yet)!');
+        return { success: true };
+      }
+
+      // Collect all unique Cawood players from rubbers
+      const cawoodPlayerIds = new Set();
+      leagueRubbers.forEach(rubber => {
+        if (rubber.cawood_player1_id) cawoodPlayerIds.add(rubber.cawood_player1_id);
+        if (rubber.cawood_player2_id) cawoodPlayerIds.add(rubber.cawood_player2_id);
+      });
+
+      // Get existing season players
+      const { data: existingSeasonPlayers, error: playersError } = await supabase
+        .from('season_players')
+        .select('*')
+        .eq('season_id', selectedSeasonId);
+
+      if (playersError) throw playersError;
+
+      const existingPlayerIds = new Set(existingSeasonPlayers.map(p => p.player_id));
+
+      // Add missing Cawood players to season_players
+      const playersToAdd = [];
+      cawoodPlayerIds.forEach(playerId => {
+        if (!existingPlayerIds.has(playerId)) {
+          playersToAdd.push({
+            season_id: selectedSeasonId,
+            player_id: playerId,
+            rank: null,
+            matches_played: 0,
+            matches_won: 0,
+            games_played: 0,
+            games_won: 0
+          });
+        }
+      });
+
+      if (playersToAdd.length > 0) {
+        const { error: insertError } = await supabase
+          .from('season_players')
+          .insert(playersToAdd);
+
+        if (insertError) throw insertError;
+      }
+
+      // Get updated season players list
+      const { data: allSeasonPlayers, error: allPlayersError } = await supabase
+        .from('season_players')
+        .select('*')
+        .eq('season_id', selectedSeasonId);
+
+      if (allPlayersError) throw allPlayersError;
+
+      // Calculate stats for each player
+      const playerStats = {};
+      allSeasonPlayers.forEach(player => {
+        playerStats[player.player_id] = {
+          ...player,
+          matches_played: 0,
+          matches_won: 0,
+          games_played: 0,
+          games_won: 0,
+          rubbers_played: 0
+        };
+      });
+
+      // Process league rubbers
+      leagueRubbers.forEach(rubber => {
+        const cawoodGames = rubber.cawood_games_won || 0;
+        const opponentGames = rubber.opponent_games_won || 0;
+        const totalGames = cawoodGames + opponentGames;
+
+        // Process player 1
+        if (rubber.cawood_player1_id && playerStats[rubber.cawood_player1_id]) {
+          const stats = playerStats[rubber.cawood_player1_id];
+          stats.rubbers_played += 1;
+          stats.games_played += totalGames;
+          stats.games_won += cawoodGames;
+          
+          // Count rubber wins (Cawood pair won more games)
+          if (cawoodGames > opponentGames) {
+            stats.matches_won += 1;
+          }
+          stats.matches_played += 1; // Each rubber counts as a "match" for league stats
+        }
+
+        // Process player 2
+        if (rubber.cawood_player2_id && playerStats[rubber.cawood_player2_id]) {
+          const stats = playerStats[rubber.cawood_player2_id];
+          stats.rubbers_played += 1;
+          stats.games_played += totalGames;
+          stats.games_won += cawoodGames;
+          
+          // Count rubber wins (Cawood pair won more games)
+          if (cawoodGames > opponentGames) {
+            stats.matches_won += 1;
+          }
+          stats.matches_played += 1; // Each rubber counts as a "match" for league stats
+        }
+      });
+
+      // Sort players by games won percentage, then by total games won
+      const sortedPlayers = Object.values(playerStats)
+        .sort((a, b) => {
+          const aWinPct = a.games_played > 0 ? a.games_won / a.games_played : 0;
+          const bWinPct = b.games_played > 0 ? b.games_won / b.games_played : 0;
+          
+          if (bWinPct !== aWinPct) return bWinPct - aWinPct;
+          if (b.games_won !== a.games_won) return b.games_won - a.games_won;
+          if (b.games_played !== a.games_played) return b.games_played - a.games_played;
+          return 0;
+        });
+
+      // Update rankings in season_players table
+      for (let i = 0; i < sortedPlayers.length; i++) {
+        const player = sortedPlayers[i];
+        const newRank = i + 1;
+        
+        await supabase
+          .from('season_players')
+          .update({
+            previous_rank: player.rank,
+            rank: newRank,
+            matches_played: player.matches_played,
+            matches_won: player.matches_won,
+            games_played: player.games_played,
+            games_won: player.games_won
+          })
+          .eq('id', player.id);
+      }
+
+      // Refresh season players
+      await fetchSeasonPlayers(selectedSeasonId);
+      alert('League rankings updated successfully!');
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating league rankings:', error);
+      alert('Error updating league rankings: ' + error.message);
+      return { success: false, error };
+    }
+  }, [selectedSeasonId, fetchSeasonPlayers]);
+
+  // Ladder season ranking logic (original implementation)
+  const updateLadderRankings = useCallback(async () => {
+    try {
       // Get all fixtures for this season first, then get their results
       const { data: seasonFixtures, error: fixturesError } = await supabase
         .from('match_fixtures')
@@ -658,7 +826,6 @@ export const useApp = (userId, selectedSeasonId) => {
 
       if (!seasonFixtures || seasonFixtures.length === 0) {
         // No fixtures found for this season, resetting player stats
-        // Still need to reset player stats
         await supabase
           .from('season_players')
           .update({
@@ -769,11 +936,44 @@ export const useApp = (userId, selectedSeasonId) => {
       alert('Rankings updated successfully!');
       return { success: true };
     } catch (error) {
+      console.error('Error updating ladder rankings:', error);
+      alert('Error updating ladder rankings: ' + error.message);
+      return { success: false, error };
+    }
+  }, [selectedSeasonId, fetchSeasonPlayers]);
+
+  // Updated ranking system for season-based stats
+  const updateRankings = useCallback(async () => {
+    if (!selectedSeasonId) {
+      alert('No season selected for ranking update');
+      return;
+    }
+
+    try {
+      // Get season details to determine type
+      const { data: seasonData, error: seasonError } = await supabase
+        .from('seasons')
+        .select('season_type')
+        .eq('id', selectedSeasonId)
+        .single();
+
+      if (seasonError) throw seasonError;
+
+      const isLeagueSeason = seasonData?.season_type === 'league';
+
+      if (isLeagueSeason) {
+        // League season ranking logic
+        return await updateLeagueRankings();
+      } else {
+        // Ladder season ranking logic (existing)
+        return await updateLadderRankings();
+      }
+    } catch (error) {
       console.error('Error updating rankings:', error);
       alert('Error updating rankings: ' + error.message);
       return { success: false, error };
     }
-  }, [selectedSeasonId, fetchSeasonPlayers]);
+  }, [selectedSeasonId, updateLeagueRankings, updateLadderRankings]);
 
   const clearOldMatches = useCallback(async () => {
     try {
