@@ -412,12 +412,21 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
       const cawoodTeamName = cawoodIsHome ? homeTeam : awayTeam;
       const team = cawoodTeamName.toLowerCase().includes('2') ? '2nds' : '1sts';
 
-      // 1. Create or find the match record
+      // 1. Create or find the match record with next available week number
+      const { data: existingMatches } = await supabase
+        .from('matches')
+        .select('week_number')
+        .eq('season_id', selectedSeason.id)
+        .order('week_number', { ascending: false })
+        .limit(1);
+
+      const nextWeekNumber = existingMatches?.length > 0 ? (existingMatches[0].week_number || 0) + 1 : 1;
+
       const { data: matchRecord, error: matchError } = await supabase
         .from('matches')
         .insert({
           season_id: selectedSeason.id,
-          week_number: 1, // TODO: Calculate based on existing matches
+          week_number: nextWeekNumber,
           match_date: matchDate
         })
         .select()
