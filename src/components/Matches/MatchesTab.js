@@ -1,5 +1,5 @@
 // src/components/Matches/MatchesTab.js - FIXED for today's dates
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 import LeagueMatchCard from './LeagueMatchCard';
@@ -17,10 +17,28 @@ const MatchesTab = ({
   openScoreModal,
   getAvailabilityStats,
   getMatchScore,
-  supabase
+  supabase,
+  refetch
 }) => {
   // State for managing which matches are expanded
   const [expandedMatches, setExpandedMatches] = useState({});
+
+  // Refresh data when component mounts or season changes
+  useEffect(() => {
+    const refreshMatchData = async () => {
+      try {
+        // Refresh match-related data
+        if (refetch?.fixtures) await refetch.fixtures();
+        if (refetch?.results) await refetch.results();
+        if (refetch?.selectedSeasonData) await refetch.selectedSeasonData();
+        if (refetch?.availability) await refetch.availability();
+      } catch (error) {
+        console.error('Error refreshing match data:', error);
+      }
+    };
+
+    refreshMatchData();
+  }, [selectedSeason?.id, refetch]);
 
   // Toggle expansion state for a match
   const toggleMatchExpansion = (matchId) => {

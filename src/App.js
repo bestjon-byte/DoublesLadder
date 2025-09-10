@@ -263,6 +263,7 @@ const CawoodTennisApp = () => {
               getAvailabilityStats={helpers?.getAvailabilityStats || (() => ({ total: 0, available: 0, responded: 0, pending: 0 }))}
               getMatchScore={helpers?.getMatchScore || (() => null)}
               supabase={supabase} // NEW: Pass supabase for league match details
+              refetch={refetch} // NEW: Pass refetch functions for data refresh
             />
           )}
 
