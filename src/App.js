@@ -235,6 +235,7 @@ const CawoodTennisApp = () => {
           setActiveTab={setActiveTab} 
           currentUser={user}
           ladderPlayers={ladderPlayers}
+          selectedSeason={selectedSeason}
         />
         
         <main className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-6">

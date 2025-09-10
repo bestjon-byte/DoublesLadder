@@ -323,8 +323,54 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
           {challenges.length === 0 ? (
             <p className="text-gray-500 text-center py-4">No score challenges yet</p>
           ) : (
-            <div className="space-y-4">
-              {challenges.map((challenge) => {
+            <div className="space-y-6">
+              {/* Pending Challenges Section */}
+              {(() => {
+                const pendingChallenges = challenges.filter(c => c.status === 'pending');
+                const processedChallenges = challenges.filter(c => c.status !== 'pending');
+                
+                return (
+                  <>
+                    {pendingChallenges.length > 0 && (
+                      <div>
+                        <h5 className="font-medium text-orange-800 mb-3 flex items-center">
+                          <AlertTriangle className="w-4 h-4 mr-2" />
+                          Pending Challenges ({pendingChallenges.length})
+                        </h5>
+                        <div className="space-y-4">
+                          {pendingChallenges.map((challenge) => (
+                            <ChallengeCard 
+                              key={challenge.id}
+                              challenge={challenge}
+                              selectedSeason={selectedSeason}
+                              resolveChallenge={resolveChallenge}
+                              editingScore={editingScore}
+                              setEditingScore={setEditingScore}
+                              editForm={editForm}
+                              setEditForm={setEditForm}
+                              saveScoreEdit={saveScoreEdit}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Processed Challenges Section */}
+                    {processedChallenges.length > 0 && (
+                      <ProcessedChallengesSection 
+                        challenges={processedChallenges}
+                      />
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Challenge Card Component */}
+      {false && challenges.map((challenge) => {
                 const isResolved = challenge.status !== 'pending';
                 return (
                 <div key={challenge.id} className={`border rounded-lg transition-all duration-200 ${
@@ -657,6 +703,185 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
               ))}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Component for individual challenge cards
+const ChallengeCard = ({ challenge, selectedSeason, resolveChallenge, editingScore, setEditingScore, editForm, setEditForm, saveScoreEdit }) => (
+  <div className="border border-orange-200 bg-orange-50 rounded-lg p-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-1 text-xs font-medium rounded bg-orange-100 text-orange-800">
+            PENDING
+          </span>
+          <span className="text-sm text-gray-600">
+            {challenge.match_date ? new Date(challenge.match_date).toLocaleDateString() : 'Unknown date'} • Court {challenge.court_number || '?'}
+          </span>
+        </div>
+        <Flag className="w-5 h-5 text-orange-500" />
+      </div>
+      
+      <div className="bg-gray-50 rounded-lg p-4">
+        <div className="space-y-2">
+          <div className="font-medium text-gray-900">Match Details</div>
+          <div className="text-sm text-gray-700">
+            <div><strong>Players:</strong> {challenge.player_names || 'Unknown'}</div>
+            <div className="mt-1"><strong>Original Score:</strong> {challenge.original_score || 'Unknown'}</div>
+            <div className="mt-1"><strong>Challenged By:</strong> {challenge.challenger_name || 'Unknown'}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="font-medium text-yellow-800">Disputed Score</div>
+            <div className="text-lg font-bold text-yellow-900 mt-1">
+              {challenge.challenged_pair1_score} - {challenge.challenged_pair2_score}
+            </div>
+          </div>
+        </div>
+        {challenge.challenge_reason && (
+          <div className="mt-3">
+            <div className="font-medium text-yellow-800 text-sm">Reason:</div>
+            <div className="text-sm text-yellow-700">{challenge.challenge_reason}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Score editing form */}
+      {editingScore === challenge.id && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h6 className="font-medium text-blue-800 mb-2">Edit Score</h6>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-blue-700">Pair 1:</label>
+              <input
+                type="number"
+                min="0"
+                value={editForm.pair1_score}
+                onChange={(e) => setEditForm({...editForm, pair1_score: e.target.value})}
+                className="w-16 px-2 py-1 border border-blue-300 rounded text-center focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <span className="text-blue-700">-</span>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-blue-700">Pair 2:</label>
+              <input
+                type="number"
+                min="0"
+                value={editForm.pair2_score}
+                onChange={(e) => setEditForm({...editForm, pair2_score: e.target.value})}
+                className="w-16 px-2 py-1 border border-blue-300 rounded text-center focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <button
+              onClick={() => saveScoreEdit(challenge.id)}
+              className="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setEditingScore(null)}
+              className="bg-gray-500 text-white px-4 py-1 rounded text-sm hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {challenge.admin_decision && (
+        <div className="mt-2 bg-yellow-50 p-2 rounded">
+          <p className="text-xs text-yellow-600 font-medium">Admin Decision:</p>
+          <p className="text-sm">{challenge.admin_decision}</p>
+        </div>
+      )}
+      
+      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <button
+          onClick={() => resolveChallenge(challenge.id, 'approved', {
+            pair1_score: challenge.challenged_pair1_score,
+            pair2_score: challenge.challenged_pair2_score
+          })}
+          disabled={selectedSeason?.status === 'completed'}
+          className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
+          title={selectedSeason?.status === 'completed' ? 'Cannot process challenges for completed seasons' : 'Approve challenge and update score'}
+        >
+          <Check className="w-4 h-4" />
+          Approve
+        </button>
+        <button
+          onClick={() => resolveChallenge(challenge.id, 'rejected')}
+          disabled={selectedSeason?.status === 'completed'}
+          className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
+          title={selectedSeason?.status === 'completed' ? 'Cannot process challenges for completed seasons' : 'Reject challenge and keep original score'}
+        >
+          <X className="w-4 h-4" />
+          Reject
+        </button>
+      </div>
+      
+      <div className="text-xs text-gray-400">
+        Submitted: {new Date(challenge.created_at).toLocaleString()}
+      </div>
+    </div>
+  </div>
+);
+
+// Component for processed challenges (collapsed view)
+const ProcessedChallengesSection = ({ challenges }) => {
+  const [showProcessed, setShowProcessed] = React.useState(false);
+  
+  return (
+    <div>
+      <button
+        onClick={() => setShowProcessed(!showProcessed)}
+        className="flex items-center justify-between w-full p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Check className="w-4 h-4 text-gray-600" />
+          <span className="font-medium text-gray-700">Processed Challenges ({challenges.length})</span>
+        </div>
+        <span className="text-gray-500 text-sm">
+          {showProcessed ? 'Hide' : 'Show'}
+        </span>
+      </button>
+      
+      {showProcessed && (
+        <div className="mt-4 space-y-2">
+          {challenges.map((challenge) => (
+            <div key={challenge.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                <div className="flex flex-col gap-1 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${
+                      challenge.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {challenge.status.toUpperCase()}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(challenge.resolved_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    <strong>{challenge.challenger_name}</strong> challenged score: {challenge.challenged_pair1_score}-{challenge.challenged_pair2_score}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">
+                    {challenge.match_date ? new Date(challenge.match_date).toLocaleDateString() : 'Unknown date'} • Court {challenge.court_number || '?'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

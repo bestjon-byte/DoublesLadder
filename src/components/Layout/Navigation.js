@@ -3,7 +3,9 @@ import React from 'react';
 import { Users, Calendar, Trophy, Settings, User } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 
-const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers }) => {
+const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers, selectedSeason }) => {
+  const isLeagueSeason = selectedSeason?.season_type === 'league';
+  
   const tabs = [
     { id: 'ladder', icon: Trophy, label: 'League', show: true }, // RENAMED: Ladder → League
     { id: 'matches', icon: Calendar, label: 'Matches', show: true },
@@ -17,7 +19,7 @@ const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers }) => 
       id: 'availability', 
       icon: Users, 
       label: 'Available', 
-      show: ladderPlayers?.find(player => player.id === currentUser?.id) 
+      show: !isLeagueSeason && ladderPlayers?.find(player => player.id === currentUser?.id) // Hide for league seasons
     },
     { 
       id: 'admin', 

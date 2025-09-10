@@ -315,8 +315,8 @@ const AdminTab = ({
         </div>
       </div>
 
-      {/* Player Availability Management */}
-      {currentSeason?.matches && (
+      {/* Player Availability Management - Only for ladder seasons */}
+      {currentSeason?.matches && currentSeason?.season_type !== 'league' && (
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold mb-4">Set Player Availability</h3>
           <p className="text-sm text-gray-600 mb-4">Set availability on behalf of players</p>
