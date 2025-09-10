@@ -1,5 +1,5 @@
 // src/hooks/useApp.js - ENHANCED FOR MULTI-SEASON
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 
 export const useApp = (userId, selectedSeasonId) => {
@@ -1141,6 +1141,25 @@ export const useApp = (userId, selectedSeasonId) => {
     return () => window.removeEventListener('refreshMatchData', handleRefreshMatchData);
   }, [fetchMatchResults, fetchMatchFixtures, fetchSeasons]);
 
+  // Memoize the refetch object to prevent infinite loops
+  const refetchFunctions = useMemo(() => ({
+    users: fetchUsers,
+    seasons: fetchSeasons,
+    selectedSeasonData: () => fetchSelectedSeasonData(selectedSeasonId),
+    availability: fetchAvailability,
+    fixtures: fetchMatchFixtures,
+    results: fetchMatchResults,
+    seasonPlayers: () => fetchSeasonPlayers(selectedSeasonId),
+    all: () => Promise.all([
+      fetchUsers(),
+      fetchSeasons(),
+      fetchAvailability(),
+      fetchMatchFixtures(),
+      fetchMatchResults(),
+      selectedSeasonId ? fetchSelectedSeasonData(selectedSeasonId) : Promise.resolve()
+    ])
+  }), [fetchUsers, fetchSeasons, fetchSelectedSeasonData, selectedSeasonId, fetchAvailability, fetchMatchFixtures, fetchMatchResults, fetchSeasonPlayers]);
+
   // Return everything
   return {
     ...state,
@@ -1167,22 +1186,6 @@ export const useApp = (userId, selectedSeasonId) => {
       getMatchScore,
       getMatchScoreHistory,
     },
-    refetch: {
-      users: fetchUsers,
-      seasons: fetchSeasons,
-      selectedSeasonData: () => fetchSelectedSeasonData(selectedSeasonId),
-      availability: fetchAvailability,
-      fixtures: fetchMatchFixtures,
-      results: fetchMatchResults,
-      seasonPlayers: () => fetchSeasonPlayers(selectedSeasonId),
-      all: () => Promise.all([
-        fetchUsers(),
-        fetchSeasons(),
-        fetchAvailability(),
-        fetchMatchFixtures(),
-        fetchMatchResults(),
-        selectedSeasonId ? fetchSelectedSeasonData(selectedSeasonId) : Promise.resolve()
-      ])
-    }
+    refetch: refetchFunctions
   };
 };

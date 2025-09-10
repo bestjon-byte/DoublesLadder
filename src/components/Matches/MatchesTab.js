@@ -38,7 +38,7 @@ const MatchesTab = ({
     };
 
     refreshMatchData();
-  }, [selectedSeason?.id, refetch]);
+  }, [selectedSeason?.id]); // Removed refetch from dependencies to prevent infinite loop
 
   // Toggle expansion state for a match
   const toggleMatchExpansion = (matchId) => {
