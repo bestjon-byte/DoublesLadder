@@ -512,7 +512,7 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
         
         for (let oppPairIndex = 0; oppPairIndex < Math.min(opponentPairs.length, 3); oppPairIndex++) {
           const opponentPair = opponentPairs[oppPairIndex];
-          const rubber = scoringMatrix[pairIndex]?.[oppPairIndex];
+          const rubber = scoringMatrix[oppPairIndex]?.[pairIndex];
           
           if (rubber) {
             const cawoodGames = cawoodIsHome ? rubber.homeScore : rubber.awayScore;
