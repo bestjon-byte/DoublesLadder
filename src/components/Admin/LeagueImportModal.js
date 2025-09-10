@@ -515,6 +515,9 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
           const rubber = scoringMatrix[oppPairIndex]?.[pairIndex];
           
           if (rubber) {
+            // Simple: just store the scores directly from the matrix
+            // homeScore = home team games, awayScore = away team games
+            // Determine which is Cawood based on cawoodIsHome
             const cawoodGames = cawoodIsHome ? rubber.homeScore : rubber.awayScore;
             const opponentGames = cawoodIsHome ? rubber.awayScore : rubber.homeScore;
             

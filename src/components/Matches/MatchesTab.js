@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
+import LeagueMatchCard from './LeagueMatchCard';
 
 const MatchesTab = ({ 
   currentUser, 
@@ -15,7 +16,8 @@ const MatchesTab = ({
   generateMatches,
   openScoreModal,
   getAvailabilityStats,
-  getMatchScore
+  getMatchScore,
+  supabase
 }) => {
   // State for managing which matches are expanded
   const [expandedMatches, setExpandedMatches] = useState({});
@@ -89,6 +91,17 @@ const MatchesTab = ({
     }));
   };
 
+  // Check if a match is a league match
+  const isLeagueMatch = (matchId) => {
+    const fixtures = matchFixtures.filter(f => f.match_id === matchId);
+    return fixtures.some(f => f.match_type === 'league');
+  };
+
+  // Get the league fixture for a match (there should only be one)
+  const getLeagueFixture = (matchId) => {
+    return matchFixtures.find(f => f.match_id === matchId && f.match_type === 'league');
+  };
+
   const isSeasonCompleted = selectedSeason?.status === 'completed';
 
   return (
@@ -144,6 +157,19 @@ const MatchesTab = ({
             const matchDate = new Date(match.match_date);
             matchDate.setHours(0, 0, 0, 0);
             
+            // Check if this is a league match
+            if (isLeagueMatch(match.id)) {
+              const leagueFixture = getLeagueFixture(match.id);
+              return (
+                <LeagueMatchCard 
+                  key={match.id}
+                  match={match}
+                  fixture={leagueFixture}
+                  supabase={supabase}
+                />
+              );
+            }
+
             return (
               <div key={match.id} className="bg-white rounded-lg shadow">
                 {/* Enhanced Progressive Disclosure Header */}
