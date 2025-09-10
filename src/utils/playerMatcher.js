@@ -41,11 +41,16 @@ const calculateSimilarity = (str1, str2) => {
   return Math.round(((maxLength - distance) / maxLength) * 100);
 };
 
-// Find potential matches for a player name - SIMPLIFIED VERSION
-export const findPlayerMatches = (playerName, existingPlayers) => {
+// Find potential matches for a player name with cache support
+export const findPlayerMatches = (playerName, existingPlayers, cachedMatches = []) => {
   if (!playerName || !existingPlayers || existingPlayers.length === 0) {
     return [];
   }
+  
+  // Check if we have a cached match for this exact name
+  const cachedMatch = cachedMatches.find(cache => 
+    cache.parsed_name.toLowerCase() === playerName.toLowerCase()
+  );
   
   const firstLetter = playerName.charAt(0).toLowerCase();
   
@@ -55,16 +60,64 @@ export const findPlayerMatches = (playerName, existingPlayers) => {
     .map(player => ({
       player: player,
       score: 85, // Give a consistent score for display
-      isExact: player.name.toLowerCase() === playerName.toLowerCase()
+      isExact: player.name.toLowerCase() === playerName.toLowerCase(),
+      isCached: cachedMatch && cachedMatch.matched_player_id === player.id
     }))
     .sort((a, b) => {
-      // Sort exact matches first, then alphabetically
+      // Sort cached matches first, then exact matches, then alphabetically
+      if (a.isCached && !b.isCached) return -1;
+      if (!a.isCached && b.isCached) return 1;
       if (a.isExact && !b.isExact) return -1;
       if (!a.isExact && b.isExact) return 1;
       return a.player.name.localeCompare(b.player.name);
     });
   
-  return matches; // Return all matches starting with same letter
+  return matches;
+};
+
+// Get cached player matches from database
+export const getCachedPlayerMatches = async (supabase) => {
+  if (!supabase) return [];
+  
+  try {
+    const { data, error } = await supabase
+      .from('player_match_cache')
+      .select(`
+        parsed_name,
+        matched_player_id,
+        profiles:matched_player_id(id, name, email)
+      `);
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch cached player matches:', error);
+    return [];
+  }
+};
+
+// Save a confirmed player match to cache
+export const saveCachedPlayerMatch = async (supabase, parsedName, matchedPlayerId, confirmedBy) => {
+  if (!supabase || !parsedName || !matchedPlayerId) return false;
+  
+  try {
+    const { error } = await supabase
+      .from('player_match_cache')
+      .upsert({
+        parsed_name: parsedName,
+        matched_player_id: matchedPlayerId,
+        confirmed_by: confirmedBy,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'parsed_name,matched_player_id'
+      });
+    
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Failed to save cached player match:', error);
+    return false;
+  }
 };
 
 // Generate name variations for better matching
@@ -212,5 +265,7 @@ export default {
   findPlayerMatches,
   identifyCawoodPlayers,
   generateDummyEmail,
-  calculateSimilarity
+  calculateSimilarity,
+  getCachedPlayerMatches,
+  saveCachedPlayerMatch
 };

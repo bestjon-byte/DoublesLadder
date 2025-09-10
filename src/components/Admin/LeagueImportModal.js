@@ -1,50 +1,53 @@
 // League Import Modal - New Implementation
 import React, { useState, useEffect } from 'react';
 import { X, Globe, AlertCircle, CheckCircle, Download, FileText, Users, UserPlus } from 'lucide-react';
-import { parseLeagueMatchFromURL } from '../../utils/leagueURLParser';
 import { parseLeagueMatchFromText } from '../../utils/leagueTextParser';
-import { findPlayerMatches, identifyCawoodPlayers, generateDummyEmail } from '../../utils/playerMatcher';
+import { findPlayerMatches, identifyCawoodPlayers, generateDummyEmail, getCachedPlayerMatches, saveCachedPlayerMatch } from '../../utils/playerMatcher';
 
 const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
-  const [mode, setMode] = useState('url'); // 'url' or 'text'
-  const [url, setUrl] = useState('');
   const [textData, setTextData] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [step, setStep] = useState('parse'); // 'parse', 'match', 'import'
   const [existingPlayers, setExistingPlayers] = useState([]);
+  const [cachedMatches, setCachedMatches] = useState([]);
   const [playerMatches, setPlayerMatches] = useState([]);
   const [matchingData, setMatchingData] = useState(null);
   const [importSuccess, setImportSuccess] = useState(false);
 
-  // Fetch existing players on component mount
+  // Fetch existing players and cached matches on component mount
   useEffect(() => {
-    const fetchExistingPlayers = async () => {
+    const fetchData = async () => {
       if (!supabase) return;
       
       try {
-        const { data, error } = await supabase
+        // Fetch existing players
+        const { data: playersData, error: playersError } = await supabase
           .from('profiles')
           .select('id, name, email')
           .in('role', ['player', 'admin'])  // Include both players and admins
           .eq('status', 'approved')
           .order('name');
         
-        if (error) throw error;
-        setExistingPlayers(data || []);
+        if (playersError) throw playersError;
+        setExistingPlayers(playersData || []);
+
+        // Fetch cached player matches
+        const cachedData = await getCachedPlayerMatches(supabase);
+        setCachedMatches(cachedData);
+        
       } catch (err) {
-        console.error('Failed to fetch existing players:', err);
+        console.error('Failed to fetch data:', err);
       }
     };
 
     if (isOpen) {
-      fetchExistingPlayers();
+      fetchData();
     }
   }, [isOpen, supabase]);
 
   const handleReset = () => {
-    setUrl('');
     setTextData('');
     setResult(null);
     setError('');
@@ -64,28 +67,12 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
     setResult(null);
 
     try {
-      let parseResult;
-      
-      if (mode === 'url') {
-        if (!url.trim()) {
-          setError('Please enter a URL');
-          return;
-        }
-
-        if (!url.includes('yorkmenstennisleague.co.uk')) {
-          setError('Please provide a valid York Men\'s Tennis League URL');
-          return;
-        }
-
-        parseResult = await parseLeagueMatchFromURL(url);
-      } else {
-        if (!textData.trim()) {
-          setError('Please paste the match text data');
-          return;
-        }
-
-        parseResult = parseLeagueMatchFromText(textData);
+      if (!textData.trim()) {
+        setError('Please paste the match text data');
+        return;
       }
+
+      const parseResult = parseLeagueMatchFromText(textData);
       
       if (parseResult.success) {
         setResult(parseResult.data);
@@ -95,14 +82,24 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
         const playerData = identifyCawoodPlayers(parseResult.data);
         setMatchingData(playerData);
         
-        // Generate matches for each Cawood player
+        // Generate matches for each Cawood player with cache support
         const matches = playerData.cawoodPlayers.map(playerName => {
-          const suggestions = findPlayerMatches(playerName, existingPlayers);
+          const suggestions = findPlayerMatches(playerName, existingPlayers, cachedMatches);
+          
+          // Check if there's a cached match for this player
+          const cachedMatch = cachedMatches.find(cache => 
+            cache.parsed_name.toLowerCase() === playerName.toLowerCase()
+          );
+          
+          const cachedPlayer = cachedMatch ? 
+            existingPlayers.find(p => p.id === cachedMatch.matched_player_id) : null;
+          
           return {
             parsedName: playerName,
             suggestions: suggestions,
-            selectedMatch: null,
+            selectedMatch: cachedPlayer, // Auto-select cached match
             createNew: false,
+            isCachedMatch: !!cachedPlayer,
             newPlayerData: {
               name: playerName,
               email: generateDummyEmail(playerName)
@@ -113,7 +110,7 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
         setPlayerMatches(matches);
         setStep('match');
       } else {
-        setError(parseResult.error || `Failed to parse ${mode}`);
+        setError(parseResult.error || 'Failed to parse match text');
         setResult(null);
       }
     } catch (err) {
@@ -290,6 +287,11 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium text-gray-900">
                   Parsed Name: <span className="text-blue-600">{match.parsedName}</span>
+                  {match.isCachedMatch && (
+                    <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                      ✓ Previously Confirmed
+                    </span>
+                  )}
                 </h4>
                 <div className="text-sm text-gray-500">
                   {match.suggestions.length} player{match.suggestions.length !== 1 ? 's' : ''} starting with "{match.parsedName.charAt(0).toUpperCase()}"
@@ -304,7 +306,9 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
                   </label>
                   <div className="space-y-2">
                     {match.suggestions.map((suggestion, suggestionIndex) => (
-                      <label key={suggestionIndex} className="flex items-center space-x-3 p-2 border rounded hover:bg-gray-50">
+                      <label key={suggestionIndex} className={`flex items-center space-x-3 p-2 border rounded hover:bg-gray-50 ${
+                        suggestion.isCached ? 'border-green-300 bg-green-50' : ''
+                      }`}>
                         <input
                           type="radio"
                           name={`player-${index}`}
@@ -318,8 +322,11 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
                           <div className="text-sm text-gray-500">{suggestion.player.email}</div>
                         </div>
                         <div className="text-right">
-                          {suggestion.isExact && (
-                            <div className="text-sm font-medium text-green-600">Exact match</div>
+                          {suggestion.isCached && (
+                            <div className="text-sm font-medium text-green-600">✓ Cached</div>
+                          )}
+                          {suggestion.isExact && !suggestion.isCached && (
+                            <div className="text-sm font-medium text-blue-600">Exact match</div>
                           )}
                         </div>
                       </label>
@@ -552,6 +559,20 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
         }
       }
 
+      // Save confirmed player matches to cache for future imports
+      const currentUserId = supabase?.auth?.user?.id;
+      for (const match of playerMatches) {
+        if (match.selectedMatch && !match.createNew && !match.isCachedMatch) {
+          // This is a new confirmation that should be cached
+          await saveCachedPlayerMatch(
+            supabase, 
+            match.parsedName, 
+            match.selectedMatch.id, 
+            currentUserId
+          );
+        }
+      }
+
       setImportSuccess(true);
       setStep('success');
       
@@ -571,10 +592,10 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center space-x-3">
-            <Globe className="w-6 h-6 text-blue-600" />
+            <FileText className="w-6 h-6 text-blue-600" />
             <div>
               <h2 className="text-xl font-semibold text-gray-900">League Match Import</h2>
-              <p className="text-sm text-gray-600">Import match results from York Men's Tennis League URL</p>
+              <p className="text-sm text-gray-600">Import match results by pasting match text data</p>
             </div>
           </div>
           <button
@@ -589,104 +610,16 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
         <div className="flex-1 overflow-y-auto p-6">
           {step === 'parse' && (
           <div className="space-y-6">
-            {/* Mode Selection */}
+            {/* Text Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Import Method
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Match Data Text
               </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="url"
-                    checked={mode === 'url'}
-                    onChange={(e) => setMode(e.target.value)}
-                    className="mr-2"
-                    disabled={loading}
-                  />
-                  <Globe className="w-4 h-4 mr-1" />
-                  <span className="text-sm font-medium">From URL</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="text"
-                    checked={mode === 'text'}
-                    onChange={(e) => setMode(e.target.value)}
-                    className="mr-2"
-                    disabled={loading}
-                  />
-                  <FileText className="w-4 h-4 mr-1" />
-                  <span className="text-sm font-medium">From Text (Recommended)</span>
-                </label>
-              </div>
-            </div>
-
-            {mode === 'url' ? (
-              <>
-                {/* URL Input */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    League Match URL
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="url"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="https://www.yorkmenstennisleague.co.uk/fixtures/339"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      disabled={loading}
-                    />
-                    <button
-                      onClick={handleParse}
-                      disabled={loading || !url.trim()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                    >
-                      {loading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Parsing...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-4 h-4" />
-                          <span>Parse URL</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Enter a valid York Men's Tennis League fixture URL to import match results
-                  </p>
-                </div>
-
-                {/* Example URL */}
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                  <p className="text-sm text-blue-800 mb-2"><strong>Example URL:</strong></p>
-                  <code className="text-xs text-blue-700 bg-white px-2 py-1 rounded">
-                    https://www.yorkmenstennisleague.co.uk/fixtures/339
-                  </code>
-                  <button
-                    onClick={() => setUrl('https://www.yorkmenstennisleague.co.uk/fixtures/339')}
-                    className="ml-2 text-xs text-blue-600 hover:text-blue-800 underline"
-                  >
-                    Use Example
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Text Input */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Match Data Text
-                  </label>
-                  <div className="space-y-2">
-                    <textarea
-                      value={textData}
-                      onChange={(e) => setTextData(e.target.value)}
-                      placeholder={`Paste the match data here, for example:
+              <div className="space-y-2">
+                <textarea
+                  value={textData}
+                  onChange={(e) => setTextData(e.target.value)}
+                  placeholder={`Paste the match data here, for example:
 
 Fixtures - Market Weighton v Cawood 2
 27 April 2025 - 10:00
@@ -698,31 +631,31 @@ Steve Caslake    GF    GA
 Ian Robson
 Aled Edwards    6 - 6    7 - 5    10 - 2    23    13
 ...`}
-                      rows={12}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm font-mono"
-                      disabled={loading}
-                    />
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={handleParse}
-                        disabled={loading || !textData.trim()}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                      >
-                        {loading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            <span>Parsing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="w-4 h-4" />
-                            <span>Parse Text</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          const exampleText = `Fixtures - Market Weighton v Cawood 2
+                  rows={12}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm font-mono"
+                  disabled={loading}
+                />
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleParse}
+                    disabled={loading || !textData.trim()}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Parsing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4" />
+                        <span>Parse Text</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const exampleText = `Fixtures - Market Weighton v Cawood 2
 27 April 2025 - 10:00
      Cawood 2          
 Market Weighton    Steven Walter
@@ -737,21 +670,19 @@ Ken Bottomer
 Keigan Freeman Hacker    6 - 6    5 - 7    11 - 1    22    14
 Market Weighton    8.5    3.5    Cawood 2
 67    41`;
-                          setTextData(exampleText);
-                        }}
-                        className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
-                        disabled={loading}
-                      >
-                        Use Example
-                      </button>
-                    </div>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Copy and paste the complete match results text from the league website
-                  </p>
+                      setTextData(exampleText);
+                    }}
+                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+                    disabled={loading}
+                  >
+                    Use Example
+                  </button>
                 </div>
-              </>
-            )}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Copy and paste the complete match results text from the league website
+              </p>
+            </div>
 
             {/* Error Display */}
             {error && (
