@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo, formatLeagueStats } from '../../utils/helpers';
 
-const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect, supabase }) => {
+const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect, supabase, matchFixtures }) => {
   // State for team filter
   const [teamFilter, setTeamFilter] = useState('all'); // 'all', '1sts', '2nds'
 
@@ -42,12 +42,12 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
 
   // Calculate statistics for players based only on matches played for the selected team
   const getTeamSpecificStats = () => {
-    if (!selectedSeason?.match_fixtures) return [];
+    if (!matchFixtures || matchFixtures.length === 0) return [];
 
     const teamStats = new Map();
 
     // Process all match fixtures for the selected season
-    selectedSeason.match_fixtures.forEach(fixture => {
+    matchFixtures.forEach(fixture => {
       if (fixture.team !== teamFilter) return; // Only process matches for selected team
 
       fixture.league_match_rubbers?.forEach(rubber => {

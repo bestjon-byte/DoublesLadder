@@ -247,6 +247,7 @@ const CawoodTennisApp = () => {
               selectedSeason={selectedSeason} // NEW: Pass selected season
               onPlayerSelect={handlePlayerSelect} // NEW: Player selection handler
               supabase={supabase} // NEW: Pass supabase for team filtering
+              matchFixtures={matchFixtures} // NEW: Pass matchFixtures for league team filtering
             />
           )}
 
