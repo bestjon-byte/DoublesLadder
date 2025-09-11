@@ -1,11 +1,10 @@
 // src/components/Ladder/LadderTab.js - RENAMED to support League expansion
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo, formatLeagueStats } from '../../utils/helpers';
 
 const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect, supabase }) => {
   // State for team filter
   const [teamFilter, setTeamFilter] = useState('all'); // 'all', '1sts', '2nds'
-  const [playerTeamData, setPlayerTeamData] = useState({});
 
   // NEW: Use unified ranking data for both ladder and league seasons
   const rankingData = getUnifiedRankingData(users, selectedSeason);
@@ -13,42 +12,6 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
   const isLeagueSeason = selectedSeason?.season_type === 'league';
   const seasonInfo = getSeasonDisplayInfo(selectedSeason);
 
-  // Fetch player team data for league seasons
-  useEffect(() => {
-    const fetchPlayerTeamData = async () => {
-      if (!isLeagueSeason || !supabase || !selectedSeason?.id) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('league_match_rubbers')
-          .select(`
-            cawood_player1_id,
-            cawood_player2_id,
-            match_fixtures!inner(team, match_id, matches!inner(season_id))
-          `)
-          .eq('match_fixtures.matches.season_id', selectedSeason.id);
-
-        if (error) throw error;
-
-        const teamMap = {};
-        data?.forEach(rubber => {
-          const team = rubber.match_fixtures.team;
-          if (rubber.cawood_player1_id) {
-            teamMap[rubber.cawood_player1_id] = team;
-          }
-          if (rubber.cawood_player2_id) {
-            teamMap[rubber.cawood_player2_id] = team;
-          }
-        });
-
-        setPlayerTeamData(teamMap);
-      } catch (error) {
-        console.error('Error fetching player team data:', error);
-      }
-    };
-
-    fetchPlayerTeamData();
-  }, [isLeagueSeason, supabase, selectedSeason?.id]);
 
   const getRankIcon = (rank) => {
     if (rank === 1) return '🏆';
@@ -67,16 +30,89 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
     return player.games_played > 0 ? Math.round((player.games_won / player.games_played) * 100 * 10) / 10 : 0;
   };
 
-  // Filter players based on team selection for league seasons
+  // Calculate team-specific statistics for league seasons
   const getFilteredRankingData = () => {
     if (!isLeagueSeason || teamFilter === 'all') {
       return rankingData;
     }
 
-    return rankingData.filter(player => {
-      const playerTeam = playerTeamData[player.id];
-      return playerTeam === teamFilter;
+    // For team filtering, we need to recalculate stats based only on matches played for that team
+    return getTeamSpecificStats();
+  };
+
+  // Calculate statistics for players based only on matches played for the selected team
+  const getTeamSpecificStats = () => {
+    if (!selectedSeason?.match_fixtures) return [];
+
+    const teamStats = new Map();
+
+    // Process all match fixtures for the selected season
+    selectedSeason.match_fixtures.forEach(fixture => {
+      if (fixture.team !== teamFilter) return; // Only process matches for selected team
+
+      fixture.league_match_rubbers?.forEach(rubber => {
+        // Process both Cawood players in this rubber
+        [rubber.cawood_player1_id, rubber.cawood_player2_id].forEach(playerId => {
+          if (!playerId) return;
+
+          if (!teamStats.has(playerId)) {
+            // Find the player in our users array to get basic info
+            const playerInfo = rankingData.find(p => p.id === playerId);
+            if (!playerInfo) return;
+
+            teamStats.set(playerId, {
+              ...playerInfo,
+              games_played: 0,
+              games_won: 0,
+              matches_played: 0, // rubbers
+              matches_won: 0, // rubbers won
+              team: teamFilter
+            });
+          }
+
+          const stats = teamStats.get(playerId);
+          
+          // Add games played and won
+          if (rubber.cawood_games_won !== null && rubber.opponent_games_won !== null) {
+            stats.games_played += rubber.cawood_games_won + rubber.opponent_games_won;
+            stats.games_won += rubber.cawood_games_won;
+            stats.matches_played += 1;
+            
+            // Rubber won if Cawood won more games
+            if (rubber.cawood_games_won > rubber.opponent_games_won) {
+              stats.matches_won += 1;
+            }
+          }
+        });
+      });
     });
+
+    // Convert to array and sort by win percentage like the original league logic
+    const playersWithStats = Array.from(teamStats.values()).filter(player => player.games_played > 0);
+    
+    return playersWithStats.sort((a, b) => {
+      const aWinPct = a.games_played > 0 ? a.games_won / a.games_played : 0;
+      const bWinPct = b.games_played > 0 ? b.games_won / b.games_played : 0;
+      
+      // Primary sort: Win percentage (descending)
+      if (aWinPct !== bWinPct) {
+        return bWinPct - aWinPct;
+      }
+      
+      // Secondary sort: Total games won (descending)
+      if (a.games_won !== b.games_won) {
+        return b.games_won - a.games_won;
+      }
+      
+      // Tertiary sort: Total games played (descending)
+      return b.games_played - a.games_played;
+    }).map((player, index) => ({
+      ...player,
+      rank: index + 1,
+      win_percentage: player.games_played > 0 ? 
+        ((player.games_won / player.games_played) * 100).toFixed(1) : 
+        '0.0'
+    }));
   };
 
   return (
