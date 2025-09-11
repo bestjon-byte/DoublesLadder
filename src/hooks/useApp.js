@@ -474,15 +474,10 @@ export const useApp = (userId, selectedSeasonId) => {
       return { success: false };
     }
     
-    // Use seasonPlayers for match generation if viewing current season
-    const playersToUse = selectedSeasonId === state.currentSeason?.id 
-      ? state.seasonPlayers 
-      : state.users;
+    // Use same logic as getAvailabilityStats to ensure consistency
+    const ladderPlayers = state.seasonPlayers.length > 0 ? state.seasonPlayers : state.users.filter(u => u.in_ladder && u.status === 'approved');
     
-    const availablePlayers = playersToUse.filter(user => {
-      // Check if user is in ladder and approved
-      if (!user.in_ladder || user.status !== 'approved') return false;
-      
+    const availablePlayers = ladderPlayers.filter(user => {
       // Check if user marked themselves available for this match date
       const userAvailability = state.availability.find(
         a => a.player_id === user.id && a.match_date === match.match_date
