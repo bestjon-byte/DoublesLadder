@@ -32,7 +32,10 @@ const AdminTab = ({
   selectedSeason,
   seasons,
   // NEW: Supabase instance for LeagueImportModal
-  supabase
+  supabase,
+  // NEW: Match management functions
+  setShowScheduleModal,
+  addMatchToSeason
 }) => {
   const [loading, setLoading] = useState(false);
   const [showCreateSeason, setShowCreateSeason] = useState(false);
@@ -232,6 +235,28 @@ const AdminTab = ({
               Add Players
             </button>
           </div>
+
+          {/* Add Ladder Match - Only show for active ladder seasons */}
+          {activeSeason?.season_type === 'ladder' && activeSeason?.status === 'active' && (
+            <div className="border border-purple-200 rounded-lg p-4 hover:bg-purple-50 transition-colors">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="bg-purple-100 p-2 rounded-full">
+                  <Plus className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">Add Ladder Match</h4>
+                  <p className="text-xs text-gray-500">Schedule new match week</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowScheduleModal && setShowScheduleModal(true)}
+                disabled={!setShowScheduleModal}
+                className="w-full bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50 transition-colors text-sm"
+              >
+                Add Match
+              </button>
+            </div>
+          )}
 
           {/* League Import */}
           <div className="border border-blue-200 rounded-lg p-4 hover:bg-blue-50 transition-colors">

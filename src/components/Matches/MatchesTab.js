@@ -1,6 +1,6 @@
 // src/components/Matches/MatchesTab.js - FIXED for today's dates
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 import LeagueMatchCard from './LeagueMatchCard';
 
@@ -8,7 +8,6 @@ const MatchesTab = ({
   currentUser, 
   currentSeason, 
   selectedSeason,
-  setShowScheduleModal,
   matchFixtures,
   matchResults,
   availability,
@@ -173,17 +172,8 @@ const MatchesTab = ({
             </div>
           )}
           
-          {/* Admin Controls */}
-          {currentUser?.role === 'admin' && !isSeasonCompleted && (
-            <button
-              onClick={() => setShowScheduleModal(true)}
-              className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors"
-            >
-              <Plus className="w-4 h-4 inline mr-2" />
-              Add Match
-            </button>
-          )}
-          {currentUser?.role === 'admin' && isSeasonCompleted && (
+          {/* Season Status Indicator */}
+          {isSeasonCompleted && (
             <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-md">
               Season Completed
             </div>
@@ -197,7 +187,12 @@ const MatchesTab = ({
             {teamFilter === 'all' ? 'No matches scheduled yet.' : `No matches found for ${teamFilter === '1sts' ? 'Cawood 1sts' : 'Cawood 2nds'}.`}
           </p>
           {currentUser?.role === 'admin' && teamFilter === 'all' && (
-            <p className="text-sm text-gray-400 mt-2">Click "Add Match" to create your first match.</p>
+            <p className="text-sm text-gray-400 mt-2">
+              {selectedSeason?.season_type === 'ladder' 
+                ? 'Go to Admin tab to add ladder matches.'
+                : 'League matches are added via import in the Admin tab.'
+              }
+            </p>
           )}
         </div>
       ) : (

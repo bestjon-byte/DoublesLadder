@@ -255,7 +255,6 @@ const CawoodTennisApp = () => {
               currentUser={user}
               currentSeason={selectedSeasonData || selectedSeason} // CHANGED: Use selected season data with matches
               selectedSeason={selectedSeason} // NEW: Pass selected season for read-only checks
-              setShowScheduleModal={setShowScheduleModal}
               matchFixtures={matchFixtures}
               matchResults={matchResults}
               availability={availability}
@@ -324,6 +323,9 @@ const CawoodTennisApp = () => {
               seasons={seasons}
               // NEW: Supabase instance for LeagueImportModal
               supabase={supabase}
+              // NEW: Match management props for ladder matches
+              setShowScheduleModal={setShowScheduleModal}
+              addMatchToSeason={handleAddMatch}
             />
           )}
         </main>
