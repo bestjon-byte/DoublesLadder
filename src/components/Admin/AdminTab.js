@@ -1,6 +1,7 @@
 // src/components/Admin/AdminTab.js - COMPLETE FIXED VERSION
 import React, { useState } from 'react';
 import { Check, Users, ShieldCheck, Trash2, Calendar, Plus, Globe } from 'lucide-react';
+import { APP_VERSION } from '../../utils/versionManager';
 import ScoreChallengesSection from './ScoreChallengesSection';
 import PlayerMergeModal from './PlayerMergeModal';
 import UserRoleModal from '../Modals/UserRoleModal';
@@ -108,7 +109,14 @@ const AdminTab = ({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
+        <div className="flex items-center gap-3">
+          <div className="bg-gray-100 px-3 py-1 rounded-full">
+            <span className="text-sm font-mono text-gray-600">v{APP_VERSION}</span>
+          </div>
+        </div>
+      </div>
       
       {/* Score Challenges and Conflicts Management - THE MAIN NEW FEATURE */}
       <ScoreChallengesSection 
