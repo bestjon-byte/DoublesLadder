@@ -229,7 +229,8 @@ export const useApp = (userId, selectedSeasonId) => {
           player2:player2_id(name),
           player3:player3_id(name),
           player4:player4_id(name),
-          sitting_player:sitting_player_id(name)
+          sitting_player:sitting_player_id(name),
+          league_match_rubbers(*)
         `);
       
       if (error) throw error;
