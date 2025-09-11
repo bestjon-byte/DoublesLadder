@@ -188,6 +188,7 @@ const MatchesTab = ({
               Season Completed
             </div>
           )}
+        </div>
       </div>
       
       {!filteredMatches || filteredMatches.length === 0 ? (
