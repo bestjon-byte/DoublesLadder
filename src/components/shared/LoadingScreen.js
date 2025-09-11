@@ -18,9 +18,9 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
         <div className="flex flex-col items-center">
           {/* Animated Club Logo */}
           <div className="relative w-24 h-28 mb-4 flex items-end justify-center">
-            {/* Dynamic shadow that responds to animation */}
-            <div className="absolute bottom-0 w-16 h-4 bg-black bg-opacity-20 rounded-full animate-pulse" style={{
-              animation: 'pulse 1s infinite ease-in-out'
+            {/* Dynamic shadow that responds to bounce animation */}
+            <div className="absolute bottom-0 w-16 h-4 bg-black bg-opacity-20 rounded-full" style={{
+              animation: 'shadow-bounce 1.2s infinite ease-in-out'
             }}></div>
             
             {/* Bouncing Club Logo */}
@@ -80,7 +80,7 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
             </div>
           </div>
 
-          {/* Add custom keyframes for subtle rotation */}
+          {/* Add custom keyframes for subtle rotation and shadow animation */}
           <style jsx>{`
             @keyframes subtle-rotate {
               0% { transform: rotate(0deg) scale(1); }
@@ -88,6 +88,16 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
               50% { transform: rotate(0deg) scale(1); }
               75% { transform: rotate(-2deg) scale(1.05); }
               100% { transform: rotate(0deg) scale(1); }
+            }
+            @keyframes shadow-bounce {
+              0%, 100% { 
+                transform: scaleX(0.5) scaleY(0.8); 
+                opacity: 0.3; 
+              }
+              50% { 
+                transform: scaleX(1) scaleY(1); 
+                opacity: 0.2; 
+              }
             }
           `}</style>
           
