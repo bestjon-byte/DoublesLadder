@@ -33,4 +33,4 @@ If the final score shows "6-4":
 ## Running Locally
 ```bash
 npm install
-npm start
+npm start# Rollback to v1.0.42 - working version
