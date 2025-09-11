@@ -141,6 +141,7 @@ const MatchesTab = ({
   };
 
   const isSeasonCompleted = selectedSeason?.status === 'completed';
+  const filteredMatches = getFilteredMatches();
 
   return (
     <div className="space-y-6">
@@ -189,20 +190,18 @@ const MatchesTab = ({
           )}
       </div>
       
-      {(() => {
-        const filteredMatches = getFilteredMatches();
-        return !filteredMatches || filteredMatches.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <p className="text-gray-500">
-              {teamFilter === 'all' ? 'No matches scheduled yet.' : `No matches found for ${teamFilter === '1sts' ? 'Cawood 1sts' : 'Cawood 2nds'}.`}
-            </p>
-            {currentUser?.role === 'admin' && teamFilter === 'all' && (
-              <p className="text-sm text-gray-400 mt-2">Click "Add Match" to create your first match.</p>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredMatches.map((match) => {
+      {!filteredMatches || filteredMatches.length === 0 ? (
+        <div className="bg-white rounded-lg shadow p-6 text-center">
+          <p className="text-gray-500">
+            {teamFilter === 'all' ? 'No matches scheduled yet.' : `No matches found for ${teamFilter === '1sts' ? 'Cawood 1sts' : 'Cawood 2nds'}.`}
+          </p>
+          {currentUser?.role === 'admin' && teamFilter === 'all' && (
+            <p className="text-sm text-gray-400 mt-2">Click "Add Match" to create your first match.</p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredMatches.map((match) => {
             const stats = getAvailabilityStats(match.id);
             const matchStatus = getMatchStatus(match);
             const isAdmin = currentUser?.role === 'admin';
@@ -456,8 +455,7 @@ const MatchesTab = ({
             );
           })}
         </div>
-        );
-      })()}
+      )}
     </div>
   );
 };
