@@ -456,6 +456,7 @@ const MatchesTab = ({
             );
           })}
         </div>
+        );
       })()}
     </div>
   );
