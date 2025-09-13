@@ -456,5 +456,17 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
     calculateStats();
   }, [calculateStats]);
 
+  // Listen for match data refresh events
+  useEffect(() => {
+    const handleRefreshMatchData = () => {
+      calculateStats();
+    };
+
+    window.addEventListener('refreshMatchData', handleRefreshMatchData);
+    return () => {
+      window.removeEventListener('refreshMatchData', handleRefreshMatchData);
+    };
+  }, [calculateStats]);
+
   return stats;
 };
