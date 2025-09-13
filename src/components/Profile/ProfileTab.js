@@ -349,17 +349,21 @@ const SeasonProgressionChart = ({ data }) => {
   );
 };
 
-const BestPartnersSection = ({ partners, allUsers }) => (
-  <div className="space-y-3">
-    {partners.length === 0 ? (
-      <div className="text-center py-8">
-        <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500 text-sm mb-1">No partnership data available</p>
-        <p className="text-xs text-gray-400">Play matches with different partners to see statistics</p>
-      </div>
-    ) : (
-      <div className="space-y-3">
-        {partners.slice(0, 5).map((partner, index) => {
+const BestPartnersSection = ({ partners, allUsers }) => {
+  const [showAll, setShowAll] = useState(false);
+  const displayedPartners = showAll ? partners : partners.slice(0, 5);
+
+  return (
+    <div className="space-y-3">
+      {partners.length === 0 ? (
+        <div className="text-center py-8">
+          <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 text-sm mb-1">No partnership data available</p>
+          <p className="text-xs text-gray-400">Play matches with different partners to see statistics</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {displayedPartners.map((partner, index) => {
           const winRate = Math.round(partner.winRate * 100);
           return (
             <div key={partner.playerId} className="group hover:bg-gray-50 rounded-lg p-3 transition-colors">
@@ -394,16 +398,20 @@ const BestPartnersSection = ({ partners, allUsers }) => (
           );
         })}
         {partners.length > 5 && (
-          <div className="text-center pt-2">
-            <button className="text-sm text-[#5D1F1F] hover:text-red-800 font-medium">
-              View all {partners.length} partners →
+          <div className="text-center pt-2 border-t border-gray-100">
+            <button 
+              onClick={() => setShowAll(!showAll)}
+              className="text-sm text-[#5D1F1F] hover:text-red-800 font-medium transition-colors"
+            >
+              {showAll ? `Show less ↑` : `View all ${partners.length} partners ↓`}
             </button>
           </div>
         )}
       </div>
     )}
-  </div>
-);
+    </div>
+  );
+};
 
 const NemesisSection = ({ nemesisOpponent, nemesisPair, allUsers }) => (
   <div className="space-y-4">
@@ -580,17 +588,21 @@ const FormGuide = ({ matches, allUsers }) => (
   </div>
 );
 
-const MatchHistory = ({ matches, allUsers }) => (
-  <div className="space-y-3">
-    {matches.length === 0 ? (
-      <div className="text-center py-8">
-        <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500 text-sm mb-1">No match history available</p>
-        <p className="text-xs text-gray-400">Your match history will appear here as you play</p>
-      </div>
-    ) : (
-      <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
-        {matches.slice(0, 20).map((match, index) => (
+const MatchHistory = ({ matches, allUsers }) => {
+  const [showAll, setShowAll] = useState(false);
+  const displayedMatches = showAll ? matches : matches.slice(0, 20);
+
+  return (
+    <div className="space-y-3">
+      {matches.length === 0 ? (
+        <div className="text-center py-8">
+          <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 text-sm mb-1">No match history available</p>
+          <p className="text-xs text-gray-400">Your match history will appear here as you play</p>
+        </div>
+      ) : (
+        <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+          {displayedMatches.map((match, index) => (
           <div key={index} className={`border rounded-lg p-4 transition-all duration-200 hover:shadow-md ${
             match.tie ? 'border-gray-200 bg-gray-50/30' :
             match.won ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/30'
@@ -653,16 +665,20 @@ const MatchHistory = ({ matches, allUsers }) => (
         ))}
         
         {matches.length > 20 && (
-          <div className="text-center pt-4">
-            <button className="text-sm text-[#5D1F1F] hover:text-red-800 font-medium">
-              View all {matches.length} matches →
+          <div className="text-center pt-4 border-t border-gray-100">
+            <button 
+              onClick={() => setShowAll(!showAll)}
+              className="text-sm text-[#5D1F1F] hover:text-red-800 font-medium transition-colors"
+            >
+              {showAll ? `Show less ↑` : `View all ${matches.length} matches ↓`}
             </button>
           </div>
         )}
       </div>
     )}
-  </div>
-);
+    </div>
+  );
+};
 
 const HeadToHeadSection = ({ records, allUsers }) => {
   const [showAll, setShowAll] = useState(false);
