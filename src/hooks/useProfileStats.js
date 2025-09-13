@@ -115,7 +115,9 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
           return fixture.match_results && fixture.match_results.length > 0;
         })
         .map(fixture => {
-          const result = fixture.match_results[0];
+          // Prioritize verified results, fallback to first result for backward compatibility
+          const verifiedResult = fixture.match_results.find(r => r.verified === true);
+          const result = verifiedResult || fixture.match_results[0];
           const isInPair1 = fixture.pair1_player1_id === playerId || fixture.pair1_player2_id === playerId;
           const isInPair2 = fixture.pair2_player1_id === playerId || fixture.pair2_player2_id === playerId;
           
