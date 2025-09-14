@@ -297,9 +297,9 @@ const ProfileTab = ({
           </h2>
           <HeadToHeadSection 
             records={headToHeadRecords.sort((a, b) => {
-              const aWinRate = a.wins / (a.wins + a.losses);
-              const bWinRate = b.wins / (b.wins + b.losses);
-              return bWinRate - aWinRate;
+              const aGameWinRate = a.totalGames > 0 ? a.gamesWon / a.totalGames : 0;
+              const bGameWinRate = b.totalGames > 0 ? b.gamesWon / b.totalGames : 0;
+              return bGameWinRate - aGameWinRate;
             })} 
             allUsers={allUsers} 
           />
@@ -772,18 +772,21 @@ const HeadToHeadSection = ({ records, allUsers }) => {
       {displayedRecords.map((record, index) => {
         const totalMatches = record.wins + record.losses + (record.draws || 0);
         const decisiveMatches = record.wins + record.losses;
-        const winRate = decisiveMatches > 0 ? Math.round((record.wins / decisiveMatches) * 100) : 0;
+        const matchWinRate = decisiveMatches > 0 ? Math.round((record.wins / decisiveMatches) * 100) : 0;
+        
+        // Use game-based win rate for the percentage bar (like nemesis analysis)
+        const gameWinRate = record.totalGames > 0 ? Math.round((record.gamesWon / record.totalGames) * 100) : 0;
         
         return (
           <div key={index} className="group hover:bg-gray-50 rounded-lg p-3 transition-colors">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                  winRate >= 60 ? 'bg-green-100 text-green-600' :
-                  winRate >= 40 ? 'bg-yellow-100 text-yellow-600' :
+                  gameWinRate >= 60 ? 'bg-green-100 text-green-600' :
+                  gameWinRate >= 40 ? 'bg-yellow-100 text-yellow-600' :
                   'bg-red-100 text-red-600'
                 }`}>
-                  {winRate >= 60 ? '💪' : winRate >= 40 ? '⚖️' : '🔥'}
+                  {gameWinRate >= 60 ? '💪' : gameWinRate >= 40 ? '⚖️' : '🔥'}
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
@@ -796,28 +799,33 @@ const HeadToHeadSection = ({ records, allUsers }) => {
                 </div>
               </div>
               
-              <div className="text-right">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-sm font-semibold text-gray-900">
-                    {record.wins}W - {record.losses}L
-                    {record.draws > 0 && ` - ${record.draws}D`}
-                  </span>
+              <div className="text-right min-w-0 flex-shrink-0">
+                <div className="mb-2">
+                  <div className="text-sm font-semibold text-gray-900">
+                    {record.wins}W - {record.losses}L{record.draws > 0 ? ` - ${record.draws}D` : ''}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {record.gamesWon}G - {record.gamesLost}G ({record.totalGames} total)
+                  </div>
+                </div>
+                <div className="flex items-center justify-end space-x-2 mb-1">
+                  <span className="text-xs text-gray-600">Game win rate:</span>
                   <span className={`text-sm font-bold ${
-                    winRate >= 60 ? 'text-green-600' :
-                    winRate >= 40 ? 'text-yellow-600' :
+                    gameWinRate >= 60 ? 'text-green-600' :
+                    gameWinRate >= 40 ? 'text-yellow-600' :
                     'text-red-600'
                   }`}>
-                    {winRate}%
+                    {gameWinRate}%
                   </span>
                 </div>
-                <div className="w-20 bg-gray-200 rounded-full h-1.5">
+                <div className="w-20 bg-gray-200 rounded-full h-1.5 ml-auto">
                   <div 
                     className={`h-1.5 rounded-full transition-all duration-700 ${
-                      winRate >= 60 ? 'bg-green-500' :
-                      winRate >= 40 ? 'bg-yellow-500' :
+                      gameWinRate >= 60 ? 'bg-green-500' :
+                      gameWinRate >= 40 ? 'bg-yellow-500' :
                       'bg-red-500'
                     }`}
-                    style={{ width: `${winRate}%` }}
+                    style={{ width: `${gameWinRate}%` }}
                   />
                 </div>
               </div>
