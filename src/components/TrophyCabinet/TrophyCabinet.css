@@ -1,0 +1,240 @@
+/* Trophy Cabinet Styling */
+
+/* Trophy Engraving Effect */
+.trophy-engraving {
+  text-shadow: 
+    0 1px 0 rgba(255, 255, 255, 0.5),
+    0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 0 5px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(145deg, #fef3c7, #f59e0b);
+  background-clip: text;
+  -webkit-background-clip: text;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Trophy Glow Effect */
+.trophy-glow {
+  position: relative;
+  animation: trophy-shine 3s ease-in-out infinite;
+}
+
+.trophy-glow::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.3), transparent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: trophy-glow 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes trophy-shine {
+  0%, 100% { 
+    filter: brightness(1) drop-shadow(0 0 5px rgba(255, 215, 0, 0.3));
+  }
+  50% { 
+    filter: brightness(1.1) drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
+  }
+}
+
+@keyframes trophy-glow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+/* Golden Trophy Styling */
+.golden-trophy {
+  position: relative;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.golden-trophy::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  width: 30%;
+  height: 40%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent);
+  border-radius: 50%;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Silver Trophy Styling */
+.silver-trophy {
+  position: relative;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.silver-trophy::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  width: 30%;
+  height: 40%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), transparent);
+  border-radius: 50%;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Bronze Trophy Styling */
+.bronze-trophy {
+  position: relative;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.bronze-trophy::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  width: 30%;
+  height: 40%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent);
+  border-radius: 50%;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Diamond Trophy Styling */
+.diamond-trophy {
+  position: relative;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  animation: diamond-sparkle 2s ease-in-out infinite;
+}
+
+.diamond-trophy::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  width: 30%;
+  height: 40%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(147, 197, 253, 0.5));
+  border-radius: 50%;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+@keyframes diamond-sparkle {
+  0%, 100% { 
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) hue-rotate(0deg);
+  }
+  25% { 
+    filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.4)) hue-rotate(90deg);
+  }
+  50% { 
+    filter: drop-shadow(0 4px 12px rgba(147, 51, 234, 0.4)) hue-rotate(180deg);
+  }
+  75% { 
+    filter: drop-shadow(0 4px 12px rgba(236, 72, 153, 0.4)) hue-rotate(270deg);
+  }
+}
+
+/* Trophy Card Hover Effects */
+.trophy-card {
+  transition: all 0.3s ease;
+  perspective: 1000px;
+}
+
+.trophy-card:hover {
+  transform: translateY(-5px) rotateY(5deg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.trophy-card:hover .trophy-glow {
+  animation-duration: 1s;
+}
+
+/* Featured Trophy Special Effects */
+.featured-trophy {
+  position: relative;
+  overflow: hidden;
+}
+
+.featured-trophy::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 215, 0, 0.1),
+    transparent,
+    rgba(255, 215, 0, 0.1),
+    transparent
+  );
+  animation: featured-shine 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes featured-shine {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+/* Trophy Cabinet Grid Enhancements */
+.trophy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem 0;
+}
+
+.trophy-grid-item {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+.trophy-grid-item:hover {
+  transform: translateZ(20px);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .trophy-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+  
+  .trophy-engraving {
+    font-size: 0.9rem;
+  }
+}
+
+/* Accessibility */
+.trophy-card:focus {
+  outline: 2px solid #5D1F1F;
+  outline-offset: 2px;
+}
+
+.trophy-card[aria-pressed="true"] {
+  background-color: rgba(93, 31, 31, 0.05);
+  border-color: #5D1F1F;
+}
+
+/* Print Styles */
+@media print {
+  .trophy-glow,
+  .trophy-glow::before {
+    animation: none !important;
+  }
+  
+  .trophy-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+}

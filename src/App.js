@@ -11,6 +11,7 @@ import Navigation from './components/Layout/Navigation';
 import LeagueTab from './components/Ladder/LadderTab'; // RENAMED: Will be moved to League/LeagueTab later
 import MatchesTab from './components/Matches/MatchesTab';
 import ProfileTab from './components/Profile/ProfileTab';
+import TrophyCabinetTab from './components/TrophyCabinet/TrophyCabinetTab';
 import AvailabilityTab from './components/Availability/AvailabilityTab';
 import AdminTab from './components/Admin/AdminTab';
 import ScheduleModal from './components/Modals/ScheduleModal';
@@ -21,6 +22,7 @@ import UpdateNotification from './components/shared/UpdateNotification';
 import VersionDisplay from './components/shared/VersionDisplay';
 import SeasonSelector from './components/Season/SeasonSelector';
 import { ToastProvider } from './contexts/ToastContext';
+import './components/TrophyCabinet/TrophyCabinet.css';
 
 const CawoodTennisApp = () => {
   // Authentication hook
@@ -278,6 +280,15 @@ const CawoodTennisApp = () => {
               selectedPlayerId={selectedPlayerId} // NEW: Selected player for profile viewing
               onPlayerSelect={setSelectedPlayerId} // NEW: Player selection handler
               onPlayerClear={() => setSelectedPlayerId(null)} // NEW: Clear selection handler
+            />
+          )}
+
+          {activeTab === 'trophies' && (
+            <TrophyCabinetTab 
+              currentUser={user}
+              seasons={seasons}
+              selectedSeason={selectedSeason}
+              allUsers={allUsers}
             />
           )}
 

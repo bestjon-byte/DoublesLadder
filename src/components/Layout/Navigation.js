@@ -1,6 +1,6 @@
 // src/components/Layout/Navigation.js
 import React from 'react';
-import { Users, Calendar, Trophy, Settings, User } from 'lucide-react';
+import { Users, Calendar, Trophy, Settings, User, Award } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 
 const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers, selectedSeason }) => {
@@ -14,6 +14,12 @@ const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers, selec
       icon: User, 
       label: 'Profile', 
       show: ladderPlayers?.find(player => player.id === currentUser?.id) 
+    },
+    { 
+      id: 'trophies', 
+      icon: Award, 
+      label: 'Trophies', 
+      show: true 
     },
     { 
       id: 'availability', 
