@@ -702,12 +702,22 @@ const MatchHistory = ({ matches, allUsers }) => {
                     </span>
                   </div>
                   
-                  <div className="flex items-center space-x-1">
-                    <Target className="w-3 h-3 text-gray-400" />
-                    <span className="text-gray-600">vs</span>
-                    <span className="font-medium text-gray-900 truncate">
-                      {match.opponentNames?.join(' & ') || 'Unknown opponents'}
-                    </span>
+                  <div className="flex items-start space-x-1">
+                    <Target className="w-3 h-3 text-gray-400 mt-0.5" />
+                    <div>
+                      <span className="text-gray-600 text-sm">vs</span>
+                      <div className="font-medium text-gray-900">
+                        {match.opponentNames?.length > 0 ? (
+                          match.opponentNames.map((name, idx) => (
+                            <div key={idx} className="text-sm leading-tight">
+                              {name || 'Unknown'}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm">Unknown opponents</div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1027,12 +1037,22 @@ const MatchDetailModal = ({ match, allUsers, onClose }) => {
               <span className="font-medium">{match.partnerName || 'Unknown'}</span>
             </div>
 
-            <div className="flex items-center space-x-2 text-sm">
-              <Target className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-600">Opponents:</span>
-              <span className="font-medium">
-                {match.opponentNames?.join(' & ') || 'Unknown opponents'}
-              </span>
+            <div className="flex items-start space-x-2 text-sm">
+              <Target className="w-4 h-4 text-gray-400 mt-0.5" />
+              <div>
+                <span className="text-gray-600">Opponents:</span>
+                <div className="font-medium">
+                  {match.opponentNames?.length > 0 ? (
+                    match.opponentNames.map((name, idx) => (
+                      <div key={idx} className="leading-tight">
+                        {name || 'Unknown'}
+                      </div>
+                    ))
+                  ) : (
+                    <div>Unknown opponents</div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {match.courtNumber && (
