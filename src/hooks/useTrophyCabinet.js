@@ -61,12 +61,18 @@ export const useTrophyCabinet = (currentUserId) => {
     try {
       setError(null);
 
+      // Clean the data - convert empty strings to null for UUID fields
+      const cleanedData = {
+        ...trophyData,
+        season_id: trophyData.season_id || null,
+        winner_player1_id: trophyData.winner_player1_id || null,
+        winner_player2_id: trophyData.winner_player2_id || null,
+        created_by: currentUserId
+      };
+
       const { data, error: insertError } = await supabase
         .from('trophy_cabinet')
-        .insert([{
-          ...trophyData,
-          created_by: currentUserId
-        }])
+        .insert([cleanedData])
         .select(`
           *,
           seasons (
@@ -108,9 +114,17 @@ export const useTrophyCabinet = (currentUserId) => {
     try {
       setError(null);
 
+      // Clean the updates - convert empty strings to null for UUID fields
+      const cleanedUpdates = {
+        ...updates,
+        season_id: updates.season_id || null,
+        winner_player1_id: updates.winner_player1_id || null,
+        winner_player2_id: updates.winner_player2_id || null
+      };
+
       const { data, error: updateError } = await supabase
         .from('trophy_cabinet')
-        .update(updates)
+        .update(cleanedUpdates)
         .eq('id', trophyId)
         .select(`
           *,
