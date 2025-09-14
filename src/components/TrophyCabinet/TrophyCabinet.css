@@ -13,130 +13,111 @@
   letter-spacing: 0.5px;
 }
 
-/* Trophy Glow Effect */
+/* Trophy SVG Glow Effect */
 .trophy-glow {
   position: relative;
-  animation: trophy-shine 3s ease-in-out infinite;
+  display: inline-block;
 }
 
-.trophy-glow::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.3), transparent);
-  border-radius: 50%;
-  opacity: 0;
-  animation: trophy-glow 2s ease-in-out infinite;
-  pointer-events: none;
+.trophy-glow svg {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+  animation: trophy-shine 4s ease-in-out infinite;
+  transition: all 0.3s ease;
+}
+
+.trophy-glow:hover svg {
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.2));
+  transform: scale(1.05);
+  animation-duration: 2s;
 }
 
 @keyframes trophy-shine {
   0%, 100% { 
-    filter: brightness(1) drop-shadow(0 0 5px rgba(255, 215, 0, 0.3));
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
   }
   50% { 
-    filter: brightness(1.1) drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
+    filter: drop-shadow(0 6px 16px rgba(255, 215, 0, 0.3));
   }
 }
 
-@keyframes trophy-glow {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+/* Special animations for different trophy types */
+.trophy-glow svg[viewBox*="100 120"] {
+  /* Gold trophies get golden glow */
 }
 
-/* Golden Trophy Styling */
-.golden-trophy {
-  position: relative;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+.trophy-glow svg[viewBox*="100 120"]:has([fill*="FFD700"]) {
+  animation: golden-shine 4s ease-in-out infinite;
 }
 
-.golden-trophy::after {
-  content: '';
-  position: absolute;
-  top: 10%;
-  left: 20%;
-  width: 30%;
-  height: 40%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), transparent);
-  border-radius: 50%;
-  opacity: 0.7;
-  pointer-events: none;
+.trophy-glow svg[viewBox*="100 120"]:has([fill*="E5E5E5"]) {
+  animation: silver-shine 4s ease-in-out infinite;
 }
 
-/* Silver Trophy Styling */
-.silver-trophy {
-  position: relative;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+.trophy-glow svg[viewBox*="100 120"]:has([fill*="CD7F32"]) {
+  animation: bronze-shine 4s ease-in-out infinite;
 }
 
-.silver-trophy::after {
-  content: '';
-  position: absolute;
-  top: 10%;
-  left: 20%;
-  width: 30%;
-  height: 40%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), transparent);
-  border-radius: 50%;
-  opacity: 0.6;
-  pointer-events: none;
+@keyframes golden-shine {
+  0%, 100% { 
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+  }
+  50% { 
+    filter: drop-shadow(0 6px 16px rgba(255, 215, 0, 0.4)) brightness(1.1);
+  }
 }
 
-/* Bronze Trophy Styling */
-.bronze-trophy {
-  position: relative;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+@keyframes silver-shine {
+  0%, 100% { 
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+  }
+  50% { 
+    filter: drop-shadow(0 6px 16px rgba(192, 192, 192, 0.4)) brightness(1.15);
+  }
 }
 
-.bronze-trophy::after {
-  content: '';
-  position: absolute;
-  top: 10%;
-  left: 20%;
-  width: 30%;
-  height: 40%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent);
-  border-radius: 50%;
-  opacity: 0.5;
-  pointer-events: none;
+@keyframes bronze-shine {
+  0%, 100% { 
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+  }
+  50% { 
+    filter: drop-shadow(0 6px 16px rgba(205, 127, 50, 0.4)) brightness(1.1);
+  }
 }
 
-/* Diamond Trophy Styling */
-.diamond-trophy {
-  position: relative;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  animation: diamond-sparkle 2s ease-in-out infinite;
-}
-
-.diamond-trophy::after {
-  content: '';
-  position: absolute;
-  top: 10%;
-  left: 20%;
-  width: 30%;
-  height: 40%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(147, 197, 253, 0.5));
-  border-radius: 50%;
-  opacity: 0.8;
-  pointer-events: none;
+/* Diamond Cup Special Animation */
+.trophy-glow svg:has([id*="diamond"]) {
+  animation: diamond-sparkle 3s ease-in-out infinite;
 }
 
 @keyframes diamond-sparkle {
   0%, 100% { 
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3)) hue-rotate(0deg);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
   }
   25% { 
-    filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.4)) hue-rotate(90deg);
+    filter: drop-shadow(0 6px 12px rgba(59, 130, 246, 0.4)) hue-rotate(30deg);
   }
   50% { 
-    filter: drop-shadow(0 4px 12px rgba(147, 51, 234, 0.4)) hue-rotate(180deg);
+    filter: drop-shadow(0 8px 16px rgba(147, 51, 234, 0.4)) hue-rotate(180deg);
   }
   75% { 
-    filter: drop-shadow(0 4px 12px rgba(236, 72, 153, 0.4)) hue-rotate(270deg);
+    filter: drop-shadow(0 6px 12px rgba(236, 72, 153, 0.4)) hue-rotate(270deg);
   }
+}
+
+/* Trophy Size Variants */
+.trophy-small {
+  width: 2rem;
+  height: 2.4rem;
+}
+
+.trophy-medium {
+  width: 4rem;
+  height: 4.8rem;
+}
+
+.trophy-large {
+  width: 6rem;
+  height: 7.2rem;
 }
 
 /* Trophy Card Hover Effects */
