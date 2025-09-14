@@ -277,7 +277,8 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
               gamesLost: 0,
               matches: 0,
               wins: 0,
-              losses: 0
+              losses: 0,
+              draws: 0
             };
           }
           
@@ -288,6 +289,8 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
             opponentStats[opponentId].matches++;
             if (match.won) {
               opponentStats[opponentId].wins++;
+            } else if (match.tie) {
+              opponentStats[opponentId].draws++;
             } else {
               opponentStats[opponentId].losses++;
             }
