@@ -121,6 +121,28 @@ const MatchesTab = ({
     return matchFixtures.find(f => f.match_id === matchId && f.match_type === 'league');
   };
 
+  // Group singles matches by date for Singles Championships
+  const getGroupedSinglesMatches = () => {
+    if (!currentSeason?.matches) return [];
+    
+    const matchGroups = new Map();
+    
+    currentSeason.matches.forEach(match => {
+      const dateKey = match.match_date;
+      if (!matchGroups.has(dateKey)) {
+        matchGroups.set(dateKey, {
+          date: dateKey,
+          matches: [],
+          weekNumber: Math.min(...currentSeason.matches.filter(m => m.match_date === dateKey).map(m => m.week_number))
+        });
+      }
+      matchGroups.get(dateKey).matches.push(match);
+    });
+    
+    // Sort groups by date
+    return Array.from(matchGroups.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+  };
+
   // Filter matches based on team selection
   const getFilteredMatches = () => {
     if (!currentSeason?.matches) return [];
@@ -140,7 +162,9 @@ const MatchesTab = ({
   };
 
   const isSeasonCompleted = selectedSeason?.status === 'completed';
-  const filteredMatches = getFilteredMatches();
+  const isSinglesChampionship = selectedSeason?.season_type === 'singles_championship';
+  const singlesMatchGroups = isSinglesChampionship ? getGroupedSinglesMatches() : [];
+  const filteredMatches = isSinglesChampionship ? [] : getFilteredMatches();
 
   return (
     <div className="space-y-6">
@@ -181,23 +205,205 @@ const MatchesTab = ({
         </div>
       </div>
       
-      {!filteredMatches || filteredMatches.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-500">
-            {teamFilter === 'all' ? 'No matches scheduled yet.' : `No matches found for ${teamFilter === '1sts' ? 'Cawood 1sts' : 'Cawood 2nds'}.`}
-          </p>
-          {currentUser?.role === 'admin' && teamFilter === 'all' && (
-            <p className="text-sm text-gray-400 mt-2">
-              {selectedSeason?.season_type === 'ladder' 
-                ? 'Go to Admin tab to add ladder matches.'
-                : 'League matches are added via import in the Admin tab.'
-              }
-            </p>
-          )}
-        </div>
+      {/* Singles Championship View */}
+      {isSinglesChampionship ? (
+        !singlesMatchGroups || singlesMatchGroups.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <p className="text-gray-500">No singles matches scheduled yet.</p>
+            {currentUser?.role === 'admin' && (
+              <p className="text-sm text-gray-400 mt-2">
+                Go to Admin tab to import singles matches.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {singlesMatchGroups.map((group, groupIndex) => {
+              // Get all fixtures for this date group
+              const allGroupFixtures = group.matches.reduce((acc, match) => {
+                return acc.concat(matchFixtures.filter(f => f.match_id === match.id));
+              }, []);
+              
+              // Calculate group status
+              const completedFixtures = allGroupFixtures.filter(fixture => 
+                matchResults.some(result => result.fixture_id === fixture.id)
+              ).length;
+              
+              const groupStatus = completedFixtures === 0 ? 'pending' : 
+                                completedFixtures < allGroupFixtures.length ? 'partially-complete' : 'completed';
+              
+              const groupDate = new Date(group.date);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              groupDate.setHours(0, 0, 0, 0);
+              
+              const actuallyExpanded = expandedMatches[`group-${groupIndex}`] ?? true; // Default to expanded for singles
+              
+              return (
+                <div key={`group-${groupIndex}`} className="bg-white rounded-lg shadow">
+                  {/* Group Header */}
+                  <div 
+                    className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                    onClick={() => {
+                      haptics.tap();
+                      setExpandedMatches(prev => ({
+                        ...prev,
+                        [`group-${groupIndex}`]: !prev[`group-${groupIndex}`]
+                      }));
+                    }}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <h3 className="text-lg font-semibold">Week {groupIndex + 1}</h3>
+                          <p className="text-gray-600">{groupDate.toLocaleDateString('en-GB')}</p>
+                          
+                          {/* Date status indicators */}
+                          {groupDate.getTime() === today.getTime() && (
+                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                              📅 Today
+                            </span>
+                          )}
+                          
+                          {/* Group Status Indicator */}
+                          {groupStatus === 'completed' && (
+                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                              ✅ All Completed
+                            </span>
+                          )}
+                          {groupStatus === 'partially-complete' && (
+                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                              🔄 In Progress
+                            </span>
+                          )}
+                          {groupStatus === 'pending' && (
+                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded">
+                              ⏰ Enter Scores
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Summary when collapsed */}
+                        {!actuallyExpanded && (
+                          <div className="mt-2 sm:mt-3">
+                            <div className="flex items-center space-x-4 text-sm text-gray-600">
+                              <span>{group.matches.length} matches</span>
+                              {groupStatus === 'completed' && <span className="text-green-600">All results recorded</span>}
+                              {groupStatus === 'partially-complete' && <span className="text-yellow-600">{completedFixtures}/{allGroupFixtures.length} completed</span>}
+                              {groupStatus === 'pending' && <span className="text-orange-600">Results needed</span>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        {/* Expand/Collapse Indicator */}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500 hidden sm:inline">
+                            {actuallyExpanded ? 'Collapse' : 'Expand'}
+                          </span>
+                          <div className="text-gray-400 p-1 rounded-full bg-gray-100 transition-all duration-200 hover:bg-gray-200">
+                            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${actuallyExpanded ? 'rotate-180' : 'rotate-0'}`} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expandable Content - All Singles Matches for this Date */}
+                  {actuallyExpanded && (
+                    <div className="border-t border-gray-200 p-6 pt-4">
+                      <div className="space-y-3">
+                        {group.matches.map((match) => {
+                          const matchFixturesForThisMatch = matchFixtures.filter(f => f.match_id === match.id);
+                          
+                          return matchFixturesForThisMatch.map((fixture) => {
+                            const existingScore = getMatchScore(fixture.id);
+                            const canEnterScore = canUserEnterScores(fixture);
+                            
+                            return (
+                              <div key={fixture.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">
+                                    {fixture.player1?.name} vs {fixture.player2?.name}
+                                  </div>
+                                  {existingScore && (
+                                    <div className="text-sm text-gray-600 mt-1">
+                                      Score: {existingScore.pair1_score} - {existingScore.pair2_score}
+                                      {existingScore.pair1_score === existingScore.pair2_score && (
+                                        <span className="text-blue-600 ml-2">(Tie)</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Score Entry/View Button */}
+                                {canEnterScore && !isSeasonCompleted && (
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      haptics.click();
+                                      openScoreModal({
+                                        fixtureId: fixture.id,
+                                        pair1: [fixture.player1?.name],
+                                        pair2: [fixture.player2?.name]
+                                      });
+                                    }}
+                                    className={`text-sm px-4 py-3 rounded transition-colors min-h-[44px] ${
+                                      existingScore 
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                        : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
+                                    }`}
+                                    style={{ touchAction: 'manipulation' }}
+                                  >
+                                    {existingScore ? 'View/Challenge' : 'Enter Score'}
+                                  </button>
+                                )}
+
+                                {/* Score Status for non-players */}
+                                {existingScore && !canEnterScore && (
+                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                    Complete
+                                  </span>
+                                )}
+                                
+                                {/* No score yet indicator */}
+                                {!existingScore && !canEnterScore && (
+                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                    Pending
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          });
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
       ) : (
-        <div className="space-y-4">
-          {filteredMatches.map((match) => {
+        /* Regular Ladder/League View */
+        !filteredMatches || filteredMatches.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-6 text-center">
+            <p className="text-gray-500">
+              {teamFilter === 'all' ? 'No matches scheduled yet.' : `No matches found for ${teamFilter === '1sts' ? 'Cawood 1sts' : 'Cawood 2nds'}.`}
+            </p>
+            {currentUser?.role === 'admin' && teamFilter === 'all' && (
+              <p className="text-sm text-gray-400 mt-2">
+                {selectedSeason?.season_type === 'ladder' 
+                  ? 'Go to Admin tab to add ladder matches.'
+                  : 'League matches are added via import in the Admin tab.'
+                }
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredMatches.map((match) => {
             const stats = getAvailabilityStats(match.id);
             const matchStatus = getMatchStatus(match);
             const isAdmin = currentUser?.role === 'admin';
@@ -451,6 +657,7 @@ const MatchesTab = ({
             );
           })}
         </div>
+        )
       )}
     </div>
   );
