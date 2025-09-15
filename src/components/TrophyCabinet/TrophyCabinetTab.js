@@ -372,229 +372,275 @@ const TrophyIcon = ({ type, size = 'medium' }) => {
 };
 
 // Realistic SVG Trophy Components
-const GoldCup = ({ className }) => (
+const GoldCup = ({ className }) => {
+  const gradientId = `goldGradient-${Math.random().toString(36).substr(2, 9)}`;
+  const baseId = `goldBase-${Math.random().toString(36).substr(2, 9)}`;
+  const highlightId = `goldHighlight-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#FFD700', stopOpacity: 1 }} />
         <stop offset="25%" style={{ stopColor: '#FFA500', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#FFD700', stopOpacity: 1 }} />
         <stop offset="75%" style={{ stopColor: '#B8860B', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#DAA520', stopOpacity: 1 }} />
       </linearGradient>
-      <linearGradient id="goldBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={baseId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#B8860B', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#DAA520', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#8B7355', stopOpacity: 1 }} />
       </linearGradient>
-      <radialGradient id="goldHighlight">
+      <radialGradient id={highlightId}>
         <stop offset="0%" style={{ stopColor: '#FFFACD', stopOpacity: 0.8 }} />
         <stop offset="100%" style={{ stopColor: '#FFFACD', stopOpacity: 0 }} />
       </radialGradient>
     </defs>
     
     {/* Trophy Base */}
-    <rect x="25" y="105" width="50" height="10" rx="5" fill="url(#goldBase)" stroke="#8B7355" strokeWidth="1"/>
+    <rect x="25" y="105" width="50" height="10" rx="5" fill={`url(#${baseId})`} stroke="#8B7355" strokeWidth="1"/>
     
     {/* Trophy Stem */}
-    <rect x="45" y="85" width="10" height="20" fill="url(#goldBase)" stroke="#8B7355" strokeWidth="0.5"/>
+    <rect x="45" y="85" width="10" height="20" fill={`url(#${baseId})`} stroke="#8B7355" strokeWidth="0.5"/>
     
     {/* Trophy Bowl */}
-    <ellipse cx="50" cy="45" rx="30" ry="25" fill="url(#goldGradient)" stroke="#B8860B" strokeWidth="1"/>
+    <ellipse cx="50" cy="45" rx="30" ry="25" fill={`url(#${gradientId})`} stroke="#B8860B" strokeWidth="1"/>
     <ellipse cx="50" cy="40" rx="25" ry="20" fill="none" stroke="#FFD700" strokeWidth="0.5" opacity="0.7"/>
     
     {/* Trophy Handles */}
-    <ellipse cx="25" cy="50" rx="8" ry="12" fill="none" stroke="url(#goldGradient)" strokeWidth="4"/>
-    <ellipse cx="75" cy="50" rx="8" ry="12" fill="none" stroke="url(#goldGradient)" strokeWidth="4"/>
+    <ellipse cx="25" cy="50" rx="8" ry="12" fill="none" stroke={`url(#${gradientId})`} strokeWidth="4"/>
+    <ellipse cx="75" cy="50" rx="8" ry="12" fill="none" stroke={`url(#${gradientId})`} strokeWidth="4"/>
     
     {/* Highlight */}
-    <ellipse cx="42" cy="35" rx="8" ry="6" fill="url(#goldHighlight)"/>
+    <ellipse cx="42" cy="35" rx="8" ry="6" fill={`url(#${highlightId})`}/>
     
     {/* Decorative band */}
     <rect x="25" y="55" width="50" height="4" fill="#B8860B" opacity="0.3"/>
   </svg>
-);
+  );
+};
 
-const SilverCup = ({ className }) => (
+const SilverCup = ({ className }) => {
+  const gradientId = `silverGradient-${Math.random().toString(36).substr(2, 9)}`;
+  const baseId = `silverBase-${Math.random().toString(36).substr(2, 9)}`;
+  const highlightId = `silverHighlight-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="silverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#E5E5E5', stopOpacity: 1 }} />
         <stop offset="25%" style={{ stopColor: '#C0C0C0', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#F5F5F5', stopOpacity: 1 }} />
         <stop offset="75%" style={{ stopColor: '#A9A9A9', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#C0C0C0', stopOpacity: 1 }} />
       </linearGradient>
-      <linearGradient id="silverBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={baseId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#A9A9A9', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#C0C0C0', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#808080', stopOpacity: 1 }} />
       </linearGradient>
-      <radialGradient id="silverHighlight">
+      <radialGradient id={highlightId}>
         <stop offset="0%" style={{ stopColor: '#FFFFFF', stopOpacity: 0.8 }} />
         <stop offset="100%" style={{ stopColor: '#FFFFFF', stopOpacity: 0 }} />
       </radialGradient>
     </defs>
     
-    <rect x="25" y="105" width="50" height="10" rx="5" fill="url(#silverBase)" stroke="#808080" strokeWidth="1"/>
-    <rect x="45" y="85" width="10" height="20" fill="url(#silverBase)" stroke="#808080" strokeWidth="0.5"/>
-    <ellipse cx="50" cy="45" rx="30" ry="25" fill="url(#silverGradient)" stroke="#A9A9A9" strokeWidth="1"/>
+    <rect x="25" y="105" width="50" height="10" rx="5" fill={`url(#${baseId})`} stroke="#808080" strokeWidth="1"/>
+    <rect x="45" y="85" width="10" height="20" fill={`url(#${baseId})`} stroke="#808080" strokeWidth="0.5"/>
+    <ellipse cx="50" cy="45" rx="30" ry="25" fill={`url(#${gradientId})`} stroke="#A9A9A9" strokeWidth="1"/>
     <ellipse cx="50" cy="40" rx="25" ry="20" fill="none" stroke="#E5E5E5" strokeWidth="0.5" opacity="0.7"/>
-    <ellipse cx="25" cy="50" rx="8" ry="12" fill="none" stroke="url(#silverGradient)" strokeWidth="4"/>
-    <ellipse cx="75" cy="50" rx="8" ry="12" fill="none" stroke="url(#silverGradient)" strokeWidth="4"/>
-    <ellipse cx="42" cy="35" rx="8" ry="6" fill="url(#silverHighlight)"/>
+    <ellipse cx="25" cy="50" rx="8" ry="12" fill="none" stroke={`url(#${gradientId})`} strokeWidth="4"/>
+    <ellipse cx="75" cy="50" rx="8" ry="12" fill="none" stroke={`url(#${gradientId})`} strokeWidth="4"/>
+    <ellipse cx="42" cy="35" rx="8" ry="6" fill={`url(#${highlightId})`}/>
     <rect x="25" y="55" width="50" height="4" fill="#A9A9A9" opacity="0.3"/>
   </svg>
-);
+  );
+};
 
-const BronzeCup = ({ className }) => (
+const BronzeCup = ({ className }) => {
+  const gradientId = `bronzeGradient-${Math.random().toString(36).substr(2, 9)}`;
+  const baseId = `bronzeBase-${Math.random().toString(36).substr(2, 9)}`;
+  const highlightId = `bronzeHighlight-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="bronzeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#CD7F32', stopOpacity: 1 }} />
         <stop offset="25%" style={{ stopColor: '#B87333', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#D2691E', stopOpacity: 1 }} />
         <stop offset="75%" style={{ stopColor: '#A0522D', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#8B4513', stopOpacity: 1 }} />
       </linearGradient>
-      <linearGradient id="bronzeBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={baseId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#A0522D', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#B87333', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#8B4513', stopOpacity: 1 }} />
       </linearGradient>
-      <radialGradient id="bronzeHighlight">
+      <radialGradient id={highlightId}>
         <stop offset="0%" style={{ stopColor: '#DEB887', stopOpacity: 0.6 }} />
         <stop offset="100%" style={{ stopColor: '#DEB887', stopOpacity: 0 }} />
       </radialGradient>
     </defs>
     
-    <rect x="25" y="105" width="50" height="10" rx="5" fill="url(#bronzeBase)" stroke="#8B4513" strokeWidth="1"/>
-    <rect x="45" y="85" width="10" height="20" fill="url(#bronzeBase)" stroke="#8B4513" strokeWidth="0.5"/>
-    <ellipse cx="50" cy="45" rx="30" ry="25" fill="url(#bronzeGradient)" stroke="#A0522D" strokeWidth="1"/>
+    <rect x="25" y="105" width="50" height="10" rx="5" fill={`url(#${baseId})`} stroke="#8B4513" strokeWidth="1"/>
+    <rect x="45" y="85" width="10" height="20" fill={`url(#${baseId})`} stroke="#8B4513" strokeWidth="0.5"/>
+    <ellipse cx="50" cy="45" rx="30" ry="25" fill={`url(#${gradientId})`} stroke="#A0522D" strokeWidth="1"/>
     <ellipse cx="50" cy="40" rx="25" ry="20" fill="none" stroke="#D2691E" strokeWidth="0.5" opacity="0.7"/>
-    <ellipse cx="25" cy="50" rx="8" ry="12" fill="none" stroke="url(#bronzeGradient)" strokeWidth="4"/>
-    <ellipse cx="75" cy="50" rx="8" ry="12" fill="none" stroke="url(#bronzeGradient)" strokeWidth="4"/>
-    <ellipse cx="42" cy="35" rx="8" ry="6" fill="url(#bronzeHighlight)"/>
+    <ellipse cx="25" cy="50" rx="8" ry="12" fill="none" stroke={`url(#${gradientId})`} strokeWidth="4"/>
+    <ellipse cx="75" cy="50" rx="8" ry="12" fill="none" stroke={`url(#${gradientId})`} strokeWidth="4"/>
+    <ellipse cx="42" cy="35" rx="8" ry="6" fill={`url(#${highlightId})`}/>
     <rect x="25" y="55" width="50" height="4" fill="#A0522D" opacity="0.3"/>
   </svg>
-);
+  );
+};
 
-const GoldShield = ({ className }) => (
+const GoldShield = ({ className }) => {
+  const gradientId = `goldShieldGradient-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="goldShieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#FFD700', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#FFA500', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#DAA520', stopOpacity: 1 }} />
       </linearGradient>
     </defs>
     <path d="M50 10 L20 25 L20 70 Q20 90 50 110 Q80 90 80 70 L80 25 Z" 
-          fill="url(#goldShieldGradient)" stroke="#B8860B" strokeWidth="2"/>
+          fill={`url(#${gradientId})`} stroke="#B8860B" strokeWidth="2"/>
     <path d="M50 20 L30 30 L30 65 Q30 80 50 95 Q70 80 70 65 L70 30 Z" 
           fill="none" stroke="#FFD700" strokeWidth="1" opacity="0.6"/>
     <circle cx="50" cy="50" r="15" fill="#B8860B" opacity="0.3"/>
     <rect x="25" y="105" width="50" height="10" rx="5" fill="#DAA520"/>
   </svg>
-);
+  );
+};
 
-const SilverShield = ({ className }) => (
+const SilverShield = ({ className }) => {
+  const gradientId = `silverShieldGradient-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="silverShieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#E5E5E5', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#C0C0C0', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#A9A9A9', stopOpacity: 1 }} />
       </linearGradient>
     </defs>
     <path d="M50 10 L20 25 L20 70 Q20 90 50 110 Q80 90 80 70 L80 25 Z" 
-          fill="url(#silverShieldGradient)" stroke="#808080" strokeWidth="2"/>
+          fill={`url(#${gradientId})`} stroke="#808080" strokeWidth="2"/>
     <path d="M50 20 L30 30 L30 65 Q30 80 50 95 Q70 80 70 65 L70 30 Z" 
           fill="none" stroke="#E5E5E5" strokeWidth="1" opacity="0.6"/>
     <circle cx="50" cy="50" r="15" fill="#808080" opacity="0.3"/>
     <rect x="25" y="105" width="50" height="10" rx="5" fill="#A9A9A9"/>
   </svg>
-);
+  );
+};
 
-const BronzeShield = ({ className }) => (
+const BronzeShield = ({ className }) => {
+  const gradientId = `bronzeShieldGradient-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="bronzeShieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#CD7F32', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#B87333', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#A0522D', stopOpacity: 1 }} />
       </linearGradient>
     </defs>
     <path d="M50 10 L20 25 L20 70 Q20 90 50 110 Q80 90 80 70 L80 25 Z" 
-          fill="url(#bronzeShieldGradient)" stroke="#8B4513" strokeWidth="2"/>
+          fill={`url(#${gradientId})`} stroke="#8B4513" strokeWidth="2"/>
     <path d="M50 20 L30 30 L30 65 Q30 80 50 95 Q70 80 70 65 L70 30 Z" 
           fill="none" stroke="#D2691E" strokeWidth="1" opacity="0.6"/>
     <circle cx="50" cy="50" r="15" fill="#8B4513" opacity="0.3"/>
     <rect x="25" y="105" width="50" height="10" rx="5" fill="#A0522D"/>
   </svg>
-);
+  );
+};
 
-const GoldStar = ({ className }) => (
+const GoldStar = ({ className }) => {
+  const gradientId = `goldStarGradient-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="goldStarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#FFD700', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#FFA500', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#DAA520', stopOpacity: 1 }} />
       </linearGradient>
     </defs>
     <polygon points="50,15 61,40 85,40 67,55 73,80 50,65 27,80 33,55 15,40 39,40"
-             fill="url(#goldStarGradient)" stroke="#B8860B" strokeWidth="2"/>
+             fill={`url(#${gradientId})`} stroke="#B8860B" strokeWidth="2"/>
     <polygon points="50,25 58,45 75,45 62,55 66,72 50,62 34,72 38,55 25,45 42,45"
              fill="none" stroke="#FFD700" strokeWidth="1" opacity="0.6"/>
     <rect x="25" y="105" width="50" height="10" rx="5" fill="#DAA520"/>
   </svg>
-);
+  );
+};
 
-const SilverStar = ({ className }) => (
+const SilverStar = ({ className }) => {
+  const gradientId = `silverStarGradient-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="silverStarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#E5E5E5', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#C0C0C0', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#A9A9A9', stopOpacity: 1 }} />
       </linearGradient>
     </defs>
     <polygon points="50,15 61,40 85,40 67,55 73,80 50,65 27,80 33,55 15,40 39,40"
-             fill="url(#silverStarGradient)" stroke="#808080" strokeWidth="2"/>
+             fill={`url(#${gradientId})`} stroke="#808080" strokeWidth="2"/>
     <polygon points="50,25 58,45 75,45 62,55 66,72 50,62 34,72 38,55 25,45 42,45"
              fill="none" stroke="#E5E5E5" strokeWidth="1" opacity="0.6"/>
     <rect x="25" y="105" width="50" height="10" rx="5" fill="#A9A9A9"/>
   </svg>
-);
+  );
+};
 
-const BronzeStar = ({ className }) => (
+const BronzeStar = ({ className }) => {
+  const gradientId = `bronzeStarGradient-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="bronzeStarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#CD7F32', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#B87333', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#A0522D', stopOpacity: 1 }} />
       </linearGradient>
     </defs>
     <polygon points="50,15 61,40 85,40 67,55 73,80 50,65 27,80 33,55 15,40 39,40"
-             fill="url(#bronzeStarGradient)" stroke="#8B4513" strokeWidth="2"/>
+             fill={`url(#${gradientId})`} stroke="#8B4513" strokeWidth="2"/>
     <polygon points="50,25 58,45 75,45 62,55 66,72 50,62 34,72 38,55 25,45 42,45"
              fill="none" stroke="#D2691E" strokeWidth="1" opacity="0.6"/>
     <rect x="25" y="105" width="50" height="10" rx="5" fill="#A0522D"/>
   </svg>
-);
+  );
+};
 
-const DiamondCup = ({ className }) => (
+const DiamondCup = ({ className }) => {
+  const gradientId = `diamondGradient-${Math.random().toString(36).substr(2, 9)}`;
+  const sparkleId = `diamondSparkle-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="diamondGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#E0E6FF', stopOpacity: 1 }} />
         <stop offset="25%" style={{ stopColor: '#B4C7FF', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#F0F8FF', stopOpacity: 1 }} />
         <stop offset="75%" style={{ stopColor: '#9BB5FF', stopOpacity: 1 }} />
         <stop offset="100%" style={{ stopColor: '#6495ED', stopOpacity: 1 }} />
       </linearGradient>
-      <radialGradient id="diamondSparkle">
+      <radialGradient id={sparkleId}>
         <stop offset="0%" style={{ stopColor: '#FFFFFF', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#E0E6FF', stopOpacity: 0.8 }} />
         <stop offset="100%" style={{ stopColor: '#6495ED', stopOpacity: 0.6 }} />
@@ -602,21 +648,25 @@ const DiamondCup = ({ className }) => (
     </defs>
     <rect x="25" y="105" width="50" height="10" rx="5" fill="#6495ED"/>
     <rect x="45" y="85" width="10" height="20" fill="#6495ED"/>
-    <ellipse cx="50" cy="45" rx="30" ry="25" fill="url(#diamondGradient)" stroke="#4682B4" strokeWidth="1"/>
+    <ellipse cx="50" cy="45" rx="30" ry="25" fill={`url(#${gradientId})`} stroke="#4682B4" strokeWidth="1"/>
     <ellipse cx="50" cy="40" rx="25" ry="20" fill="none" stroke="#E0E6FF" strokeWidth="0.5" opacity="0.8"/>
-    <ellipse cx="25" cy="50" rx="8" ry="12" fill="none" stroke="url(#diamondGradient)" strokeWidth="4"/>
-    <ellipse cx="75" cy="50" rx="8" ry="12" fill="none" stroke="url(#diamondGradient)" strokeWidth="4"/>
-    <ellipse cx="42" cy="35" rx="8" ry="6" fill="url(#diamondSparkle)"/>
+    <ellipse cx="25" cy="50" rx="8" ry="12" fill="none" stroke={`url(#${gradientId})`} strokeWidth="4"/>
+    <ellipse cx="75" cy="50" rx="8" ry="12" fill="none" stroke={`url(#${gradientId})`} strokeWidth="4"/>
+    <ellipse cx="42" cy="35" rx="8" ry="6" fill={`url(#${sparkleId})`}/>
     <circle cx="35" cy="40" r="2" fill="#FFFFFF" opacity="0.9"/>
     <circle cx="60" cy="30" r="1.5" fill="#FFFFFF" opacity="0.8"/>
     <circle cx="55" cy="55" r="1" fill="#FFFFFF" opacity="0.7"/>
   </svg>
-);
+  );
+};
 
-const PlatinumShield = ({ className }) => (
+const PlatinumShield = ({ className }) => {
+  const gradientId = `platinumGradient-${Math.random().toString(36).substr(2, 9)}`;
+  
+  return (
   <svg className={className} viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="platinumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" style={{ stopColor: '#E5E4E2', stopOpacity: 1 }} />
         <stop offset="25%" style={{ stopColor: '#C9C0BB', stopOpacity: 1 }} />
         <stop offset="50%" style={{ stopColor: '#F7F7F7', stopOpacity: 1 }} />
@@ -625,14 +675,15 @@ const PlatinumShield = ({ className }) => (
       </linearGradient>
     </defs>
     <path d="M50 10 L20 25 L20 70 Q20 90 50 110 Q80 90 80 70 L80 25 Z" 
-          fill="url(#platinumGradient)" stroke="#808080" strokeWidth="2"/>
+          fill={`url(#${gradientId})`} stroke="#808080" strokeWidth="2"/>
     <path d="M50 20 L30 30 L30 65 Q30 80 50 95 Q70 80 70 65 L70 30 Z" 
           fill="none" stroke="#F7F7F7" strokeWidth="1" opacity="0.7"/>
     <circle cx="50" cy="50" r="15" fill="#989898" opacity="0.3"/>
     <rect x="25" y="105" width="50" height="10" rx="5" fill="#989898"/>
     <circle cx="45" cy="40" r="2" fill="#FFFFFF" opacity="0.8"/>
   </svg>
-);
+  );
+};
 
 // Helper function to get default trophy titles
 const getTrophyTitle = (competitionType) => {
