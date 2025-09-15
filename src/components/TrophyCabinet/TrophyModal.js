@@ -22,14 +22,18 @@ const TrophyModal = ({
     position: 1,
     awarded_date: new Date().toISOString().split('T')[0],
     display_order: 0,
-    is_featured: false
+    is_featured: false,
+    trophy_image_url: ''
   });
 
   const [errors, setErrors] = useState({});
   const [previewMode, setPreviewMode] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   // Trophy type options with descriptions
   const trophyTypes = [
+    { value: 'custom_image', label: 'Custom Image', icon: '📷', description: 'Upload your own trophy image' },
     { value: 'gold_cup', label: 'Gold Cup', icon: '🏆', description: 'Classic golden trophy cup' },
     { value: 'silver_cup', label: 'Silver Cup', icon: '🥈', description: 'Silver trophy cup' },
     { value: 'bronze_cup', label: 'Bronze Cup', icon: '🥉', description: 'Bronze trophy cup' },
@@ -72,13 +76,14 @@ const TrophyModal = ({
           position: trophy.position || 1,
           awarded_date: trophy.awarded_date || new Date().toISOString().split('T')[0],
           display_order: trophy.display_order || 0,
-          is_featured: trophy.is_featured || false
+          is_featured: trophy.is_featured || false,
+          trophy_image_url: trophy.trophy_image_url || ''
         });
       } else {
         // Reset for new trophy
         setFormData({
           season_id: '',
-          trophy_type: 'gold_cup',
+          trophy_type: 'custom_image',
           competition_type: 'custom',
           winner_player1_id: '',
           winner_player2_id: '',
@@ -87,10 +92,13 @@ const TrophyModal = ({
           position: 1,
           awarded_date: new Date().toISOString().split('T')[0],
           display_order: 0,
-          is_featured: false
+          is_featured: false,
+          trophy_image_url: ''
         });
       }
       setErrors({});
+      setImageFile(null);
+      setImagePreview(null);
     }
   }, [isOpen, trophy]);
 
@@ -113,6 +121,10 @@ const TrophyModal = ({
       newErrors.winner_player2_id = 'Second player is required for doubles awards';
     }
 
+    if (formData.trophy_type === 'custom_image' && !imagePreview && !formData.trophy_image_url) {
+      newErrors.trophy_image = 'Trophy image is required for custom image type';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -124,7 +136,13 @@ const TrophyModal = ({
       return;
     }
 
-    const result = await onSave(formData);
+    // Prepare form data with image URL if available
+    const submitData = { ...formData };
+    if (formData.trophy_type === 'custom_image' && imagePreview) {
+      submitData.trophy_image_url = imagePreview; // Use the data URL
+    }
+
+    const result = await onSave(submitData);
     if (result.success) {
       onClose();
     }
@@ -136,6 +154,26 @@ const TrophyModal = ({
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    handleInputChange('trophy_image_url', '');
   };
 
   const getDefaultTitle = () => {
@@ -168,7 +206,17 @@ const TrophyModal = ({
           {/* Trophy Preview */}
           {previewMode && (
             <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 text-center border-2 border-dashed border-gray-300">
-              <div className="text-6xl mb-4">{selectedTrophyType?.icon}</div>
+              <div className="mb-4">
+                {formData.trophy_type === 'custom_image' && imagePreview ? (
+                  <img 
+                    src={imagePreview} 
+                    alt="Custom trophy preview" 
+                    className="mx-auto max-h-24 w-24 object-contain rounded-lg border border-gray-200"
+                  />
+                ) : (
+                  <div className="text-6xl">{selectedTrophyType?.icon}</div>
+                )}
+              </div>
               <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-lg p-4 mb-4">
                 <h3 className="font-bold text-gray-900 text-xl">
                   {formData.custom_title || getDefaultTitle()}
@@ -243,6 +291,60 @@ const TrophyModal = ({
                 {selectedTrophyType?.description}
               </p>
             </div>
+
+            {/* Image Upload for Custom Image Type */}
+            {formData.trophy_type === 'custom_image' && (
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Trophy Image *
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img 
+                        src={imagePreview} 
+                        alt="Trophy preview" 
+                        className="mx-auto max-h-32 rounded-lg shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
+                      >
+                        ×
+                      </button>
+                      <p className="text-sm text-gray-600 mt-2">Click × to remove image</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div className="mt-4">
+                        <label htmlFor="trophy-image" className="cursor-pointer">
+                          <span className="mt-2 block text-sm font-medium text-gray-900">
+                            Upload trophy image
+                          </span>
+                          <span className="block text-xs text-gray-500">
+                            PNG, JPG, GIF up to 10MB
+                          </span>
+                        </label>
+                        <input
+                          id="trophy-image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="sr-only"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {errors.trophy_image && (
+                  <p className="text-red-600 text-sm mt-1">{errors.trophy_image}</p>
+                )}
+              </div>
+            )}
 
             {/* Competition Type */}
             <div>

@@ -230,7 +230,7 @@ const TrophyCard = ({ trophy, allUsers, currentUser, onEdit, onDelete }) => {
     >
       {/* Trophy Visual */}
       <div className="relative p-6 text-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <TrophyIcon type={trophy.trophy_type} size="large" />
+        <TrophyIcon type={trophy.trophy_type} size="large" imageUrl={trophy.trophy_image_url} />
         
         {/* Position Badge */}
         {trophy.position <= 3 && (
@@ -308,7 +308,7 @@ const TrophyCard = ({ trophy, allUsers, currentUser, onEdit, onDelete }) => {
 const FeaturedTrophyCard = ({ trophy, allUsers }) => (
   <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-lg p-6 shadow-lg">
     <div className="flex items-center gap-4">
-      <TrophyIcon type={trophy.trophy_type} size="medium" />
+      <TrophyIcon type={trophy.trophy_type} size="medium" imageUrl={trophy.trophy_image_url} />
       <div className="flex-1">
         <h3 className="font-bold text-lg text-gray-900 trophy-engraving">
           {trophy.custom_title || getTrophyTitle(trophy.competition_type)}
@@ -328,13 +328,26 @@ const FeaturedTrophyCard = ({ trophy, allUsers }) => (
   </div>
 );
 
-// Trophy Icon Component with CSS-based graphics
-const TrophyIcon = ({ type, size = 'medium' }) => {
+// Trophy Icon Component with CSS-based graphics and custom images
+const TrophyIcon = ({ type, size = 'medium', imageUrl = null }) => {
   const sizeClasses = {
     small: 'w-8 h-8',
     medium: 'w-16 h-16',
     large: 'w-24 h-24'
   };
+
+  // If it's a custom image type and we have an image URL, display the custom image
+  if (type === 'custom_image' && imageUrl) {
+    return (
+      <div className="trophy-glow">
+        <img 
+          src={imageUrl} 
+          alt="Custom trophy" 
+          className={`${sizeClasses[size]} object-contain rounded-lg`}
+        />
+      </div>
+    );
+  }
 
   const getTrophyComponent = () => {
     switch (type) {
