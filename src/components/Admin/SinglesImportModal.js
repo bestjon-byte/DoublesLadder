@@ -175,12 +175,18 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
   const updatePlayerStats = async (playerId, playerScore, opponentScore) => {
     try {
       // Check if player exists in season_players
-      const { data: existingStats } = await supabase
+      const { data: existingStatsArray, error: statsError } = await supabase
         .from('season_players')
         .select('*')
         .eq('season_id', selectedSeasonId)
-        .eq('player_id', playerId)
-        .single();
+        .eq('player_id', playerId);
+
+      if (statsError) {
+        console.error('Error fetching player stats:', statsError);
+        throw statsError;
+      }
+
+      const existingStats = existingStatsArray && existingStatsArray.length > 0 ? existingStatsArray[0] : null;
 
       const matchWon = playerScore > opponentScore;
       const gamesWon = parseInt(playerScore); // This player's games won
