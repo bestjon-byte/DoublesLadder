@@ -938,6 +938,142 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [selectedSeasonId, fetchSeasonPlayers]);
 
+  // Singles championship ranking logic
+  const updateSinglesRankings = useCallback(async () => {
+    try {
+      // Get all singles match fixtures for this season
+      const { data: seasonFixtures, error: fixturesError } = await supabase
+        .from('match_fixtures')
+        .select(`
+          id,
+          match_format,
+          match:match_id!inner (
+            id,
+            season_id
+          )
+        `)
+        .eq('match.season_id', selectedSeasonId)
+        .eq('match_format', 'singles');
+
+      if (fixturesError) throw fixturesError;
+
+      if (!seasonFixtures || seasonFixtures.length === 0) {
+        // No singles fixtures found for this season, resetting player stats
+        await supabase
+          .from('season_players')
+          .update({
+            matches_played: 0,
+            matches_won: 0,
+            games_played: 0,
+            games_won: 0
+          })
+          .eq('season_id', selectedSeasonId);
+        
+        await fetchSeasonPlayers(selectedSeasonId);
+        alert('Rankings updated successfully (no singles matches yet)!');
+        return { success: true };
+      }
+
+      const fixtureIds = seasonFixtures.map(f => f.id);
+
+      // Get all verified match results for these singles fixtures
+      const { data: resultsData, error } = await supabase
+        .from('match_results')
+        .select(`
+          *,
+          fixture:fixture_id (
+            *,
+            player1:player1_id(id, name),
+            player2:player2_id(id, name)
+          )
+        `)
+        .in('fixture_id', fixtureIds)
+        .neq('verified', false);
+
+      if (error) throw error;
+
+      // Get season players
+      const { data: seasonPlayers, error: playersError } = await supabase
+        .from('season_players')
+        .select('*')
+        .eq('season_id', selectedSeasonId);
+
+      if (playersError) throw playersError;
+
+      // Calculate stats for singles (only 2 players per match)
+      const playerStats = {};
+      seasonPlayers.forEach(player => {
+        playerStats[player.player_id] = {
+          ...player,
+          matches_played: 0,
+          matches_won: 0,
+          games_played: 0,
+          games_won: 0
+        };
+      });
+
+      // Process singles results
+      resultsData?.forEach(result => {
+        const fixture = result.fixture;
+        const players = [fixture.player1, fixture.player2]; // Only 2 players in singles
+        
+        players.forEach(player => {
+          if (player && playerStats[player.id]) {
+            const stats = playerStats[player.id];
+            stats.matches_played += 1;
+            stats.games_played += (result.pair1_score + result.pair2_score);
+            
+            // For singles: player1 gets pair1_score, player2 gets pair2_score
+            const isPlayer1 = (fixture.player1_id === player.id);
+            const wonMatch = isPlayer1 ? result.pair1_score > result.pair2_score : result.pair2_score > result.pair1_score;
+            const gamesWon = isPlayer1 ? result.pair1_score : result.pair2_score;
+            
+            if (wonMatch) stats.matches_won += 1;
+            stats.games_won += gamesWon;
+          }
+        });
+      });
+
+      // Sort and update rankings (same logic as ladder)
+      const sortedPlayers = Object.values(playerStats)
+        .sort((a, b) => {
+          const aWinPct = a.games_played > 0 ? a.games_won / a.games_played : 0;
+          const bWinPct = b.games_played > 0 ? b.games_won / b.games_played : 0;
+          
+          if (bWinPct !== aWinPct) return bWinPct - aWinPct;
+          if (b.matches_won !== a.matches_won) return b.matches_won - a.matches_won;
+          return 0;
+        });
+
+      // Update rankings in season_players table
+      for (let i = 0; i < sortedPlayers.length; i++) {
+        const player = sortedPlayers[i];
+        const newRank = i + 1;
+        
+        await supabase
+          .from('season_players')
+          .update({
+            previous_rank: player.rank,
+            rank: newRank,
+            matches_played: player.matches_played,
+            matches_won: player.matches_won,
+            games_played: player.games_played,
+            games_won: player.games_won
+          })
+          .eq('id', player.id);
+      }
+
+      // Refresh season players
+      await fetchSeasonPlayers(selectedSeasonId);
+      alert('Singles championship rankings updated successfully!');
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating singles rankings:', error);
+      alert('Error updating singles rankings: ' + error.message);
+      return { success: false, error };
+    }
+  }, [selectedSeasonId, fetchSeasonPlayers]);
+
   // Updated ranking system for season-based stats
   const updateRankings = useCallback(async () => {
     if (!selectedSeasonId) {
@@ -955,11 +1091,14 @@ export const useApp = (userId, selectedSeasonId) => {
 
       if (seasonError) throw seasonError;
 
-      const isLeagueSeason = seasonData?.season_type === 'league';
+      const seasonType = seasonData?.season_type;
 
-      if (isLeagueSeason) {
+      if (seasonType === 'league') {
         // League season ranking logic
         return await updateLeagueRankings();
+      } else if (seasonType === 'singles_championship') {
+        // Singles championship ranking logic
+        return await updateSinglesRankings();
       } else {
         // Ladder season ranking logic (existing)
         return await updateLadderRankings();
@@ -969,7 +1108,7 @@ export const useApp = (userId, selectedSeasonId) => {
       alert('Error updating rankings: ' + error.message);
       return { success: false, error };
     }
-  }, [selectedSeasonId, updateLeagueRankings, updateLadderRankings]);
+  }, [selectedSeasonId, updateLeagueRankings, updateSinglesRankings, updateLadderRankings]);
 
   const clearOldMatches = useCallback(async () => {
     try {
