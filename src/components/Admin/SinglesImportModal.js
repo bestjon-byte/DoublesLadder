@@ -95,12 +95,24 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
       const score1 = parseInt(player1Score);
       const score2 = parseInt(player2Score);
       
-      // Step 1: Create match record
+      // Step 1: Generate unique week number for this season
+      const { data: existingMatches, error: weekError } = await supabase
+        .from('matches')
+        .select('week_number')
+        .eq('season_id', selectedSeasonId)
+        .order('week_number', { ascending: false })
+        .limit(1);
+
+      if (weekError) throw weekError;
+
+      const nextWeekNumber = existingMatches.length > 0 ? (existingMatches[0].week_number + 1) : 1;
+
+      // Step 2: Create match record
       const { data: matchData, error: matchError } = await supabase
         .from('matches')
         .insert({
           season_id: selectedSeasonId,
-          week_number: 1, // Singles matches don't have week structure
+          week_number: nextWeekNumber, // Use incremental week numbers for singles
           match_date: matchDate
         })
         .select()
@@ -108,7 +120,7 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
 
       if (matchError) throw matchError;
 
-      // Step 2: Create match fixture (singles format)
+      // Step 3: Create match fixture (singles format)
       const { data: fixtureData, error: fixtureError } = await supabase
         .from('match_fixtures')
         .insert({
@@ -132,7 +144,7 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
 
       if (fixtureError) throw fixtureError;
 
-      // Step 3: Create match result
+      // Step 4: Create match result
       const { error: resultError } = await supabase
         .from('match_results')
         .insert({
@@ -145,7 +157,7 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
 
       if (resultError) throw resultError;
 
-      // Step 4: Update player stats
+      // Step 5: Update player stats
       await updatePlayerStats(player1Id, score1, score2);
       await updatePlayerStats(player2Id, score2, score1);
 
