@@ -62,30 +62,32 @@ const AddExternalPlayerModal = ({ isOpen, onClose, supabase, onPlayerAdded }) =>
       const email = playerEmail.trim() || generateSkeletonEmail(name);
 
       // Check if email already exists
-      const { data: existingUser, error: checkError } = await supabase
+      const { data: existingUsers, error: checkError } = await supabase
         .from('profiles')
         .select('id, name, email')
-        .eq('email', email)
-        .single();
+        .eq('email', email);
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found (which is what we want)
+      if (checkError) {
         throw checkError;
       }
 
-      if (existingUser) {
-        setError(`A user with email "${email}" already exists: ${existingUser.name}`);
+      if (existingUsers && existingUsers.length > 0) {
+        setError(`A user with email "${email}" already exists: ${existingUsers[0].name}`);
         return;
       }
 
       // Check if name already exists (warn but allow)
-      const { data: existingNameUser } = await supabase
+      const { data: existingNameUsers, error: nameError } = await supabase
         .from('profiles')
         .select('id, name, email')
-        .ilike('name', name)
-        .single();
+        .ilike('name', name);
 
-      if (existingNameUser && !window.confirm(
-        `A user named "${existingNameUser.name}" already exists. Do you want to create another user with this name?`
+      if (nameError) {
+        throw nameError;
+      }
+
+      if (existingNameUsers && existingNameUsers.length > 0 && !window.confirm(
+        `A user named "${existingNameUsers[0].name}" already exists. Do you want to create another user with this name?`
       )) {
         return;
       }
