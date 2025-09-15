@@ -229,8 +229,8 @@ const TrophyCard = ({ trophy, allUsers, currentUser, onEdit, onDelete }) => {
       onClick={() => setShowDetails(!showDetails)}
     >
       {/* Trophy Visual */}
-      <div className="relative p-6 text-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <TrophyIcon type={trophy.trophy_type} size="large" imageUrl={trophy.trophy_image_url} />
+      <div className="relative p-4 text-center bg-gradient-to-br from-gray-50 to-gray-100 min-h-[140px] flex items-center justify-center">
+        <TrophyIcon type={trophy.trophy_type} size="extra-large" imageUrl={trophy.trophy_image_url} />
         
         {/* Position Badge */}
         {trophy.position <= 3 && (
@@ -255,12 +255,12 @@ const TrophyCard = ({ trophy, allUsers, currentUser, onEdit, onDelete }) => {
       <div className="p-4">
         <div className="text-center mb-3">
           {/* Engraved Title */}
-          <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-lg p-3 mb-3">
-            <h3 className="font-bold text-gray-900 text-lg trophy-engraving">
+          <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-200 rounded-lg p-2 mb-3">
+            <h3 className="font-bold text-gray-900 text-sm trophy-engraving leading-tight">
               {trophy.custom_title || getTrophyTitle(trophy.competition_type)}
             </h3>
             {trophy.engraving_text && (
-              <p className="text-sm text-gray-700 italic trophy-engraving mt-1">
+              <p className="text-xs text-gray-700 italic trophy-engraving mt-1 leading-tight">
                 "{trophy.engraving_text}"
               </p>
             )}
@@ -308,9 +308,9 @@ const TrophyCard = ({ trophy, allUsers, currentUser, onEdit, onDelete }) => {
 const FeaturedTrophyCard = ({ trophy, allUsers }) => (
   <div className="bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 rounded-lg p-6 shadow-lg">
     <div className="flex items-center gap-4">
-      <TrophyIcon type={trophy.trophy_type} size="medium" imageUrl={trophy.trophy_image_url} />
+      <TrophyIcon type={trophy.trophy_type} size="large" imageUrl={trophy.trophy_image_url} />
       <div className="flex-1">
-        <h3 className="font-bold text-lg text-gray-900 trophy-engraving">
+        <h3 className="font-bold text-base text-gray-900 trophy-engraving leading-tight">
           {trophy.custom_title || getTrophyTitle(trophy.competition_type)}
         </h3>
         <p className="text-gray-700 font-medium">
@@ -319,7 +319,7 @@ const FeaturedTrophyCard = ({ trophy, allUsers }) => (
         </p>
         <p className="text-sm text-gray-600">{trophy.season_name}</p>
         {trophy.engraving_text && (
-          <p className="text-sm text-gray-700 italic mt-2 trophy-engraving">
+          <p className="text-sm text-gray-700 italic mt-2 trophy-engraving leading-tight">
             "{trophy.engraving_text}"
           </p>
         )}
@@ -333,7 +333,8 @@ const TrophyIcon = ({ type, size = 'medium', imageUrl = null }) => {
   const sizeClasses = {
     small: 'w-8 h-8',
     medium: 'w-16 h-16',
-    large: 'w-24 h-24'
+    large: 'w-24 h-24',
+    'extra-large': 'w-32 h-32'
   };
 
   // If it's a custom image type and we have an image URL, display the custom image
@@ -343,7 +344,7 @@ const TrophyIcon = ({ type, size = 'medium', imageUrl = null }) => {
         <img 
           src={imageUrl} 
           alt="Custom trophy" 
-          className={`${sizeClasses[size]} object-contain rounded-lg`}
+          className={`${sizeClasses[size]} object-contain rounded-lg shadow-sm`}
         />
       </div>
     );
