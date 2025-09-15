@@ -25,7 +25,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
 
       // Note: Season filtering is handled in the query logic below
 
-      // Fetch ladder match data
+      // Fetch ladder match data (both doubles and singles)
       const { data: matchData, error: matchError } = await supabase
         .from('match_fixtures')
         .select(`
@@ -33,6 +33,11 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
           match_id,
           court_number,
           game_number,
+          match_format,
+          player1_id,
+          player2_id,
+          player3_id,
+          player4_id,
           pair1_player1_id,
           pair1_player2_id,
           pair2_player1_id,
@@ -49,11 +54,12 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
             match_date,
             seasons (
               id,
-              name
+              name,
+              season_type
             )
           )
         `)
-        .or(`pair1_player1_id.eq.${playerId},pair1_player2_id.eq.${playerId},pair2_player1_id.eq.${playerId},pair2_player2_id.eq.${playerId}`)
+        .or(`pair1_player1_id.eq.${playerId},pair1_player2_id.eq.${playerId},pair2_player1_id.eq.${playerId},pair2_player2_id.eq.${playerId},player1_id.eq.${playerId},player2_id.eq.${playerId}`)
         .not('match_results', 'is', null);
 
       if (matchError) throw matchError;
@@ -118,6 +124,48 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
           // Prioritize verified results, fallback to first result for backward compatibility
           const verifiedResult = fixture.match_results.find(r => r.verified === true);
           const result = verifiedResult || fixture.match_results[0];
+          
+          // Handle singles matches
+          if (fixture.match_format === 'singles') {
+            const isPlayer1 = fixture.player1_id === playerId;
+            const isPlayer2 = fixture.player2_id === playerId;
+            
+            if (!isPlayer1 && !isPlayer2) return null;
+            
+            const playerScore = isPlayer1 ? result.pair1_score : result.pair2_score;
+            const opponentScore = isPlayer1 ? result.pair2_score : result.pair1_score;
+            const won = playerScore > opponentScore;
+            const tie = playerScore === opponentScore;
+            
+            // No partner in singles
+            const partnerId = null;
+            
+            // Single opponent
+            const opponentId = isPlayer1 ? fixture.player2_id : fixture.player1_id;
+            const opponentIds = [opponentId];
+
+            return {
+              fixtureId: fixture.id,
+              matchId: fixture.match_id,
+              date: fixture.matches?.match_date || result.created_at,
+              won,
+              tie,
+              score: `${playerScore} - ${opponentScore}`,
+              partnerId,
+              partnerName: null, // No partner in singles
+              opponentIds,
+              opponentNames: [userLookup[opponentId] || 'Unknown'],
+              playerScore,
+              opponentScore,
+              seasonId: fixture.matches?.season_id,
+              seasonName: fixture.matches?.seasons?.name,
+              seasonType: fixture.matches?.seasons?.season_type,
+              courtNumber: fixture.court_number,
+              matchFormat: 'singles'
+            };
+          }
+          
+          // Handle doubles matches (existing logic)
           const isInPair1 = fixture.pair1_player1_id === playerId || fixture.pair1_player2_id === playerId;
           const isInPair2 = fixture.pair2_player1_id === playerId || fixture.pair2_player2_id === playerId;
           
@@ -156,7 +204,9 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
             opponentScore,
             seasonId: fixture.matches?.season_id,
             seasonName: fixture.matches?.seasons?.name,
-            courtNumber: fixture.court_number
+            seasonType: fixture.matches?.seasons?.season_type,
+            courtNumber: fixture.court_number,
+            matchFormat: 'doubles'
           };
         })
         .filter(Boolean)
@@ -233,9 +283,12 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       const gamesWon = allMatches.reduce((sum, match) => sum + match.playerScore, 0);
       const gameWinRate = totalGames > 0 ? gamesWon / totalGames : 0;
 
-      // Calculate best partners based on GAMES across matches
+      // Calculate best partners based on GAMES across matches (excluding singles)
       const partnerStats = {};
       allMatches.forEach(match => {
+        // Skip singles matches as they don't have partners
+        if (match.matchFormat === 'singles' || !match.partnerId) return;
+        
         if (!partnerStats[match.partnerId]) {
           partnerStats[match.partnerId] = {
             playerId: match.partnerId,
@@ -306,9 +359,12 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
         .filter(opponent => opponent.totalGames >= 10) // Only opponents faced 10+ games
         .sort((a, b) => a.winRate - b.winRate)[0]; // Lowest win rate first
 
-      // Calculate nemesis pair based on GAMES
+      // Calculate nemesis pair based on GAMES (only for doubles matches)
       const pairStats = {};
       allMatches.forEach(match => {
+        // Skip singles matches as they only have one opponent
+        if (match.matchFormat === 'singles' || !match.opponentIds[1]) return;
+        
         if (match.opponentIds[0] && match.opponentIds[1]) {
           const pairKey = match.opponentIds.sort().join('-');
           if (!pairStats[pairKey]) {

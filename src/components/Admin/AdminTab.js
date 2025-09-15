@@ -9,6 +9,7 @@ import AddToLadderModal from '../Modals/AddToLadderModal';
 import DeleteSeasonModal from '../Modals/DeleteSeasonModal';
 import DeleteUserModal from '../Modals/DeleteUserModal';
 import LeagueImportModal from './LeagueImportModal';
+import SinglesImportModal from './SinglesImportModal';
 
 const AdminTab = ({ 
   users, 
@@ -49,6 +50,7 @@ const AdminTab = ({
   const [showDeleteSeasonModal, setShowDeleteSeasonModal] = useState(false);
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [showLeagueImporter, setShowLeagueImporter] = useState(false);
+  const [showSinglesImporter, setShowSinglesImporter] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -285,6 +287,25 @@ const AdminTab = ({
             </button>
           </div>
 
+          {/* Singles Import */}
+          <div className="border border-orange-200 rounded-lg p-4 hover:bg-orange-50 transition-colors">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="bg-orange-100 p-2 rounded-full">
+                <Users className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Singles Import</h4>
+                <p className="text-xs text-gray-500">Import completed singles match</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSinglesImporter(true)}
+              className="w-full bg-orange-600 text-white px-3 py-2 rounded-md hover:bg-orange-700 transition-colors text-sm"
+            >
+              Import Singles Match
+            </button>
+          </div>
+
 
           {/* Merge Players */}
           <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
@@ -514,6 +535,7 @@ const AdminTab = ({
                   >
                     <option value="ladder">Ladder (Internal Competition)</option>
                     <option value="league">League (External Matches)</option>
+                    <option value="singles_championship">Singles Championship (Stats Tracking)</option>
                   </select>
                 </div>
 
@@ -557,6 +579,14 @@ const AdminTab = ({
                     </p>
                   </div>
                 )}
+
+                {newSeasonType === 'singles_championship' && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
+                    <p className="text-sm text-orange-700">
+                      <strong>Singles Championship:</strong> For tracking singles match stats (no availability/scheduling)
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
@@ -592,6 +622,15 @@ const AdminTab = ({
         onClose={() => setShowLeagueImporter(false)}
         supabase={supabase}
         selectedSeason={selectedSeason}
+      />
+
+      {/* Singles Import Modal */}
+      <SinglesImportModal 
+        isOpen={showSinglesImporter}
+        onClose={() => setShowSinglesImporter(false)}
+        supabase={supabase}
+        seasons={seasons}
+        currentUser={currentUser}
       />
 
     </div>
