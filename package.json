@@ -1,6 +1,6 @@
 {
   "name": "tennis-ladder-app",
-  "version": "1.0.69",
+  "version": "1.0.70",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",

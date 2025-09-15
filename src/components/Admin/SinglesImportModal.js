@@ -76,7 +76,7 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
       return 'Scores must be valid positive numbers';
     }
     
-    if (score1 === score2) return 'Match cannot end in a tie';
+    // Ties are allowed in tennis (practice matches, interrupted games, etc.)
     
     return null;
   };
@@ -411,7 +411,10 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
                       {player1Score} - {player2Score}
                     </p>
                     <p className="text-sm text-orange-700">
-                      Winner: {parseInt(player1Score) > parseInt(player2Score) ? selectedPlayer1.name : selectedPlayer2.name}
+                      {parseInt(player1Score) === parseInt(player2Score) 
+                        ? 'Result: Tie' 
+                        : `Winner: ${parseInt(player1Score) > parseInt(player2Score) ? selectedPlayer1.name : selectedPlayer2.name}`
+                      }
                     </p>
                   </div>
                 </div>
