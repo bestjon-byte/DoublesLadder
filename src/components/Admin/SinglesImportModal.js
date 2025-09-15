@@ -40,9 +40,11 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
     fetchPlayers();
   }, [isOpen, supabase]);
 
-  const handleReset = () => {
-    setSelectedSeasonId('');
-    setMatchDate('');
+  const handleReset = (keepSeasonAndDate = false) => {
+    if (!keepSeasonAndDate) {
+      setSelectedSeasonId('');
+      setMatchDate('');
+    }
     setPlayer1Id('');
     setPlayer2Id('');
     setPlayer1Score('');
@@ -52,8 +54,12 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
   };
 
   const handleClose = () => {
-    handleReset();
+    handleReset(false); // Full reset when closing
     onClose();
+  };
+
+  const handleImportAnother = () => {
+    handleReset(true); // Keep season and date for next match
   };
 
   const validateForm = () => {
@@ -144,9 +150,7 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
       await updatePlayerStats(player2Id, score2, score1);
 
       setSuccess(true);
-      setTimeout(() => {
-        handleClose();
-      }, 2000);
+      // Don't auto-close anymore - let user choose their action
 
     } catch (err) {
       console.error('Failed to import singles match:', err);
@@ -235,9 +239,27 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
                 <Trophy className="w-8 h-8 text-green-600" />
               </div>
               <h4 className="text-lg font-semibold text-green-800 mb-2">Match Imported Successfully!</h4>
-              <p className="text-green-600">
+              <p className="text-green-600 mb-4">
                 {selectedPlayer1?.name} vs {selectedPlayer2?.name} - {player1Score}-{player2Score}
               </p>
+              <p className="text-xs text-gray-500 mb-6">
+                Season and date will be retained for next match
+              </p>
+              
+              <div className="flex space-x-3 justify-center">
+                <button
+                  onClick={handleImportAnother}
+                  className="bg-orange-600 text-white py-2 px-6 rounded-md hover:bg-orange-700 transition-colors font-medium"
+                >
+                  Import Another Match
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="bg-gray-300 text-gray-700 py-2 px-6 rounded-md hover:bg-gray-400 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
