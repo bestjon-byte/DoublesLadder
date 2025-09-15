@@ -10,6 +10,7 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
   const rankingData = getUnifiedRankingData(users, selectedSeason);
   const isSeasonCompleted = selectedSeason?.status === 'completed';
   const isLeagueSeason = selectedSeason?.season_type === 'league';
+  const isSinglesSeason = selectedSeason?.season_type === 'singles_championship';
   const seasonInfo = getSeasonDisplayInfo(selectedSeason);
 
 
@@ -122,7 +123,7 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-              {seasonInfo.title} {isLeagueSeason ? 'League' : 'Ladder'}
+              {seasonInfo.title} {isSinglesSeason ? 'Championship' : (isLeagueSeason ? 'League' : 'Ladder')}
             </h2>
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${seasonInfo.badgeColor}`}>
               {seasonInfo.badge}

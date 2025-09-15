@@ -106,7 +106,55 @@ export const getLeagueData = (users, selectedSeason = null) => {
 };
 
 /**
- * Get unified ladder/league data based on season type
+ * Get singles championship ranking data for a season (based on match wins, then game win percentage)
+ * @param {Array} users - Season players
+ * @param {Object} selectedSeason - Current season
+ * @returns {Array} Sorted singles championship ranking data
+ */
+export const getSinglesData = (users, selectedSeason = null) => {
+  const filteredUsers = users
+    .filter(user => user.in_ladder && user.status === 'approved')
+    .filter(user => (user.matches_played || 0) > 0); // Only show players with matches played
+
+  // Singles championships sort by match wins first, then game win percentage
+  return filteredUsers.sort((a, b) => {
+    const aMatchesWon = a.matches_won || 0;
+    const bMatchesWon = b.matches_won || 0;
+    
+    // Primary sort: Matches won (descending)
+    if (aMatchesWon !== bMatchesWon) {
+      return bMatchesWon - aMatchesWon;
+    }
+    
+    // Secondary sort: Game win percentage (descending)
+    const aGameWinPct = (a.games_played || 0) > 0 ? (a.games_won || 0) / (a.games_played || 0) : 0;
+    const bGameWinPct = (b.games_played || 0) > 0 ? (b.games_won || 0) / (b.games_played || 0) : 0;
+    
+    if (aGameWinPct !== bGameWinPct) {
+      return bGameWinPct - aGameWinPct;
+    }
+    
+    // Tertiary sort: Total games won (descending)
+    if ((a.games_won || 0) !== (b.games_won || 0)) {
+      return (b.games_won || 0) - (a.games_won || 0);
+    }
+    
+    // Quaternary sort: Total matches played (descending) - more activity is better for tie-breaking
+    return (b.matches_played || 0) - (a.matches_played || 0);
+  }).map((user, index) => ({
+    ...user,
+    rank: index + 1,
+    win_percentage: (user.games_played || 0) > 0 ? 
+      ((user.games_won || 0) / (user.games_played || 0) * 100).toFixed(1) : 
+      '0.0',
+    match_win_percentage: (user.matches_played || 0) > 0 ? 
+      ((user.matches_won || 0) / (user.matches_played || 0) * 100).toFixed(1) : 
+      '0.0'
+  }));
+};
+
+/**
+ * Get unified ladder/league/singles data based on season type
  * @param {Array} users - Season players
  * @param {Object} selectedSeason - Current season
  * @returns {Array} Sorted ranking data
@@ -114,6 +162,8 @@ export const getLeagueData = (users, selectedSeason = null) => {
 export const getUnifiedRankingData = (users, selectedSeason = null) => {
   if (selectedSeason?.season_type === 'league') {
     return getLeagueData(users, selectedSeason);
+  } else if (selectedSeason?.season_type === 'singles_championship') {
+    return getSinglesData(users, selectedSeason);
   } else {
     return getLadderData(users, selectedSeason);
   }
@@ -225,15 +275,30 @@ export const generateLeagueRubberStructure = () => {
 export const getSeasonDisplayInfo = (season) => {
   if (!season) return { title: '', subtitle: '', badge: '' };
 
-  const isLeague = season.season_type === 'league';
+  const seasonType = season.season_type;
   const leagueInfo = season.league_info || {};
   
-  return {
-    title: season.name,
-    subtitle: isLeague ? 
-      `${leagueInfo.division || 'League'} - ${leagueInfo.external_league_name || 'External League'}` :
-      'Internal Ladder',
-    badge: season.season_type === 'league' ? 'League' : 'Ladder',
-    badgeColor: season.season_type === 'league' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-  };
+  switch (seasonType) {
+    case 'league':
+      return {
+        title: season.name,
+        subtitle: `${leagueInfo.division || 'League'} - ${leagueInfo.external_league_name || 'External League'}`,
+        badge: 'League',
+        badgeColor: 'bg-blue-100 text-blue-800'
+      };
+    case 'singles_championship':
+      return {
+        title: season.name,
+        subtitle: 'Singles Championship - Individual Competition',
+        badge: 'Singles',
+        badgeColor: 'bg-orange-100 text-orange-800'
+      };
+    default: // 'ladder'
+      return {
+        title: season.name,
+        subtitle: 'Internal Ladder',
+        badge: 'Ladder',
+        badgeColor: 'bg-green-100 text-green-800'
+      };
+  }
 };

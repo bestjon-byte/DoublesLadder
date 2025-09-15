@@ -167,8 +167,8 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
         .single();
 
       const matchWon = playerScore > opponentScore;
-      const gamesWon = parseInt(playerScore);
-      const totalGames = parseInt(playerScore) + parseInt(opponentScore);
+      const gamesWon = parseInt(playerScore); // This player's games won
+      const totalGames = parseInt(playerScore) + parseInt(opponentScore); // Total games in the match
 
       if (existingStats) {
         // Update existing stats
@@ -192,7 +192,7 @@ const SinglesImportModal = ({ isOpen, onClose, supabase, seasons, currentUser })
             matches_played: 1,
             matches_won: matchWon ? 1 : 0,
             games_played: totalGames,
-            games_won: gamesWon,
+            games_won: gamesWon, // This player's actual games won
             rank: null // Singles championship doesn't use rankings
           });
       }
