@@ -10,6 +10,7 @@ import DeleteSeasonModal from '../Modals/DeleteSeasonModal';
 import DeleteUserModal from '../Modals/DeleteUserModal';
 import LeagueImportModal from './LeagueImportModal';
 import SinglesImportModal from './SinglesImportModal';
+import AddExternalPlayerModal from './AddExternalPlayerModal';
 
 const AdminTab = ({ 
   users, 
@@ -51,6 +52,7 @@ const AdminTab = ({
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [showLeagueImporter, setShowLeagueImporter] = useState(false);
   const [showSinglesImporter, setShowSinglesImporter] = useState(false);
+  const [showAddExternalPlayer, setShowAddExternalPlayer] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -243,6 +245,25 @@ const AdminTab = ({
               className="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm"
             >
               Add Players
+            </button>
+          </div>
+
+          {/* Add External Player */}
+          <div className="border border-purple-200 rounded-lg p-4 hover:bg-purple-50 transition-colors">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="bg-purple-100 p-2 rounded-full">
+                <Users className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">External Player</h4>
+                <p className="text-xs text-gray-500">Create skeleton user for results</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAddExternalPlayer(true)}
+              className="w-full bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 transition-colors text-sm"
+            >
+              Add External Player
             </button>
           </div>
 
@@ -631,6 +652,17 @@ const AdminTab = ({
         supabase={supabase}
         seasons={seasons}
         currentUser={currentUser}
+      />
+
+      {/* Add External Player Modal */}
+      <AddExternalPlayerModal 
+        isOpen={showAddExternalPlayer}
+        onClose={() => setShowAddExternalPlayer(false)}
+        supabase={supabase}
+        onPlayerAdded={(player) => {
+          // Refresh users list if callback is available
+          if (fetchUsers) fetchUsers();
+        }}
       />
 
     </div>
