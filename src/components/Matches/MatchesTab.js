@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 import LeagueMatchCard from './LeagueMatchCard';
+import EloImpactDisplay from './EloImpactDisplay';
 
 const MatchesTab = ({ 
   currentUser, 
@@ -328,11 +329,18 @@ const MatchesTab = ({
                                     {fixture.player1?.name} vs {fixture.player2?.name}
                                   </div>
                                   {existingScore && (
-                                    <div className="text-sm text-gray-600 mt-1">
-                                      Score: {existingScore.pair1_score} - {existingScore.pair2_score}
+                                    <div className="text-sm text-gray-600 mt-1 flex items-center">
+                                      <span>Score: {existingScore.pair1_score} - {existingScore.pair2_score}</span>
                                       {existingScore.pair1_score === existingScore.pair2_score && (
                                         <span className="text-blue-600 ml-2">(Tie)</span>
                                       )}
+                                      <EloImpactDisplay 
+                                        fixtureId={fixture.id}
+                                        playerId={currentUser?.id}
+                                        seasonId={selectedSeason?.id}
+                                        currentUser={currentUser}
+                                        selectedSeason={selectedSeason}
+                                      />
                                     </div>
                                   )}
                                 </div>
@@ -599,8 +607,15 @@ const MatchesTab = ({
                                         {fixture.sitting_player && ` (${fixture.sitting_player.name} sitting)`}
                                       </span>
                                       {existingScore && (
-                                        <div className="text-xs text-gray-600 mt-1">
-                                          Score: {existingScore.pair1_score} - {existingScore.pair2_score}
+                                        <div className="text-xs text-gray-600 mt-1 flex items-center">
+                                          <span>Score: {existingScore.pair1_score} - {existingScore.pair2_score}</span>
+                                          <EloImpactDisplay 
+                                            fixtureId={fixture.id}
+                                            playerId={currentUser?.id}
+                                            seasonId={selectedSeason?.id}
+                                            currentUser={currentUser}
+                                            selectedSeason={selectedSeason}
+                                          />
                                         </div>
                                       )}
                                     </div>

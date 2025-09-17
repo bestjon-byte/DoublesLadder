@@ -114,7 +114,8 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       let eloData = {
         currentRating: null,
         recentChanges: [],
-        rankingPosition: null
+        rankingPosition: null,
+        seasonPlayerId: null
       };
 
       // Get current ELO rating and season_player_id from season_players table
@@ -167,6 +168,9 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
                 null
             }));
           }
+          
+          // Store season player ID for later use in ELO matching
+          eloData.seasonPlayerId = seasonPlayerData.id;
         }
 
         // Get ranking position (count players with higher ELO)
@@ -348,34 +352,31 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
 
       // Add ELO changes to matches if ELO data is available and season is specified
       let matchesWithElo = allMatches;
-      if (seasonId && eloData.currentRating) {
-        // Create a map of ELO changes by fixture ID for quick lookup
+      if (seasonId && eloData.currentRating && eloData.seasonPlayerId) {
+        // Create a map of ELO changes by fixture ID for precise matching
         const eloChangeMap = new Map();
-        eloData.recentChanges.forEach(change => {
-          if (change.matchDate) {
-            eloChangeMap.set(change.matchDate, {
-              change: change.change,
-              oldRating: change.oldRating,
-              newRating: change.newRating
-            });
-          }
-        });
+        
+        // Get ALL ELO history with fixture IDs for this season player
+        const { data: eloHistoryWithFixtures, error: eloHistoryError } = await supabase
+          .from('elo_history')
+          .select('match_fixture_id, old_rating, new_rating, rating_change')
+          .eq('season_player_id', eloData.seasonPlayerId);
 
-        // Add ELO impact to matches
-        matchesWithElo = allMatches.map(match => {
-          // Try to find matching ELO change by date (approximate matching)
-          const matchDate = new Date(match.date).toDateString();
-          let eloImpact = null;
-          
-          // Look for ELO changes that occurred on or around the match date
-          for (const [changeDate, eloChange] of eloChangeMap.entries()) {
-            const changeDay = new Date(changeDate).toDateString();
-            if (changeDay === matchDate) {
-              eloImpact = eloChange;
-              break;
+        if (!eloHistoryError && eloHistoryWithFixtures) {
+          eloHistoryWithFixtures.forEach(change => {
+            if (change.match_fixture_id) {
+              eloChangeMap.set(change.match_fixture_id, {
+                change: change.rating_change,
+                oldRating: change.old_rating,
+                newRating: change.new_rating
+              });
             }
-          }
-          
+          });
+        }
+
+        // Add ELO impact to matches using fixture ID matching
+        matchesWithElo = allMatches.map(match => {
+          const eloImpact = eloChangeMap.get(match.fixtureId) || null;
           return {
             ...match,
             eloImpact
