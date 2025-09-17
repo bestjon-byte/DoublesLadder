@@ -127,24 +127,32 @@ const MatchesTab = ({
       const seasonPlayersFromSeason = currentSeason?.season_players || selectedSeason?.season_players;
       
       if (seasonPlayersFromSeason && seasonPlayersFromSeason.length > 0) {
+        console.log('Raw season players data:', seasonPlayersFromSeason);
         // Season players have structure: {id, player_id, elo_rating, profiles: {name, ...}}
         // We need to merge season player data with user data
         ladderPlayers = seasonPlayersFromSeason.map(seasonPlayer => {
+          console.log('Processing season player:', seasonPlayer);
           // Find the corresponding user data
           const userData = users.find(u => u.id === seasonPlayer.player_id);
+          console.log(`Looking for user with id ${seasonPlayer.player_id}, found:`, userData);
+          
           if (userData) {
-            return {
+            const merged = {
               ...userData, // Include all user fields (name, etc.)
               ...seasonPlayer, // Include season-specific data (elo_rating, rank, etc.)
               id: seasonPlayer.player_id // Use player_id as the main id for availability matching
             };
+            console.log('Merged player data:', merged);
+            return merged;
           }
           // Fallback if user data not found
-          return {
+          const fallback = {
             id: seasonPlayer.player_id,
             name: seasonPlayer.profiles?.name || seasonPlayer.name || 'Unknown',
             ...seasonPlayer
           };
+          console.log('Fallback player data:', fallback);
+          return fallback;
         });
         console.log('Using season players (merged with user data):', ladderPlayers);
       } else {
