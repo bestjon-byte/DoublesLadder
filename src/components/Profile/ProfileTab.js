@@ -721,6 +721,17 @@ const MatchHistory = ({ matches, allUsers }) => {
                       {match.seasonName}
                     </span>
                   )}
+                  {match.eloImpact && (
+                    <span className={`text-xs font-bold px-2 py-1 rounded ${
+                      match.eloImpact.change > 0 
+                        ? 'bg-green-100 text-green-800' 
+                        : match.eloImpact.change < 0 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      ELO {match.eloImpact.change > 0 ? '+' : ''}{match.eloImpact.change}
+                    </span>
+                  )}
                 </div>
                 
                 <div className="flex items-center space-x-4 text-sm">
@@ -759,6 +770,14 @@ const MatchHistory = ({ matches, allUsers }) => {
                 }`}>
                   {match.score}
                 </div>
+                {match.eloImpact && (
+                  <div className={`text-sm font-bold ${
+                    match.eloImpact.change > 0 ? 'text-green-600' :
+                    match.eloImpact.change < 0 ? 'text-red-600' : 'text-gray-600'
+                  }`}>
+                    ELO {match.eloImpact.change > 0 ? '+' : ''}{match.eloImpact.change}
+                  </div>
+                )}
                 {match.courtNumber && (
                   <div className="text-xs text-gray-500">Court {match.courtNumber}</div>
                 )}
@@ -1132,6 +1151,14 @@ const MatchDetailModal = ({ match, allUsers, onClose }) => {
             }`}>
               {match.tie ? 'DRAW' : match.won ? 'WIN' : 'LOSS'}
             </div>
+            {match.eloImpact && (
+              <div className={`mt-2 text-lg font-bold ${
+                match.eloImpact.change > 0 ? 'text-green-600' :
+                match.eloImpact.change < 0 ? 'text-red-600' : 'text-gray-600'
+              }`}>
+                ELO {match.eloImpact.change > 0 ? '+' : ''}{match.eloImpact.change}
+              </div>
+            )}
           </div>
 
           {/* Match Info */}
@@ -1207,6 +1234,13 @@ const MatchDetailModal = ({ match, allUsers, onClose }) => {
               <div>Total games: {match.playerScore + match.opponentScore}</div>
               {match.playerScore + match.opponentScore > 0 && (
                 <div>Your game win rate: {Math.round((match.playerScore / (match.playerScore + match.opponentScore)) * 100)}%</div>
+              )}
+              {match.eloImpact && (
+                <>
+                  <div>ELO before: {match.eloImpact.oldRating}</div>
+                  <div>ELO after: {match.eloImpact.newRating}</div>
+                  <div>ELO change: {match.eloImpact.change > 0 ? '+' : ''}{match.eloImpact.change}</div>
+                </>
               )}
             </div>
           </div>

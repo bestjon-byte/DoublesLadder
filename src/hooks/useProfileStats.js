@@ -346,23 +346,60 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       const allMatches = [...processedMatches, ...processedLeagueMatches]
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
+      // Add ELO changes to matches if ELO data is available and season is specified
+      let matchesWithElo = allMatches;
+      if (seasonId && eloData.currentRating) {
+        // Create a map of ELO changes by fixture ID for quick lookup
+        const eloChangeMap = new Map();
+        eloData.recentChanges.forEach(change => {
+          if (change.matchDate) {
+            eloChangeMap.set(change.matchDate, {
+              change: change.change,
+              oldRating: change.oldRating,
+              newRating: change.newRating
+            });
+          }
+        });
+
+        // Add ELO impact to matches
+        matchesWithElo = allMatches.map(match => {
+          // Try to find matching ELO change by date (approximate matching)
+          const matchDate = new Date(match.date).toDateString();
+          let eloImpact = null;
+          
+          // Look for ELO changes that occurred on or around the match date
+          for (const [changeDate, eloChange] of eloChangeMap.entries()) {
+            const changeDay = new Date(changeDate).toDateString();
+            if (changeDay === matchDate) {
+              eloImpact = eloChange;
+              break;
+            }
+          }
+          
+          return {
+            ...match,
+            eloImpact
+          };
+        });
+      }
+
       // Each fixture represents one complete match (or rubber for league)
       // Calculate overall stats using combined data
-      const totalMatches = allMatches.length; // Each match/rubber is counted
-      const matchesWon = allMatches.filter(match => match.won).length;
-      const matchesDrawn = allMatches.filter(match => match.tie).length;
-      const matchesLost = allMatches.filter(match => !match.won && !match.tie).length;
+      const totalMatches = matchesWithElo.length; // Each match/rubber is counted
+      const matchesWon = matchesWithElo.filter(match => match.won).length;
+      const matchesDrawn = matchesWithElo.filter(match => match.tie).length;
+      const matchesLost = matchesWithElo.filter(match => !match.won && !match.tie).length;
       const decisiveMatches = totalMatches - matchesDrawn;
       const matchWinRate = decisiveMatches > 0 ? matchesWon / decisiveMatches : 0;
       
       // Calculate game-level stats
-      const totalGames = allMatches.reduce((sum, match) => sum + match.playerScore + match.opponentScore, 0);
-      const gamesWon = allMatches.reduce((sum, match) => sum + match.playerScore, 0);
+      const totalGames = matchesWithElo.reduce((sum, match) => sum + match.playerScore + match.opponentScore, 0);
+      const gamesWon = matchesWithElo.reduce((sum, match) => sum + match.playerScore, 0);
       const gameWinRate = totalGames > 0 ? gamesWon / totalGames : 0;
 
       // Calculate best partners based on GAMES across matches (excluding singles)
       const partnerStats = {};
-      allMatches.forEach(match => {
+      matchesWithElo.forEach(match => {
         // Skip singles matches as they don't have partners
         if (match.matchFormat === 'singles' || !match.partnerId) return;
         
@@ -391,7 +428,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
 
       // Calculate nemesis opponent based on GAMES across matches
       const opponentStats = {};
-      allMatches.forEach(match => {
+      matchesWithElo.forEach(match => {
         match.opponentIds.forEach(opponentId => {
           if (opponentId && !opponentStats[opponentId]) {
             // For league matches, use opponentNames array, for ladder matches use userLookup
@@ -438,7 +475,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
 
       // Calculate nemesis pair based on GAMES (only for doubles matches)
       const pairStats = {};
-      allMatches.forEach(match => {
+      matchesWithElo.forEach(match => {
         // Skip singles matches as they only have one opponent
         if (match.matchFormat === 'singles' || !match.opponentIds[1]) return;
         
@@ -481,7 +518,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
         .sort((a, b) => a.winRate - b.winRate)[0]; // Lowest win rate first
 
       // Calculate win streaks (need chronological order, oldest first)
-      const chronologicalMatches = [...allMatches].reverse();
+      const chronologicalMatches = [...matchesWithElo].reverse();
       let currentStreak = 0;
       let currentStreakType = null;
       let longestWinStreak = 0;
@@ -513,7 +550,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       }
 
       // Form guide (last 10 matches)
-      const formGuide = allMatches.slice(0, 10);
+      const formGuide = matchesWithElo.slice(0, 10);
 
       // Head-to-head records (only opponents faced multiple times)
       const headToHeadRecords = Object.values(opponentStats)
@@ -524,7 +561,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       let seasonProgression = [];
       if (allTime) {
         const seasonStats = {};
-        allMatches.forEach(match => {
+        matchesWithElo.forEach(match => {
           if (!seasonStats[match.seasonId]) {
             seasonStats[match.seasonId] = {
               seasonId: match.seasonId,
@@ -552,7 +589,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       }
 
       setStats({
-        matchHistory: allMatches,
+        matchHistory: matchesWithElo,
         overallStats: {
           totalGames,
           gamesWon,

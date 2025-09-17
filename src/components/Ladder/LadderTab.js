@@ -2,11 +2,16 @@
 import React, { useState } from 'react';
 import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo, formatLeagueStats } from '../../utils/helpers';
 import { getEloRankColor } from '../../utils/eloCalculator';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect, supabase, matchFixtures }) => {
   // State for team filter and ELO sorting
   const [teamFilter, setTeamFilter] = useState('all'); // 'all', '1sts', '2nds'
   const [sortBy, setSortBy] = useState('rank'); // 'rank', 'elo'
+  
+  // State for column sorting
+  const [sortColumn, setSortColumn] = useState('rank');
+  const [sortDirection, setSortDirection] = useState('asc'); // 'asc', 'desc'
 
   // NEW: Use unified ranking data for both ladder and league seasons
   const rankingData = getUnifiedRankingData(users, selectedSeason);
@@ -33,6 +38,63 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
     return player.games_played > 0 ? Math.round((player.games_won / player.games_played) * 100 * 10) / 10 : 0;
   };
 
+  // Handle column header click for sorting
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc'); // Default to descending for most metrics
+    }
+  };
+
+  // Sort players based on selected column and direction
+  const sortPlayers = (players) => {
+    return [...players].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortColumn) {
+        case 'rank':
+          aValue = a.rank || 999;
+          bValue = b.rank || 999;
+          break;
+        case 'name':
+          aValue = a.name || '';
+          bValue = b.name || '';
+          break;
+        case 'matches':
+          aValue = (a.matches_won || 0) / Math.max(a.matches_played || 1, 1);
+          bValue = (b.matches_won || 0) / Math.max(b.matches_played || 1, 1);
+          break;
+        case 'games':
+          aValue = (a.games_won || 0) / Math.max(a.games_played || 1, 1);
+          bValue = (b.games_won || 0) / Math.max(b.games_played || 1, 1);
+          break;
+        case 'winPercent':
+          aValue = getWinPercentage(a);
+          bValue = getWinPercentage(b);
+          break;
+        case 'elo':
+          aValue = a.elo_rating || selectedSeason?.elo_initial_rating || 1200;
+          bValue = b.elo_rating || selectedSeason?.elo_initial_rating || 1200;
+          break;
+        default:
+          aValue = a.rank || 999;
+          bValue = b.rank || 999;
+      }
+      
+      // Handle string sorting
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        const result = aValue.localeCompare(bValue);
+        return sortDirection === 'asc' ? result : -result;
+      }
+      
+      // Handle numeric sorting
+      const result = aValue - bValue;
+      return sortDirection === 'asc' ? result : -result;
+    });
+  };
+
   // Calculate team-specific statistics for league seasons
   const getFilteredRankingData = () => {
     let data;
@@ -43,9 +105,14 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
       data = getTeamSpecificStats();
     }
     
-    // Apply ELO sorting if enabled for ladder seasons
-    if (!isLeagueSeason && selectedSeason?.elo_enabled) {
+    // Apply ELO sorting if enabled for ladder seasons (legacy sorting)
+    if (!isLeagueSeason && selectedSeason?.elo_enabled && sortBy === 'elo' && sortColumn === 'rank') {
       data = sortPlayersByElo(data);
+    }
+    
+    // Apply column-based sorting (overrides legacy sorting)
+    if (sortColumn !== 'rank' || sortDirection !== 'asc') {
+      data = sortPlayers(data);
     }
     
     return data;
@@ -140,6 +207,31 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
         ((player.games_won / player.games_played) * 100).toFixed(1) : 
         '0.0'
     }));
+  };
+
+  // Sortable header component
+  const SortableHeader = ({ column, children, className = "" }) => {
+    const isActive = sortColumn === column;
+    const isAscending = isActive && sortDirection === 'asc';
+    
+    return (
+      <th 
+        className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors ${className}`}
+        onClick={() => handleSort(column)}
+      >
+        <div className="flex items-center space-x-1">
+          <span>{children}</span>
+          <div className="flex flex-col">
+            <ChevronUp 
+              className={`w-3 h-3 ${isActive && isAscending ? 'text-blue-600' : 'text-gray-300'}`} 
+            />
+            <ChevronDown 
+              className={`w-3 h-3 -mt-1 ${isActive && !isAscending ? 'text-blue-600' : 'text-gray-300'}`} 
+            />
+          </div>
+        </div>
+      </th>
+    );
   };
 
   return (
@@ -305,15 +397,15 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <SortableHeader column="rank">Rank</SortableHeader>
+                    <SortableHeader column="name">Name</SortableHeader>
+                    <SortableHeader column="matches">
                       {isLeagueSeason ? 'Rubbers' : 'Matches'}
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Games</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win %</th>
+                    </SortableHeader>
+                    <SortableHeader column="games">Games</SortableHeader>
+                    <SortableHeader column="winPercent">Win %</SortableHeader>
                     {!isLeagueSeason && selectedSeason?.elo_enabled && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ELO Rating</th>
+                      <SortableHeader column="elo">ELO Rating</SortableHeader>
                     )}
                   </tr>
                 </thead>
