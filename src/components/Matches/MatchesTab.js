@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 import LeagueMatchCard from './LeagueMatchCard';
 import EnhancedMatchResult from './EnhancedMatchResult';
+import SchedulingOptionsModal from '../Modals/SchedulingOptionsModal';
 
 const MatchesTab = ({ 
   currentUser, 
@@ -24,6 +25,10 @@ const MatchesTab = ({
   const [expandedMatches, setExpandedMatches] = useState({});
   // State for team filter
   const [teamFilter, setTeamFilter] = useState('all'); // 'all', '1sts', '2nds'
+  // State for scheduling options modal
+  const [showSchedulingModal, setShowSchedulingModal] = useState(false);
+  const [pendingMatchId, setPendingMatchId] = useState(null);
+  const [pendingAvailableCount, setPendingAvailableCount] = useState(0);
 
   // Refresh data when component mounts or season changes
   useEffect(() => {
@@ -48,6 +53,15 @@ const MatchesTab = ({
       ...prev,
       [matchId]: !prev[matchId]
     }));
+  };
+
+  // Handle scheduling method selection
+  const handleSchedulingMethodSelect = (schedulingMethod) => {
+    if (pendingMatchId) {
+      generateMatches(pendingMatchId, schedulingMethod);
+      setPendingMatchId(null);
+      setPendingAvailableCount(0);
+    }
   };
 
   // Helper function to determine match status
@@ -515,7 +529,9 @@ const MatchesTab = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            generateMatches(match.id);
+                            setPendingMatchId(match.id);
+                            setPendingAvailableCount(stats.available);
+                            setShowSchedulingModal(true);
                           }}
                           className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors text-sm"
                         >
@@ -683,6 +699,15 @@ const MatchesTab = ({
         </div>
         )
       )}
+
+      {/* Scheduling Options Modal */}
+      <SchedulingOptionsModal 
+        showModal={showSchedulingModal}
+        setShowModal={setShowSchedulingModal}
+        availablePlayersCount={pendingAvailableCount}
+        seasonEloEnabled={selectedSeason?.elo_enabled || false}
+        onConfirm={handleSchedulingMethodSelect}
+      />
     </div>
   );
 };

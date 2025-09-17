@@ -475,7 +475,7 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [selectedSeasonId, fetchSeasons, fetchSelectedSeasonData]);
 
-  const generateMatches = useCallback(async (matchId) => {
+  const generateMatches = useCallback(async (matchId, schedulingMethod = 'winPercent') => {
     // Look in selected season data first, fallback to currentSeason
     const match = state.selectedSeason?.matches?.find(m => m.id === matchId) || 
                   state.currentSeason?.matches?.find(m => m.id === matchId);
@@ -493,9 +493,26 @@ export const useApp = (userId, selectedSeasonId) => {
         a => a.player_id === user.id && a.match_date === match.match_date
       );
       return userAvailability?.is_available === true;
-    }).sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    });
 
-    const numPlayers = availablePlayers.length;
+    // Sort players based on chosen scheduling method
+    let sortedPlayers;
+    if (schedulingMethod === 'elo') {
+      // Sort by ELO rating (highest first)
+      const currentSeason = state.selectedSeason || state.currentSeason;
+      const initialRating = currentSeason?.elo_initial_rating || 1200;
+      
+      sortedPlayers = availablePlayers.sort((a, b) => {
+        const aRating = a.elo_rating || initialRating;
+        const bRating = b.elo_rating || initialRating;
+        return bRating - aRating; // Highest ELO first
+      });
+    } else {
+      // Sort by win percentage rank (lowest rank number = highest win%)
+      sortedPlayers = availablePlayers.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+    }
+
+    const numPlayers = sortedPlayers.length;
     
     if (numPlayers < 4) {
       alert(`Need at least 4 players. Found ${numPlayers}.`);
@@ -538,23 +555,23 @@ export const useApp = (userId, selectedSeasonId) => {
 
     if (numPlayers % 4 === 0) {
       for (let i = 0; i < numPlayers; i += 4) {
-        courts.push(availablePlayers.slice(i, i + 4));
+        courts.push(sortedPlayers.slice(i, i + 4));
       }
     } else if (numPlayers === 5) {
-      courts.push(availablePlayers);
+      courts.push(sortedPlayers);
     } else if (numPlayers === 9) {
-      courts.push(availablePlayers.slice(0, 4));
-      courts.push(availablePlayers.slice(4, 9));
+      courts.push(sortedPlayers.slice(0, 4));
+      courts.push(sortedPlayers.slice(4, 9));
     } else if (numPlayers === 10) {
-      courts.push(availablePlayers.slice(0, 5));
-      courts.push(availablePlayers.slice(5, 10));
+      courts.push(sortedPlayers.slice(0, 5));
+      courts.push(sortedPlayers.slice(5, 10));
     } else {
       const groups = Math.floor(numPlayers / 4);
       for (let i = 0; i < groups; i++) {
-        courts.push(availablePlayers.slice(i * 4, (i + 1) * 4));
+        courts.push(sortedPlayers.slice(i * 4, (i + 1) * 4));
       }
       if (numPlayers % 4 > 0) {
-        courts.push(availablePlayers.slice(groups * 4));
+        courts.push(sortedPlayers.slice(groups * 4));
       }
     }
 
