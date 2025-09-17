@@ -87,7 +87,11 @@ export const useSeasonManager = () => {
           status: 'active',
           // NEW: League expansion fields
           season_type: seasonData.season_type || 'ladder',
-          league_info: seasonData.league_info || {}
+          league_info: seasonData.league_info || {},
+          // NEW: ELO rating system fields
+          elo_enabled: seasonData.elo_enabled || false,
+          elo_k_factor: seasonData.elo_k_factor || 32,
+          elo_initial_rating: seasonData.elo_initial_rating || 1200
         })
         .select()
         .single();
@@ -113,7 +117,9 @@ export const useSeasonManager = () => {
             matches_won: 0,
             games_played: 0,
             games_won: 0,
-            previous_rank: null
+            previous_rank: null,
+            // NEW: Set ELO rating based on new season settings
+            elo_rating: newSeason.elo_enabled ? (player.elo_rating || newSeason.elo_initial_rating) : null
           }));
 
           const { error: insertError } = await supabase

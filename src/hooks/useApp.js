@@ -318,13 +318,21 @@ export const useApp = (userId, selectedSeasonId) => {
         return { success: false };
       }
 
+      // Get season info to check if ELO is enabled
+      const { data: season } = await supabase
+        .from('seasons')
+        .select('elo_enabled, elo_initial_rating')
+        .eq('id', selectedSeasonId)
+        .single();
+
       // Add player to season
       const { error } = await supabase
         .from('season_players')
         .insert({
           season_id: selectedSeasonId,
           player_id: userIdToAdd,
-          rank: parseInt(rank) || null
+          rank: parseInt(rank) || null,
+          elo_rating: season?.elo_enabled ? (season.elo_initial_rating || 1200) : null
         });
 
       if (error) throw error;
