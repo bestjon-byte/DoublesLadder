@@ -116,10 +116,27 @@ const MatchesTab = ({
       console.log('Generating preview for match:', match);
       console.log('Available users:', users);
       console.log('Availability data:', availability);
+      console.log('Current season:', currentSeason);
+      console.log('Selected season:', selectedSeason);
 
       // Get ladder players (mirror logic from useApp.js)
-      const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
-      console.log('Ladder players:', ladderPlayers);
+      // First try to get season players from the current/selected season, then fallback to filtering users
+      let ladderPlayers = [];
+      
+      // Check if we have season players data in the current/selected season
+      const seasonPlayersFromSeason = currentSeason?.season_players || selectedSeason?.season_players;
+      
+      if (seasonPlayersFromSeason && seasonPlayersFromSeason.length > 0) {
+        // Use season players if available (this includes ELO ratings and ladder positions)
+        ladderPlayers = seasonPlayersFromSeason;
+        console.log('Using season players:', ladderPlayers);
+      } else {
+        // Fallback to filtering users by in_ladder flag
+        ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
+        console.log('Using filtered users as ladder players:', ladderPlayers);
+      }
+      
+      console.log('Final ladder players:', ladderPlayers);
       
       // Filter available players for this match
       const availablePlayers = ladderPlayers.filter(user => {
