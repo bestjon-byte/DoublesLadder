@@ -29,6 +29,9 @@ const MatchesTab = ({
   const [showSchedulingModal, setShowSchedulingModal] = useState(false);
   const [pendingMatchId, setPendingMatchId] = useState(null);
   const [pendingAvailableCount, setPendingAvailableCount] = useState(0);
+  const [winPercentPreview, setWinPercentPreview] = useState([]);
+  const [eloPreview, setEloPreview] = useState([]);
+  const [isLoadingPreviews, setIsLoadingPreviews] = useState(false);
 
   // Refresh data when component mounts or season changes
   useEffect(() => {
@@ -61,6 +64,99 @@ const MatchesTab = ({
       generateMatches(pendingMatchId, schedulingMethod);
       setPendingMatchId(null);
       setPendingAvailableCount(0);
+      setWinPercentPreview([]);
+      setEloPreview([]);
+    }
+  };
+
+  // Generate court groupings for preview (mirrors useApp.js logic)
+  const generateCourtPreview = (sortedPlayers) => {
+    const numPlayers = sortedPlayers.length;
+    const courts = [];
+
+    if (numPlayers % 4 === 0) {
+      for (let i = 0; i < numPlayers; i += 4) {
+        courts.push(sortedPlayers.slice(i, i + 4));
+      }
+    } else if (numPlayers === 5) {
+      courts.push(sortedPlayers);
+    } else if (numPlayers === 9) {
+      courts.push(sortedPlayers.slice(0, 4));
+      courts.push(sortedPlayers.slice(4, 9));
+    } else if (numPlayers === 10) {
+      courts.push(sortedPlayers.slice(0, 5));
+      courts.push(sortedPlayers.slice(5, 10));
+    } else {
+      const groups = Math.floor(numPlayers / 4);
+      for (let i = 0; i < groups; i++) {
+        courts.push(sortedPlayers.slice(i * 4, (i + 1) * 4));
+      }
+      if (numPlayers % 4 > 0) {
+        courts.push(sortedPlayers.slice(groups * 4));
+      }
+    }
+
+    return courts;
+  };
+
+  // Generate previews for both scheduling methods
+  const generatePreviews = async (matchId) => {
+    setIsLoadingPreviews(true);
+    
+    try {
+      // Find the match
+      const match = currentSeason?.matches?.find(m => m.id === matchId) || 
+                    selectedSeason?.matches?.find(m => m.id === matchId);
+      
+      if (!match) {
+        console.error('Match not found for preview');
+        return;
+      }
+
+      // Get ladder players (mirror logic from useApp.js)
+      const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
+      
+      // Filter available players for this match
+      const availablePlayers = ladderPlayers.filter(user => {
+        const userAvailability = availability.find(
+          a => a.player_id === user.id && a.match_date === match.match_date
+        );
+        return userAvailability?.is_available === true;
+      });
+
+      // Generate Win% preview (sorted by rank)
+      const winPercentSorted = availablePlayers
+        .sort((a, b) => (a.rank || 999) - (b.rank || 999))
+        .map(player => ({
+          ...player,
+          win_percentage: Math.round((player.games_won || 0) / Math.max(player.games_played || 1, 1) * 100)
+        }));
+      
+      const winPercentCourts = generateCourtPreview(winPercentSorted);
+      setWinPercentPreview(winPercentCourts);
+
+      // Generate ELO preview (sorted by ELO rating)
+      const initialRating = selectedSeason?.elo_initial_rating || 1200;
+      const eloSorted = availablePlayers
+        .sort((a, b) => {
+          const aRating = a.elo_rating || initialRating;
+          const bRating = b.elo_rating || initialRating;
+          return bRating - aRating; // Highest ELO first
+        })
+        .map(player => ({
+          ...player,
+          initialRating
+        }));
+      
+      const eloCourts = generateCourtPreview(eloSorted);
+      setEloPreview(eloCourts);
+
+    } catch (error) {
+      console.error('Error generating previews:', error);
+      setWinPercentPreview([]);
+      setEloPreview([]);
+    } finally {
+      setIsLoadingPreviews(false);
     }
   };
 
@@ -532,6 +628,7 @@ const MatchesTab = ({
                             setPendingMatchId(match.id);
                             setPendingAvailableCount(stats.available);
                             setShowSchedulingModal(true);
+                            generatePreviews(match.id);
                           }}
                           className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors text-sm"
                         >
@@ -707,6 +804,9 @@ const MatchesTab = ({
         availablePlayersCount={pendingAvailableCount}
         seasonEloEnabled={selectedSeason?.elo_enabled || false}
         onConfirm={handleSchedulingMethodSelect}
+        winPercentPreview={winPercentPreview}
+        eloPreview={eloPreview}
+        isLoadingPreviews={isLoadingPreviews}
       />
     </div>
   );
