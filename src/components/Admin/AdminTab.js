@@ -11,6 +11,7 @@ import DeleteUserModal from '../Modals/DeleteUserModal';
 import LeagueImportModal from './LeagueImportModal';
 import SinglesImportModal from './SinglesImportModal';
 import AddExternalPlayerModal from './AddExternalPlayerModal';
+import EloSeedingModal from './EloSeedingModal';
 
 const AdminTab = ({ 
   users, 
@@ -45,6 +46,9 @@ const AdminTab = ({
   const [newSeasonName, setNewSeasonName] = useState('');
   const [newSeasonStartDate, setNewSeasonStartDate] = useState('');
   const [newSeasonType, setNewSeasonType] = useState('ladder');
+  const [newSeasonEloEnabled, setNewSeasonEloEnabled] = useState(false);
+  const [newSeasonKFactor, setNewSeasonKFactor] = useState(32);
+  const [newSeasonInitialRating, setNewSeasonInitialRating] = useState(1200);
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [showUserRoleModal, setShowUserRoleModal] = useState(false);
   const [showAddToLadderModal, setShowAddToLadderModal] = useState(false);
@@ -53,6 +57,7 @@ const AdminTab = ({
   const [showLeagueImporter, setShowLeagueImporter] = useState(false);
   const [showSinglesImporter, setShowSinglesImporter] = useState(false);
   const [showAddExternalPlayer, setShowAddExternalPlayer] = useState(false);
+  const [showEloSeeding, setShowEloSeeding] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -73,7 +78,10 @@ const AdminTab = ({
       name: newSeasonName.trim(),
       start_date: newSeasonStartDate,
       season_type: newSeasonType,
-      carryOverPlayers: false // Start with empty ladder/league
+      carryOverPlayers: false, // Start with empty ladder/league
+      elo_enabled: newSeasonEloEnabled && newSeasonType === 'ladder',
+      elo_k_factor: newSeasonKFactor,
+      elo_initial_rating: newSeasonInitialRating
     });
     
     if (result.success) {
@@ -81,6 +89,9 @@ const AdminTab = ({
       setNewSeasonName('');
       setNewSeasonStartDate('');
       setNewSeasonType('ladder');
+      setNewSeasonEloEnabled(false);
+      setNewSeasonKFactor(32);
+      setNewSeasonInitialRating(1200);
       alert(`New ${newSeasonType} season "${newSeasonName}" created successfully!`);
     }
     setLoading(false);
@@ -247,6 +258,27 @@ const AdminTab = ({
               Add Players
             </button>
           </div>
+
+          {/* ELO Rating Management - Only show for active ladder seasons with ELO enabled */}
+          {activeSeason?.season_type === 'ladder' && activeSeason?.elo_enabled && (
+            <div className="border border-yellow-200 rounded-lg p-4 hover:bg-yellow-50 transition-colors">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="bg-yellow-100 p-2 rounded-full">
+                  <Check className="w-5 h-5 text-yellow-600" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900">ELO Ratings</h4>
+                  <p className="text-xs text-gray-500">Seed and manage ELO ratings</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEloSeeding(true)}
+                className="w-full bg-yellow-600 text-white px-3 py-2 rounded-md hover:bg-yellow-700 transition-colors text-sm"
+              >
+                Manage ELO Ratings
+              </button>
+            </div>
+          )}
 
           {/* Add External Player */}
           <div className="border border-purple-200 rounded-lg p-4 hover:bg-purple-50 transition-colors">
@@ -585,11 +617,71 @@ const AdminTab = ({
                   />
                 </div>
 
+                {/* ELO Rating Configuration - Only for Ladder Seasons */}
                 {newSeasonType === 'ladder' && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                    <p className="text-sm text-blue-700">
-                      <strong>Ladder Season:</strong> For internal club competitions with ranking system
-                    </p>
+                  <div className="border-t pt-4 space-y-4">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                      <h4 className="text-sm font-medium text-yellow-800 mb-2">ELO Rating System</h4>
+                      <p className="text-sm text-yellow-700">
+                        Enable ELO ratings for skill-based rankings instead of simple win percentage
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        id="eloEnabled"
+                        checked={newSeasonEloEnabled}
+                        onChange={(e) => setNewSeasonEloEnabled(e.target.checked)}
+                        className="w-4 h-4 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500"
+                      />
+                      <label htmlFor="eloEnabled" className="text-sm font-medium text-gray-700">
+                        Enable ELO rating system for this season
+                      </label>
+                    </div>
+                    
+                    {newSeasonEloEnabled && (
+                      <div className="grid grid-cols-2 gap-4 pl-7">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            K-Factor
+                          </label>
+                          <select
+                            value={newSeasonKFactor}
+                            onChange={(e) => setNewSeasonKFactor(parseInt(e.target.value))}
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                          >
+                            <option value={16}>16 (Stable)</option>
+                            <option value={32}>32 (Standard)</option>
+                            <option value={48}>48 (Volatile)</option>
+                          </select>
+                          <p className="text-xs text-gray-500 mt-1">Higher = more rating change per match</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Initial Rating
+                          </label>
+                          <input
+                            type="number"
+                            min="800"
+                            max="1600"
+                            step="50"
+                            value={newSeasonInitialRating}
+                            onChange={(e) => setNewSeasonInitialRating(parseInt(e.target.value) || 1200)}
+                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Starting rating for new players</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {!newSeasonEloEnabled && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                        <p className="text-sm text-blue-700">
+                          <strong>Ladder Season:</strong> For internal club competitions with ranking system
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -625,6 +717,9 @@ const AdminTab = ({
                     setNewSeasonName('');
                     setNewSeasonStartDate('');
                     setNewSeasonType('ladder');
+                    setNewSeasonEloEnabled(false);
+                    setNewSeasonKFactor(32);
+                    setNewSeasonInitialRating(1200);
                   }}
                   disabled={loading}
                   className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 disabled:opacity-50 transition-colors"
@@ -660,6 +755,18 @@ const AdminTab = ({
         onClose={() => setShowAddExternalPlayer(false)}
         supabase={supabase}
         onPlayerAdded={(player) => {
+          // Refresh users list if callback is available
+          if (fetchUsers) fetchUsers();
+        }}
+      />
+
+      {/* ELO Seeding Modal */}
+      <EloSeedingModal 
+        isOpen={showEloSeeding}
+        onClose={() => setShowEloSeeding(false)}
+        season={activeSeason}
+        onSuccess={(message) => {
+          alert(message);
           // Refresh users list if callback is available
           if (fetchUsers) fetchUsers();
         }}

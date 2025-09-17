@@ -1,10 +1,12 @@
 // src/components/Ladder/LadderTab.js - RENAMED to support League expansion
 import React, { useState } from 'react';
 import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo, formatLeagueStats } from '../../utils/helpers';
+import { getEloRankLabel, getEloRankColor } from '../../utils/eloCalculator';
 
 const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect, supabase, matchFixtures }) => {
-  // State for team filter
+  // State for team filter and ELO sorting
   const [teamFilter, setTeamFilter] = useState('all'); // 'all', '1sts', '2nds'
+  const [sortBy, setSortBy] = useState('rank'); // 'rank', 'elo'
 
   // NEW: Use unified ranking data for both ladder and league seasons
   const rankingData = getUnifiedRankingData(users, selectedSeason);
@@ -33,12 +35,36 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
 
   // Calculate team-specific statistics for league seasons
   const getFilteredRankingData = () => {
+    let data;
     if (!isLeagueSeason || teamFilter === 'all') {
-      return rankingData;
+      data = rankingData;
+    } else {
+      // For team filtering, we need to recalculate stats based only on matches played for that team
+      data = getTeamSpecificStats();
     }
+    
+    // Apply ELO sorting if enabled for ladder seasons
+    if (!isLeagueSeason && selectedSeason?.elo_enabled) {
+      data = sortPlayersByElo(data);
+    }
+    
+    return data;
+  };
 
-    // For team filtering, we need to recalculate stats based only on matches played for that team
-    return getTeamSpecificStats();
+  // Sort players by ELO rating if ELO is enabled and sort mode is set to ELO
+  const sortPlayersByElo = (players) => {
+    if (!selectedSeason?.elo_enabled || sortBy !== 'elo') {
+      return players;
+    }
+    
+    return [...players].sort((a, b) => {
+      const aRating = a.elo_rating || selectedSeason.elo_initial_rating || 1200;
+      const bRating = b.elo_rating || selectedSeason.elo_initial_rating || 1200;
+      return bRating - aRating;
+    }).map((player, index) => ({
+      ...player,
+      rank: index + 1
+    }));
   };
 
   // Calculate statistics for players based only on matches played for the selected team
@@ -156,6 +182,21 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
             </div>
           )}
           
+          {/* ELO Sort Toggle for Ladder Seasons */}
+          {!isLeagueSeason && selectedSeason?.elo_enabled && (
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Sort by:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="rank">Win %</option>
+                <option value="elo">ELO Rating</option>
+              </select>
+            </div>
+          )}
+          
           {/* Admin Controls */}
           {currentUser?.role === 'admin' && !isSeasonCompleted && (
             <button 
@@ -223,7 +264,7 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className={`grid gap-4 text-center ${!isLeagueSeason && selectedSeason?.elo_enabled ? 'grid-cols-4' : 'grid-cols-3'}`}>
                     <div className="bg-gray-50 rounded-lg p-2">
                       <div className="text-xs text-gray-500 uppercase font-medium">
                         {isLeagueSeason ? 'Rubbers' : 'Matches'}
@@ -244,6 +285,17 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                         {winPercentage}%
                       </div>
                     </div>
+                    {!isLeagueSeason && selectedSeason?.elo_enabled && (
+                      <div className="bg-gray-50 rounded-lg p-2">
+                        <div className="text-xs text-gray-500 uppercase font-medium">ELO</div>
+                        <div className={`text-sm font-semibold ${getEloRankColor(player.elo_rating || selectedSeason.elo_initial_rating || 1200)}`}>
+                          {player.elo_rating || selectedSeason.elo_initial_rating || 1200}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {getEloRankLabel(player.elo_rating || selectedSeason.elo_initial_rating || 1200)}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -263,6 +315,9 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Games</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Win %</th>
+                    {!isLeagueSeason && selectedSeason?.elo_enabled && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ELO Rating</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -305,6 +360,18 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                             {winPercentage}%
                           </span>
                         </td>
+                        {!isLeagueSeason && selectedSeason?.elo_enabled && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <div className="flex flex-col">
+                              <span className={`font-medium ${getEloRankColor(player.elo_rating || selectedSeason.elo_initial_rating || 1200)}`}>
+                                {player.elo_rating || selectedSeason.elo_initial_rating || 1200}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {getEloRankLabel(player.elo_rating || selectedSeason.elo_initial_rating || 1200)}
+                              </span>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

@@ -1,5 +1,6 @@
 // src/utils/scoreSubmission.js
 import { supabase } from '../supabaseClient';
+import { updateMatchElos } from './eloCalculator';
 
 export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pair2Score, currentUserId) => {
   try {
@@ -104,7 +105,19 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
       throw new Error(`Error inserting result: ${insertError.message}`);
     }
 
-    // Score submitted successfully
+    // Score submitted successfully - now update ELO ratings
+    try {
+      const eloResult = await updateMatchElos(fixtureId, {
+        pair1_score: parseInt(pair1Score),
+        pair2_score: parseInt(pair2Score)
+      });
+      
+      console.log('✅ ELO update result:', eloResult);
+    } catch (eloError) {
+      console.warn('⚠️ ELO update failed (non-critical):', eloError);
+      // Don't fail the score submission if ELO update fails
+    }
+
     return {
       success: true,
       result: newResult
