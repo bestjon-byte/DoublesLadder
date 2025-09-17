@@ -323,7 +323,7 @@ const MatchesTab = ({
                             const canEnterScore = canUserEnterScores(fixture);
                             
                             return (
-                              <div key={fixture.id} className="space-y-3">
+                              <div key={fixture.id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                                 {/* Enhanced Match Result Display */}
                                 {existingScore ? (
                                   <EnhancedMatchResult 
@@ -335,35 +335,39 @@ const MatchesTab = ({
                                   />
                                 ) : (
                                   /* Placeholder for matches without scores */
-                                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
-                                    <div className="font-medium text-gray-900">
-                                      {fixture.player1?.name} vs {fixture.player2?.name}
+                                  <div className="p-4">
+                                    <div className="flex justify-between items-center">
+                                      <div className="font-medium text-gray-900">
+                                        {fixture.player1?.name} vs {fixture.player2?.name}
+                                      </div>
+                                      <div className="text-sm text-gray-500">No score yet</div>
                                     </div>
-                                    <div className="text-sm text-gray-500">No score yet</div>
                                   </div>
                                 )}
                                 
-                                {/* Score Entry/View Button */}
+                                {/* Integrated Challenge Button */}
                                 {canEnterScore && !isSeasonCompleted && (
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      haptics.click();
-                                      openScoreModal({
-                                        fixtureId: fixture.id,
-                                        pair1: [fixture.player1?.name],
-                                        pair2: [fixture.player2?.name]
-                                      });
-                                    }}
-                                    className={`text-sm px-4 py-3 rounded transition-colors min-h-[44px] ${
-                                      existingScore 
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                                        : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
-                                    }`}
-                                    style={{ touchAction: 'manipulation' }}
-                                  >
-                                    {existingScore ? 'View/Challenge' : 'Enter Score'}
-                                  </button>
+                                  <div className="border-t border-gray-100">
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        haptics.click();
+                                        openScoreModal({
+                                          fixtureId: fixture.id,
+                                          pair1: [fixture.player1?.name],
+                                          pair2: [fixture.player2?.name]
+                                        });
+                                      }}
+                                      className={`text-sm px-6 py-3 transition-colors min-h-[44px] w-full font-medium border-0 rounded-none rounded-b-xl ${
+                                        existingScore 
+                                          ? 'bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700' 
+                                          : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818] focus:bg-[#4A1818]'
+                                      }`}
+                                      style={{ touchAction: 'manipulation' }}
+                                    >
+                                      {existingScore ? 'Challenge Score' : 'Enter Score'}
+                                    </button>
+                                  </div>
                                 )}
 
                                 {/* Score Status for non-players */}
@@ -598,7 +602,7 @@ const MatchesTab = ({
                                 const pair2Names = [fixture.player3?.name, fixture.player4?.name].filter(Boolean);
                                 
                                 return (
-                                  <div key={fixture.id} className="space-y-3">
+                                  <div key={fixture.id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                                     {/* Enhanced Match Result Display */}
                                     {existingScore ? (
                                       <EnhancedMatchResult 
@@ -610,38 +614,42 @@ const MatchesTab = ({
                                       />
                                     ) : (
                                       /* Placeholder for matches without scores */
-                                      <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                        <div className="flex-1">
-                                          <span className="text-sm">
-                                            {pair1Names.join(' & ')} vs {pair2Names.join(' & ')}
-                                            {fixture.sitting_player && ` (${fixture.sitting_player.name} sitting)`}
-                                          </span>
+                                      <div className="p-4">
+                                        <div className="flex justify-between items-center">
+                                          <div className="flex-1">
+                                            <span className="text-sm font-medium text-gray-900">
+                                              {pair1Names.join(' & ')} vs {pair2Names.join(' & ')}
+                                              {fixture.sitting_player && ` (${fixture.sitting_player.name} sitting)`}
+                                            </span>
+                                          </div>
+                                          <div className="text-sm text-gray-500">No score yet</div>
                                         </div>
-                                        <div className="text-sm text-gray-500">No score yet</div>
                                       </div>
                                     )}
                                     
-                                    {/* Score Entry/View Button */}
+                                    {/* Integrated Challenge Button */}
                                     {canEnterScore && matchStatus !== 'future-no-fixtures' && (
-                                      <button 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          haptics.click(); // Haptic feedback for score action
-                                          openScoreModal({
-                                            fixtureId: fixture.id,
-                                            pair1: pair1Names,
-                                            pair2: pair2Names
-                                          });
-                                        }}
-                                        className={`text-sm px-4 py-3 rounded transition-colors min-h-[44px] ${
-                                          existingScore 
-                                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                                            : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818]'
-                                        }`}
-                                        style={{ touchAction: 'manipulation' }}
-                                      >
-                                        {existingScore ? 'View/Challenge' : 'Enter Score'}
-                                      </button>
+                                      <div className="border-t border-gray-100">
+                                        <button 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            haptics.click(); // Haptic feedback for score action
+                                            openScoreModal({
+                                              fixtureId: fixture.id,
+                                              pair1: pair1Names,
+                                              pair2: pair2Names
+                                            });
+                                          }}
+                                          className={`text-sm px-6 py-3 transition-colors min-h-[44px] w-full font-medium border-0 rounded-none rounded-b-xl ${
+                                            existingScore 
+                                              ? 'bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700' 
+                                              : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818] focus:bg-[#4A1818]'
+                                          }`}
+                                          style={{ touchAction: 'manipulation' }}
+                                        >
+                                          {existingScore ? 'Challenge Score' : 'Enter Score'}
+                                        </button>
+                                      </div>
                                     )}
 
                                     {/* Score Status for non-players */}

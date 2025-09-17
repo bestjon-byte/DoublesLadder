@@ -44,53 +44,59 @@ const EnhancedMatchResult = ({
   const pair1Won = score.pair1_score > score.pair2_score;
   const pair2Won = score.pair2_score > score.pair1_score;
 
-  // ELO Impact Component
-  const EloImpactBadge = ({ playerId, playerName, isCurrentUser }) => {
-    const impact = eloImpacts[playerId];
-    if (!impact || !selectedSeason?.elo_enabled) return null;
+  // Team ELO Impact Component - shows one ELO change per team
+  const TeamEloImpactBadge = ({ players, isWinningTeam }) => {
+    if (!selectedSeason?.elo_enabled || players.length === 0) return null;
+    
+    // Get the first player's ELO impact (since team-based, they're all the same)
+    const firstPlayerImpact = eloImpacts[players[0]?.id];
+    if (!firstPlayerImpact) return null;
 
-    const isPositive = impact.change > 0;
-    const isNegative = impact.change < 0;
+    const isPositive = firstPlayerImpact.change > 0;
+    const isNegative = firstPlayerImpact.change < 0;
+    
+    // Check if current user is in this team
+    const hasCurrentUser = players.some(player => player.id === currentUser?.id);
     
     return (
-      <div className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-bold transition-all duration-200 ${
-        isCurrentUser 
+      <div className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-bold transition-all duration-200 ${
+        hasCurrentUser 
           ? isPositive 
-            ? 'bg-green-500 text-white shadow-lg ring-2 ring-green-300' 
+            ? 'bg-green-600 text-white shadow-lg ring-2 ring-green-300' 
             : isNegative 
-              ? 'bg-red-500 text-white shadow-lg ring-2 ring-red-300'
-              : 'bg-gray-500 text-white shadow-lg ring-2 ring-gray-300'
+              ? 'bg-red-600 text-white shadow-lg ring-2 ring-red-300'
+              : 'bg-gray-600 text-white shadow-lg ring-2 ring-gray-300'
           : isPositive 
-            ? 'bg-green-100 text-green-800' 
+            ? 'bg-green-200 text-green-900' 
             : isNegative 
-              ? 'bg-red-100 text-red-800'
-              : 'bg-gray-100 text-gray-800'
+              ? 'bg-red-200 text-red-900'
+              : 'bg-gray-200 text-gray-900'
       }`}>
-        {isPositive && <TrendingUp className="w-3 h-3 mr-1" />}
-        {isNegative && <TrendingDown className="w-3 h-3 mr-1" />}
-        {!isPositive && !isNegative && <Minus className="w-3 h-3 mr-1" />}
-        {isPositive ? '+' : ''}{impact.change}
+        {isPositive && <TrendingUp className="w-4 h-4 mr-1" />}
+        {isNegative && <TrendingDown className="w-4 h-4 mr-1" />}
+        {!isPositive && !isNegative && <Minus className="w-4 h-4 mr-1" />}
+        ELO {isPositive ? '+' : ''}{firstPlayerImpact.change}
       </div>
     );
   };
 
   // Player Team Component
   const PlayerTeam = ({ players, score, won, lost }) => (
-    <div className={`flex-1 p-4 rounded-xl border-2 transition-all duration-300 ${
+    <div className={`flex-1 p-3 sm:p-4 rounded-xl border-2 transition-all duration-300 min-w-0 ${
       won ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-300 shadow-lg' :
       lost ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-300 shadow-md' :
       'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300 shadow-md'
     }`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 space-y-2 sm:space-y-0">
+        <div className="flex items-center space-x-2 min-w-0">
           {isSingles ? (
-            <div className="text-sm font-semibold text-gray-900">
+            <div className="text-sm font-semibold text-gray-900 truncate">
               {players[0]?.name}
             </div>
           ) : (
-            <div className="flex items-center space-x-1">
-              <Users className="w-4 h-4 text-gray-600" />
-              <div className="text-sm font-semibold text-gray-900">
+            <div className="flex items-center space-x-1 min-w-0">
+              <Users className="w-4 h-4 text-gray-600 flex-shrink-0" />
+              <div className="text-sm font-semibold text-gray-900 truncate">
                 {players.map(p => p.name).join(' & ')}
               </div>
             </div>
@@ -98,7 +104,7 @@ const EnhancedMatchResult = ({
         </div>
         
         {/* Score Display */}
-        <div className={`text-2xl font-bold px-3 py-1 rounded-lg ${
+        <div className={`text-xl sm:text-2xl font-bold px-2 sm:px-3 py-1 rounded-lg self-start sm:self-auto ${
           won ? 'bg-green-600 text-white' :
           lost ? 'bg-red-600 text-white' :
           'bg-gray-600 text-white'
@@ -107,34 +113,23 @@ const EnhancedMatchResult = ({
         </div>
       </div>
 
-      {/* ELO Impacts */}
+      {/* Team ELO Impact */}
       {selectedSeason?.elo_enabled && !loading && (
-        <div className="space-y-2">
-          {players.map(player => {
-            const isCurrentUser = player.id === currentUser?.id;
-            return (
-              <div key={player.id} className="flex items-center justify-between">
-                <span className={`text-xs ${isCurrentUser ? 'font-bold text-blue-600' : 'text-gray-600'}`}>
-                  {player.name} {isCurrentUser && '(You)'}
-                </span>
-                <EloImpactBadge 
-                  playerId={player.id} 
-                  playerName={player.name}
-                  isCurrentUser={isCurrentUser}
-                />
-              </div>
-            );
-          })}
+        <div className="flex justify-center">
+          <TeamEloImpactBadge 
+            players={players}
+            isWinningTeam={won}
+          />
         </div>
       )}
     </div>
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 hover:shadow-xl transition-all duration-300">
+    <div className="p-3 sm:p-4 w-full overflow-hidden">
       {/* Match Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+        <div className="flex items-center space-x-2 flex-wrap">
           <div className={`px-3 py-1 rounded-full text-xs font-bold ${
             isDraw ? 'bg-gray-500 text-white' :
             'bg-blue-500 text-white'
@@ -150,7 +145,7 @@ const EnhancedMatchResult = ({
         </div>
         
         {/* Overall Result */}
-        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+        <div className={`px-3 py-1 rounded-full text-xs font-bold self-start sm:self-auto ${
           isDraw ? 'bg-gray-600 text-white' : 'bg-green-600 text-white'
         }`}>
           {isDraw ? 'DRAW' : 'COMPLETED'}
@@ -158,7 +153,7 @@ const EnhancedMatchResult = ({
       </div>
 
       {/* Match Results */}
-      <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row items-stretch space-y-3 sm:space-y-0 sm:space-x-3 lg:space-x-4">
         <PlayerTeam 
           players={pair1Players}
           score={score.pair1_score}
@@ -167,9 +162,9 @@ const EnhancedMatchResult = ({
         />
         
         {/* VS Divider */}
-        <div className="flex flex-col items-center">
-          <div className="text-xs font-medium text-gray-500 mb-1">VS</div>
-          <div className="w-8 h-px bg-gradient-to-r from-gray-300 via-gray-400 to-gray-300"></div>
+        <div className="flex sm:flex-col items-center justify-center sm:justify-center">
+          <div className="text-xs font-medium text-gray-500 sm:mb-1">VS</div>
+          <div className="w-8 h-px sm:w-px sm:h-8 bg-gradient-to-r sm:bg-gradient-to-b from-gray-300 via-gray-400 to-gray-300 mx-2 sm:mx-0"></div>
         </div>
         
         <PlayerTeam 
