@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Flag, Check, X, Edit, AlertTriangle, Clock } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { fetchScoreChallenges, fetchScoreConflicts } from '../../utils/scoreSubmission';
+import { updateMatchElos } from '../../utils/eloCalculator';
 
 const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, selectedSeason, onDataRefresh }) => {
   const [challenges, setChallenges] = useState([]);
@@ -177,6 +178,24 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       // Challenge status updated successfully
       alert(`Challenge ${decision} successfully!`);
       
+      // Update ELO ratings if score was corrected and ELO is enabled
+      if (decision === 'approved' && newScore) {
+        const challenge = challenges.find(c => c.id === challengeId);
+        if (challenge?.fixture_id) {
+          try {
+            console.log('🎯 Updating ELO ratings after score correction...');
+            const eloResult = await updateMatchElos(challenge.fixture_id, newScore);
+            if (eloResult.success) {
+              console.log('✅ ELO ratings updated successfully');
+            } else {
+              console.warn('⚠️ ELO update failed (non-critical):', eloResult.error);
+            }
+          } catch (eloError) {
+            console.warn('⚠️ ELO update failed (non-critical):', eloError);
+          }
+        }
+      }
+      
       // Refresh all data
       await fetchAllData();
       if (onDataRefresh) onDataRefresh();
@@ -214,6 +233,10 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
         return;
       }
 
+      // Get the fixture_id for ELO updates
+      const result = allResults.find(r => r.id === resultId);
+      const fixtureId = result?.fixture_id;
+
       const { error } = await supabase
         .from('match_results')
         .update({
@@ -228,6 +251,26 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       } else {
         // Score updated successfully in database
         alert('Score updated successfully!');
+        
+        // Update ELO ratings if fixture ID is available and ELO is enabled
+        if (fixtureId) {
+          try {
+            console.log('🎯 Updating ELO ratings after score edit...');
+            const newScore = {
+              pair1_score: parseInt(editForm.pair1_score),
+              pair2_score: parseInt(editForm.pair2_score)
+            };
+            const eloResult = await updateMatchElos(fixtureId, newScore);
+            if (eloResult.success) {
+              console.log('✅ ELO ratings updated successfully');
+            } else {
+              console.warn('⚠️ ELO update failed (non-critical):', eloResult.error);
+            }
+          } catch (eloError) {
+            console.warn('⚠️ ELO update failed (non-critical):', eloError);
+          }
+        }
+        
         setEditingScore(null);
         setEditForm({ pair1_score: '', pair2_score: '' });
         await fetchAllData();

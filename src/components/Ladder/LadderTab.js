@@ -1,7 +1,7 @@
 // src/components/Ladder/LadderTab.js - RENAMED to support League expansion
 import React, { useState } from 'react';
 import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo, formatLeagueStats } from '../../utils/helpers';
-import { getEloRankLabel, getEloRankColor } from '../../utils/eloCalculator';
+import { getEloRankColor } from '../../utils/eloCalculator';
 
 const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect, supabase, matchFixtures }) => {
   // State for team filter and ELO sorting
@@ -291,9 +291,6 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                         <div className={`text-sm font-semibold ${getEloRankColor(player.elo_rating || selectedSeason.elo_initial_rating || 1200)}`}>
                           {player.elo_rating || selectedSeason.elo_initial_rating || 1200}
                         </div>
-                        <div className="text-xs text-gray-400">
-                          {getEloRankLabel(player.elo_rating || selectedSeason.elo_initial_rating || 1200)}
-                        </div>
                       </div>
                     )}
                   </div>
@@ -362,14 +359,9 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                         </td>
                         {!isLeagueSeason && selectedSeason?.elo_enabled && (
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <div className="flex flex-col">
-                              <span className={`font-medium ${getEloRankColor(player.elo_rating || selectedSeason.elo_initial_rating || 1200)}`}>
-                                {player.elo_rating || selectedSeason.elo_initial_rating || 1200}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {getEloRankLabel(player.elo_rating || selectedSeason.elo_initial_rating || 1200)}
-                              </span>
-                            </div>
+                            <span className={`font-medium ${getEloRankColor(player.elo_rating || selectedSeason.elo_initial_rating || 1200)}`}>
+                              {player.elo_rating || selectedSeason.elo_initial_rating || 1200}
+                            </span>
                           </td>
                         )}
                       </tr>
