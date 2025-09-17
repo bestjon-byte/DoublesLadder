@@ -16,6 +16,15 @@ const SchedulingOptionsModal = ({
   
   if (!showModal) return null;
 
+  // Debug logging
+  console.log('SchedulingOptionsModal props:', {
+    winPercentPreview,
+    eloPreview,
+    isLoadingPreviews,
+    availablePlayersCount,
+    seasonEloEnabled
+  });
+
   const handleOptionSelect = (option) => {
     onConfirm(option);
     setShowModal(false);

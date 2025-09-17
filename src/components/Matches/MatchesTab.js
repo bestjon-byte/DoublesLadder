@@ -113,16 +113,31 @@ const MatchesTab = ({
         return;
       }
 
+      console.log('Generating preview for match:', match);
+      console.log('Available users:', users);
+      console.log('Availability data:', availability);
+
       // Get ladder players (mirror logic from useApp.js)
       const ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
+      console.log('Ladder players:', ladderPlayers);
       
       // Filter available players for this match
       const availablePlayers = ladderPlayers.filter(user => {
         const userAvailability = availability.find(
           a => a.player_id === user.id && a.match_date === match.match_date
         );
+        console.log(`User ${user.name} availability:`, userAvailability);
         return userAvailability?.is_available === true;
       });
+
+      console.log('Available players for this match:', availablePlayers);
+
+      if (availablePlayers.length === 0) {
+        console.warn('No available players found for preview');
+        setWinPercentPreview([]);
+        setEloPreview([]);
+        return;
+      }
 
       // Generate Win% preview (sorted by rank)
       const winPercentSorted = availablePlayers
@@ -132,7 +147,9 @@ const MatchesTab = ({
           win_percentage: Math.round((player.games_won || 0) / Math.max(player.games_played || 1, 1) * 100)
         }));
       
+      console.log('Win% sorted players:', winPercentSorted);
       const winPercentCourts = generateCourtPreview(winPercentSorted);
+      console.log('Win% courts:', winPercentCourts);
       setWinPercentPreview(winPercentCourts);
 
       // Generate ELO preview (sorted by ELO rating)
@@ -148,7 +165,9 @@ const MatchesTab = ({
           initialRating
         }));
       
+      console.log('ELO sorted players:', eloSorted);
       const eloCourts = generateCourtPreview(eloSorted);
+      console.log('ELO courts:', eloCourts);
       setEloPreview(eloCourts);
 
     } catch (error) {
