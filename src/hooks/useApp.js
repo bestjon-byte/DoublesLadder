@@ -117,6 +117,7 @@ export const useApp = (userId, selectedSeasonId) => {
         games_played: sp.games_played,
         games_won: sp.games_won,
         previous_rank: sp.previous_rank,
+        elo_rating: sp.elo_rating, // NEW: Include ELO rating
         in_ladder: true, // All season players are in ladder
         season_player_id: sp.id
       })) || [];
