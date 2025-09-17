@@ -51,6 +51,7 @@ const ProfileTab = ({
     formGuide = [],
     headToHeadRecords = [],
     seasonProgression = [],
+    eloData = { currentRating: null, recentChanges: [], rankingPosition: null },
     loading = true,
     error = null
   } = profileStats || {};
@@ -158,6 +159,32 @@ const ProfileTab = ({
 
       {/* Enhanced Overview Stats Cards - Mobile First 2x3 Layout */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {/* ELO Rating Cards (show only if ELO data is available) */}
+        {eloData.currentRating && (
+          <>
+            <StatsCard
+              icon={<Award className="w-6 h-6 text-purple-600" />}
+              title="ELO Rating"
+              value={Math.round(eloData.currentRating)}
+              subtitle={eloData.rankingPosition ? `#${eloData.rankingPosition} in season` : 'current rating'}
+              color="purple"
+              onClick={() => setSelectedStatDetail('eloRating')}
+              detailType="eloRating"
+            />
+            <StatsCard
+              icon={<TrendingUp className="w-6 h-6 text-indigo-600" />}
+              title="Recent ELO Change"
+              value={eloData.recentChanges.length > 0 ? 
+                (eloData.recentChanges[0].change > 0 ? `+${eloData.recentChanges[0].change}` : eloData.recentChanges[0].change) : 
+                '0'}
+              subtitle={eloData.recentChanges.length > 0 ? 'last match' : 'no recent matches'}
+              color={eloData.recentChanges.length > 0 && eloData.recentChanges[0].change > 0 ? 'green' : 
+                     eloData.recentChanges.length > 0 && eloData.recentChanges[0].change < 0 ? 'red' : 'gray'}
+              onClick={() => setSelectedStatDetail('eloHistory')}
+              detailType="eloHistory"
+            />
+          </>
+        )}
         {/* Match Performance Group */}
         <StatsCard
           icon={<Trophy className="w-6 h-6 text-yellow-600" />}
@@ -226,6 +253,7 @@ const ProfileTab = ({
           stats={overallStats}
           winStreaks={winStreaks}
           matchHistory={matchHistory}
+          eloData={eloData}
           allUsers={allUsers}
           onClose={() => setSelectedStatDetail(null)}
         />
@@ -326,6 +354,7 @@ const StatsCard = ({ icon, title, value, subtitle, color, onClick, detailType })
     blue: 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:from-blue-100 hover:to-blue-200',
     teal: 'bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200 hover:from-teal-100 hover:to-teal-200',
     purple: 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:from-purple-100 hover:to-purple-200',
+    indigo: 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 hover:from-indigo-100 hover:to-indigo-200',
     orange: 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200',
     red: 'bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:from-red-100 hover:to-red-200',
     gray: 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:from-gray-100 hover:to-gray-200'
@@ -337,6 +366,7 @@ const StatsCard = ({ icon, title, value, subtitle, color, onClick, detailType })
     blue: 'bg-blue-100',
     teal: 'bg-teal-100',
     purple: 'bg-purple-100',
+    indigo: 'bg-indigo-100',
     orange: 'bg-orange-100',
     red: 'bg-red-100',
     gray: 'bg-gray-100'
@@ -849,7 +879,7 @@ const HeadToHeadSection = ({ records, allUsers }) => {
 };
 
 // Stats Detail Modal Component
-const StatsDetailModal = ({ type, stats, winStreaks, matchHistory, allUsers, onClose }) => {
+const StatsDetailModal = ({ type, stats, winStreaks, matchHistory, eloData, allUsers, onClose }) => {
   const getModalContent = () => {
     switch (type) {
       case 'matches':
@@ -962,6 +992,86 @@ const StatsDetailModal = ({ type, stats, winStreaks, matchHistory, allUsers, onC
                 </div>
               </div>
             )}
+          </div>
+        );
+
+      case 'eloRating':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">ELO Rating Details</h3>
+            <div className="text-center p-8 rounded-lg bg-purple-50 border border-purple-200">
+              <div className="text-6xl font-bold text-purple-600 mb-2">
+                {Math.round(eloData.currentRating || 0)}
+              </div>
+              <div className="text-lg text-purple-700">Current ELO Rating</div>
+              {eloData.rankingPosition && (
+                <div className="text-sm text-purple-600 mt-2">
+                  #{eloData.rankingPosition} in season
+                </div>
+              )}
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="text-sm font-medium text-blue-900 mb-2">About ELO Rating</div>
+              <div className="text-xs text-blue-700">
+                ELO is a skill-based rating system that adjusts based on match results and opponent strength. 
+                Higher ratings indicate stronger players. The system accounts for the skill level of your opponents 
+                when calculating rating changes.
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'eloHistory':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Recent ELO Changes</h3>
+            {eloData.recentChanges.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No recent ELO changes available
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {eloData.recentChanges.map((change, index) => (
+                  <div key={change.id} className={`border rounded-lg p-3 ${
+                    change.change > 0 ? 'border-green-200 bg-green-50' :
+                    change.change < 0 ? 'border-red-200 bg-red-50' :
+                    'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-lg font-bold ${
+                            change.change > 0 ? 'text-green-600' :
+                            change.change < 0 ? 'text-red-600' :
+                            'text-gray-600'
+                          }`}>
+                            {change.change > 0 ? '+' : ''}{change.change}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            {change.oldRating} → {change.newRating}
+                          </span>
+                        </div>
+                        {change.score && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            Match result: {change.score}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500">
+                          {new Date(change.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="text-sm font-medium text-blue-900 mb-2">ELO Change History</div>
+              <div className="text-xs text-blue-700">
+                Showing your last {eloData.recentChanges.length} ELO rating changes. 
+                Positive changes indicate rating gains, negative changes indicate rating losses.
+              </div>
+            </div>
           </div>
         );
 

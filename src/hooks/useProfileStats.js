@@ -13,6 +13,11 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
     formGuide: [],
     headToHeadRecords: [],
     seasonProgression: [],
+    eloData: {
+      currentRating: null,
+      recentChanges: [],
+      rankingPosition: null
+    },
     loading: true,
     error: null
   });
@@ -104,6 +109,79 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
         .or(`cawood_player1_id.eq.${playerId},cawood_player2_id.eq.${playerId}`);
 
       if (leagueError) throw leagueError;
+
+      // Fetch ELO data for the player
+      let eloData = {
+        currentRating: null,
+        recentChanges: [],
+        rankingPosition: null
+      };
+
+      // Get current ELO rating from season_players table
+      if (seasonId) {
+        const { data: seasonPlayerData, error: seasonPlayerError } = await supabase
+          .from('season_players')
+          .select('elo_rating')
+          .eq('player_id', playerId)
+          .eq('season_id', seasonId)
+          .single();
+
+        if (!seasonPlayerError && seasonPlayerData) {
+          eloData.currentRating = seasonPlayerData.elo_rating;
+        }
+
+        // Get recent ELO changes from elo_history table (last 10 entries)
+        const { data: eloHistoryData, error: eloHistoryError } = await supabase
+          .from('elo_history')
+          .select(`
+            id,
+            old_rating,
+            new_rating,
+            rating_change,
+            match_fixture_id,
+            created_at,
+            match_fixtures:match_fixture_id (
+              id,
+              match_results (
+                pair1_score,
+                pair2_score
+              ),
+              matches:match_id (
+                match_date
+              )
+            )
+          `)
+          .eq('player_id', playerId)
+          .eq('season_id', seasonId)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (!eloHistoryError && eloHistoryData) {
+          eloData.recentChanges = eloHistoryData.map(entry => ({
+            id: entry.id,
+            oldRating: entry.old_rating,
+            newRating: entry.new_rating,
+            change: entry.rating_change,
+            date: entry.created_at,
+            matchDate: entry.match_fixtures?.matches?.match_date,
+            score: entry.match_fixtures?.match_results?.[0] ? 
+              `${entry.match_fixtures.match_results[0].pair1_score}-${entry.match_fixtures.match_results[0].pair2_score}` : 
+              null
+          }));
+        }
+
+        // Get ranking position (count players with higher ELO)
+        const { data: rankingData, error: rankingError } = await supabase
+          .from('season_players')
+          .select('elo_rating')
+          .eq('season_id', seasonId)
+          .not('elo_rating', 'is', null)
+          .gt('elo_rating', eloData.currentRating || 0);
+
+        if (!rankingError && rankingData) {
+          eloData.rankingPosition = rankingData.length + 1;
+        }
+      }
 
       // Create a lookup map for user names from passed allUsers
       const userLookup = allUsers.reduce((acc, user) => {
@@ -497,6 +575,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
         formGuide,
         headToHeadRecords,
         seasonProgression,
+        eloData,
         loading: false,
         error: null
       });
