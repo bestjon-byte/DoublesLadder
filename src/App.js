@@ -338,6 +338,8 @@ const CawoodTennisApp = () => {
               // NEW: Match management props for ladder matches
               setShowScheduleModal={setShowScheduleModal}
               addMatchToSeason={handleAddMatch}
+              // NEW: Refetch functions for data refresh
+              refetch={refetch}
             />
           )}
         </main>

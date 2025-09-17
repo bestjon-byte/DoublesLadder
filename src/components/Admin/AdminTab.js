@@ -39,7 +39,9 @@ const AdminTab = ({
   supabase,
   // NEW: Match management functions
   setShowScheduleModal,
-  addMatchToSeason
+  addMatchToSeason,
+  // NEW: Refetch functions for data refresh
+  refetch
 }) => {
   const [loading, setLoading] = useState(false);
   const [showCreateSeason, setShowCreateSeason] = useState(false);
@@ -767,7 +769,9 @@ const AdminTab = ({
         season={activeSeason}
         onSuccess={(message) => {
           alert(message);
-          // Refresh users list if callback is available
+          // Refresh season players data to update ELO ratings in ladder
+          if (refetch?.seasonPlayers) refetch.seasonPlayers();
+          // Also refresh users list if callback is available
           if (fetchUsers) fetchUsers();
         }}
       />
