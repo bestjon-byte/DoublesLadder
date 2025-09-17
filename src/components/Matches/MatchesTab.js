@@ -127,9 +127,26 @@ const MatchesTab = ({
       const seasonPlayersFromSeason = currentSeason?.season_players || selectedSeason?.season_players;
       
       if (seasonPlayersFromSeason && seasonPlayersFromSeason.length > 0) {
-        // Use season players if available (this includes ELO ratings and ladder positions)
-        ladderPlayers = seasonPlayersFromSeason;
-        console.log('Using season players:', ladderPlayers);
+        // Season players have structure: {id, player_id, elo_rating, profiles: {name, ...}}
+        // We need to merge season player data with user data
+        ladderPlayers = seasonPlayersFromSeason.map(seasonPlayer => {
+          // Find the corresponding user data
+          const userData = users.find(u => u.id === seasonPlayer.player_id);
+          if (userData) {
+            return {
+              ...userData, // Include all user fields (name, etc.)
+              ...seasonPlayer, // Include season-specific data (elo_rating, rank, etc.)
+              id: seasonPlayer.player_id // Use player_id as the main id for availability matching
+            };
+          }
+          // Fallback if user data not found
+          return {
+            id: seasonPlayer.player_id,
+            name: seasonPlayer.profiles?.name || seasonPlayer.name || 'Unknown',
+            ...seasonPlayer
+          };
+        });
+        console.log('Using season players (merged with user data):', ladderPlayers);
       } else {
         // Fallback to filtering users by in_ladder flag
         ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
@@ -143,7 +160,7 @@ const MatchesTab = ({
         const userAvailability = availability.find(
           a => a.player_id === user.id && a.match_date === match.match_date
         );
-        console.log(`User ${user.name} availability:`, userAvailability);
+        console.log(`User ${user.name || user.id} availability:`, userAvailability);
         return userAvailability?.is_available === true;
       });
 
