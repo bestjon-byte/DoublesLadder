@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 import LeagueMatchCard from './LeagueMatchCard';
-import EloImpactDisplay from './EloImpactDisplay';
+import EnhancedMatchResult from './EnhancedMatchResult';
 
 const MatchesTab = ({ 
   currentUser, 
@@ -323,27 +323,25 @@ const MatchesTab = ({
                             const canEnterScore = canUserEnterScores(fixture);
                             
                             return (
-                              <div key={fixture.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
-                                <div className="flex-1">
-                                  <div className="font-medium text-gray-900">
-                                    {fixture.player1?.name} vs {fixture.player2?.name}
-                                  </div>
-                                  {existingScore && (
-                                    <div className="text-sm text-gray-600 mt-1 flex items-center">
-                                      <span>Score: {existingScore.pair1_score} - {existingScore.pair2_score}</span>
-                                      {existingScore.pair1_score === existingScore.pair2_score && (
-                                        <span className="text-blue-600 ml-2">(Tie)</span>
-                                      )}
-                                      <EloImpactDisplay 
-                                        fixtureId={fixture.id}
-                                        playerId={currentUser?.id}
-                                        seasonId={selectedSeason?.id}
-                                        currentUser={currentUser}
-                                        selectedSeason={selectedSeason}
-                                      />
+                              <div key={fixture.id} className="space-y-3">
+                                {/* Enhanced Match Result Display */}
+                                {existingScore ? (
+                                  <EnhancedMatchResult 
+                                    fixture={fixture}
+                                    score={existingScore}
+                                    selectedSeason={selectedSeason}
+                                    currentUser={currentUser}
+                                    users={users}
+                                  />
+                                ) : (
+                                  /* Placeholder for matches without scores */
+                                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
+                                    <div className="font-medium text-gray-900">
+                                      {fixture.player1?.name} vs {fixture.player2?.name}
                                     </div>
-                                  )}
-                                </div>
+                                    <div className="text-sm text-gray-500">No score yet</div>
+                                  </div>
+                                )}
                                 
                                 {/* Score Entry/View Button */}
                                 {canEnterScore && !isSeasonCompleted && (
@@ -600,25 +598,28 @@ const MatchesTab = ({
                                 const pair2Names = [fixture.player3?.name, fixture.player4?.name].filter(Boolean);
                                 
                                 return (
-                                  <div key={fixture.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                    <div className="flex-1">
-                                      <span className="text-sm">
-                                        {pair1Names.join(' & ')} vs {pair2Names.join(' & ')}
-                                        {fixture.sitting_player && ` (${fixture.sitting_player.name} sitting)`}
-                                      </span>
-                                      {existingScore && (
-                                        <div className="text-xs text-gray-600 mt-1 flex items-center">
-                                          <span>Score: {existingScore.pair1_score} - {existingScore.pair2_score}</span>
-                                          <EloImpactDisplay 
-                                            fixtureId={fixture.id}
-                                            playerId={currentUser?.id}
-                                            seasonId={selectedSeason?.id}
-                                            currentUser={currentUser}
-                                            selectedSeason={selectedSeason}
-                                          />
+                                  <div key={fixture.id} className="space-y-3">
+                                    {/* Enhanced Match Result Display */}
+                                    {existingScore ? (
+                                      <EnhancedMatchResult 
+                                        fixture={fixture}
+                                        score={existingScore}
+                                        selectedSeason={selectedSeason}
+                                        currentUser={currentUser}
+                                        users={users}
+                                      />
+                                    ) : (
+                                      /* Placeholder for matches without scores */
+                                      <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                        <div className="flex-1">
+                                          <span className="text-sm">
+                                            {pair1Names.join(' & ')} vs {pair2Names.join(' & ')}
+                                            {fixture.sitting_player && ` (${fixture.sitting_player.name} sitting)`}
+                                          </span>
                                         </div>
-                                      )}
-                                    </div>
+                                        <div className="text-sm text-gray-500">No score yet</div>
+                                      </div>
+                                    )}
                                     
                                     {/* Score Entry/View Button */}
                                     {canEnterScore && matchStatus !== 'future-no-fixtures' && (
