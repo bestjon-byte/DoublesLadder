@@ -261,7 +261,7 @@ const CawoodTennisApp = () => {
               matchFixtures={matchFixtures}
               matchResults={matchResults}
               availability={availability}
-              users={allUsers} // CHANGED: Use allUsers for match generation
+              users={ladderPlayers} // CHANGED: Use ladderPlayers for match generation (season-specific players)
               generateMatches={actions?.generateMatches || (() => alert('Generate matches not available'))}
               openScoreModal={openScoreModal}
               getAvailabilityStats={helpers?.getAvailabilityStats || (() => ({ total: 0, available: 0, responded: 0, pending: 0 }))}

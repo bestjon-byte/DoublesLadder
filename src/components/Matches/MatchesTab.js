@@ -1,6 +1,6 @@
 // src/components/Matches/MatchesTab.js - FIXED for today's dates
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 import LeagueMatchCard from './LeagueMatchCard';
 import EnhancedMatchResult from './EnhancedMatchResult';
@@ -114,54 +114,11 @@ const MatchesTab = ({
       }
 
       console.log('Generating preview for match:', match);
-      console.log('Available users:', users);
-      console.log('Availability data:', availability);
-      console.log('Current season:', currentSeason);
-      console.log('Selected season:', selectedSeason);
 
-      // Get ladder players (mirror logic from useApp.js)
-      // First try to get season players from the current/selected season, then fallback to filtering users
-      let ladderPlayers = [];
-      
-      // Check if we have season players data in the current/selected season
-      const seasonPlayersFromSeason = currentSeason?.season_players || selectedSeason?.season_players;
-      
-      if (seasonPlayersFromSeason && seasonPlayersFromSeason.length > 0) {
-        console.log('Raw season players data:', seasonPlayersFromSeason);
-        // Season players have structure: {id, player_id, elo_rating, profiles: {name, ...}}
-        // We need to merge season player data with user data
-        ladderPlayers = seasonPlayersFromSeason.map(seasonPlayer => {
-          console.log('Processing season player:', seasonPlayer);
-          // Find the corresponding user data
-          const userData = users.find(u => u.id === seasonPlayer.player_id);
-          console.log(`Looking for user with id ${seasonPlayer.player_id}, found:`, userData);
-          
-          if (userData) {
-            const merged = {
-              ...userData, // Include all user fields (name, etc.)
-              ...seasonPlayer, // Include season-specific data (elo_rating, rank, etc.)
-              id: seasonPlayer.player_id // Use player_id as the main id for availability matching
-            };
-            console.log('Merged player data:', merged);
-            return merged;
-          }
-          // Fallback if user data not found
-          const fallback = {
-            id: seasonPlayer.player_id,
-            name: seasonPlayer.profiles?.name || seasonPlayer.name || 'Unknown',
-            ...seasonPlayer
-          };
-          console.log('Fallback player data:', fallback);
-          return fallback;
-        });
-        console.log('Using season players (merged with user data):', ladderPlayers);
-      } else {
-        // Fallback to filtering users by in_ladder flag
-        ladderPlayers = users.filter(u => u.in_ladder && u.status === 'approved');
-        console.log('Using filtered users as ladder players:', ladderPlayers);
-      }
-      
-      console.log('Final ladder players:', ladderPlayers);
+      // Use the users prop directly - it now contains the correct season players from ladderPlayers
+      // The users prop is now passed as ladderPlayers from App.js, so we don't need complex lookup logic
+      const ladderPlayers = users || [];
+      console.log('Using ladder players from props:', ladderPlayers.length, 'players');
       
       // Filter available players for this match
       const availablePlayers = ladderPlayers.filter(user => {
