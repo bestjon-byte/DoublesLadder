@@ -1,5 +1,5 @@
 # Tennis Ladder App - Project Context
-*Auto-updated by Claude Code startup hook on 2025-09-18 07:20:10*
+*Auto-updated by Claude Code startup hook on 2025-09-18 17:42:25*
 
 ## Project Overview
 - **Name**: Tennis Ladder App
@@ -22,7 +22,7 @@
 - **Project Reference**: hwpjrkmplydqaxiikupv
 - **Anonymous Key**: eyJhbGciOiJIUzI1NiIs... (truncated for security)
 - **Database Schema Files**: 
-  - 
+  - /Users/jonbest/Documents/GitHub/DoublesLadder.Old/elo_management_functions.sql
 
 ## Key Database Tables
 - **profiles**: User profiles linked to Supabase auth

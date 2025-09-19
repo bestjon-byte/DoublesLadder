@@ -1190,11 +1190,38 @@ export const useApp = (userId, selectedSeasonId) => {
 
   const deleteSeason = useCallback(async (seasonId, seasonName) => {
     try {
-      // Deleting season and all related data
+      console.log(`Deleting season ${seasonName} with ELO restoration...`);
       
-      // Delete all data related to this specific season in proper order (respecting foreign key constraints)
+      // ===== PHASE 1: GET SEASON DATA FOR ELO RESTORATION =====
       
-      // 1. Delete match results for this season's matches
+      // Get all season players to potentially restore their ELO ratings
+      const { data: seasonPlayers, error: seasonPlayersQueryError } = await supabase
+        .from('season_players')
+        .select('id, player_id, elo_rating')
+        .eq('season_id', seasonId);
+        
+      if (seasonPlayersQueryError) throw seasonPlayersQueryError;
+      
+      console.log(`Found ${seasonPlayers?.length || 0} season players to process for ELO restoration`);
+      
+      // ===== PHASE 2: DELETE ELO HISTORY FIRST =====
+      
+      if (seasonPlayers && seasonPlayers.length > 0) {
+        const seasonPlayerIds = seasonPlayers.map(sp => sp.id);
+        
+        // Delete ELO history for this season
+        console.log('Deleting ELO history records...');
+        const { error: eloHistoryError } = await supabase
+          .from('elo_history')
+          .delete()
+          .in('season_player_id', seasonPlayerIds);
+          
+        if (eloHistoryError) throw eloHistoryError;
+      }
+      
+      // ===== PHASE 3: DELETE MATCH RELATED DATA =====
+      
+      // Get all matches for this season
       const { data: seasonMatches } = await supabase
         .from('matches')
         .select('id, match_date')
@@ -1212,24 +1239,24 @@ export const useApp = (userId, selectedSeasonId) => {
         if (fixtures && fixtures.length > 0) {
           const fixtureIds = fixtures.map(f => f.id);
           
-          // First, delete score challenges for these fixtures
-          // Deleting score challenges for season fixtures
+          // Delete score challenges
+          console.log('Deleting score challenges...');
           const { error: challengesError } = await supabase
             .from('score_challenges')
             .delete()
             .in('fixture_id', fixtureIds);
           if (challengesError) throw challengesError;
           
-          // Delete score conflicts for these fixtures
-          // Deleting score conflicts for season fixtures  
+          // Delete score conflicts
+          console.log('Deleting score conflicts...');
           const { error: conflictsError } = await supabase
             .from('score_conflicts')
             .delete()
             .in('fixture_id', fixtureIds);
           if (conflictsError) throw conflictsError;
           
-          // Now we can safely delete match results
-          // Deleting match results for season fixtures
+          // Delete match results
+          console.log('Deleting match results...');
           const { error: resultsError } = await supabase
             .from('match_results')
             .delete()
@@ -1238,7 +1265,7 @@ export const useApp = (userId, selectedSeasonId) => {
         }
         
         // Delete match fixtures
-        // Deleting fixtures for season matches
+        console.log('Deleting match fixtures...');
         const { error: fixturesError } = await supabase
           .from('match_fixtures')
           .delete()
@@ -1246,9 +1273,9 @@ export const useApp = (userId, selectedSeasonId) => {
         if (fixturesError) throw fixturesError;
         
         // Delete availability records for these match dates
-        // First get the match dates for this season
         const matchDates = seasonMatches.map(m => m.match_date);
         if (matchDates.length > 0) {
+          console.log('Deleting availability records...');
           const { error: availabilityError } = await supabase
             .from('availability')
             .delete()
@@ -1257,7 +1284,7 @@ export const useApp = (userId, selectedSeasonId) => {
         }
         
         // Delete matches
-        // Deleting season matches
+        console.log('Deleting matches...');
         const { error: matchesError } = await supabase
           .from('matches')
           .delete()
@@ -1265,27 +1292,63 @@ export const useApp = (userId, selectedSeasonId) => {
         if (matchesError) throw matchesError;
       }
       
-      // 2. Delete season players
-      // Deleting season players
+      // ===== PHASE 4: ELO RESTORATION LOGIC =====
+      
+      if (seasonPlayers && seasonPlayers.length > 0) {
+        console.log('Starting ELO restoration process...');
+        
+        for (const seasonPlayer of seasonPlayers) {
+          const { player_id } = seasonPlayer;
+          
+          // Use the database function to restore ELO for this player
+          const { data: restoredRating, error: restoreError } = await supabase
+            .rpc('restore_player_elo_after_deletion', {
+              player_uuid: player_id,
+              deleted_season_uuid: seasonId
+            });
+            
+          if (restoreError) {
+            console.warn(`Error restoring ELO for player ${player_id}:`, restoreError);
+          } else if (restoredRating !== null) {
+            console.log(`✅ Player ${player_id}: ELO restored to ${restoredRating} in all active seasons`);
+          } else {
+            console.log(`ℹ️ Player ${player_id}: No previous ELO history found to restore`);
+          }
+        }
+      }
+      
+      // ===== PHASE 5: DELETE SEASON PLAYERS AND SEASON =====
+      
+      // Delete season players
+      console.log('Deleting season players...');
       const { error: seasonPlayersError } = await supabase
         .from('season_players')
         .delete()
         .eq('season_id', seasonId);
       if (seasonPlayersError) throw seasonPlayersError;
       
-      // 3. Finally delete the season itself
-      // Deleting season record
+      // Delete trophy cabinet entries
+      console.log('Deleting trophy cabinet entries...');
+      const { error: trophyError } = await supabase
+        .from('trophy_cabinet')
+        .delete()
+        .eq('season_id', seasonId);
+      if (trophyError) throw trophyError;
+      
+      // Finally, delete the season itself
+      console.log('Deleting season...');
       const { error: seasonError } = await supabase
         .from('seasons')
         .delete()
         .eq('id', seasonId);
       if (seasonError) throw seasonError;
       
-      // Refresh all data
-      // Refreshing data after season deletion
+      console.log(`✅ Successfully deleted season "${seasonName}" with ELO restoration`);
+      
+      // Refresh data
       await Promise.all([
-        fetchUsers(),
         fetchSeasons(),
+        fetchUsers(),
         fetchAvailability(),
         fetchMatchFixtures(),
         fetchMatchResults()
@@ -1295,12 +1358,10 @@ export const useApp = (userId, selectedSeasonId) => {
       window.dispatchEvent(new CustomEvent('refreshSeasonData'));
       window.dispatchEvent(new CustomEvent('refreshMatchData'));
       
-      // Season deleted successfully
-      
       return { success: true };
+      
     } catch (error) {
-      console.error('Error deleting season:', error);
-      // More detailed error information
+      console.error('Error deleting season with ELO restoration:', error);
       const detailedError = {
         message: error.message,
         details: error.details || error.hint || 'No additional details',
@@ -1310,7 +1371,7 @@ export const useApp = (userId, selectedSeasonId) => {
       console.error('Detailed error:', detailedError);
       return { success: false, error: detailedError };
     }
-  }, [fetchUsers, fetchSeasons, fetchAvailability, fetchMatchFixtures, fetchMatchResults]);
+  }, [supabase, fetchSeasons, fetchUsers, fetchAvailability, fetchMatchFixtures, fetchMatchResults]);
 
   const deleteUser = useCallback(async (userId, userName, userEmail) => {
     try {
