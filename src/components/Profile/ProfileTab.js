@@ -159,8 +159,8 @@ const ProfileTab = ({
 
       {/* Enhanced Overview Stats Cards - Mobile First 2x2 Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-        {/* Combined ELO Rating Card (show for current season, or all-time if any ELO data exists) */}
-        {(eloData.currentRating || (filterType === 'all-time' && (eloData.currentRating || eloData.recentChanges.length > 0))) && (
+        {/* Combined ELO Rating Card (show when any ELO data exists) */}
+        {(eloData.currentRating || eloData.recentChanges.length > 0) && (
           <CombinedEloCard
             eloData={eloData}
             onClick={() => setSelectedStatDetail('combinedElo')}
@@ -321,27 +321,121 @@ const CombinedEloCard = ({ eloData, onClick }) => {
         </div>
       </div>
       
-      {/* Mini ELO progression chart */}
+      {/* Mini ELO progression line chart */}
       {chartData.length > 1 && (
         <div className="mb-3">
-          <div className="h-8 flex items-end space-x-1">
-            {chartData.map((change, index) => {
-              const maxRating = Math.max(...chartData.map(c => c.newRating));
-              const minRating = Math.min(...chartData.map(c => c.newRating));
-              const range = maxRating - minRating || 1;
-              const height = ((change.newRating - minRating) / range) * 100;
+          <div className="h-12 relative">
+            {/* Chart container */}
+            <svg className="w-full h-full" viewBox="0 0 100 40">
+              {/* Background grid lines */}
+              <defs>
+                <pattern id="grid" width="20" height="10" patternUnits="userSpaceOnUse">
+                  <path d="M 20 0 L 0 0 0 10" fill="none" stroke="#e5e7eb" strokeWidth="0.5"/>
+                </pattern>
+              </defs>
+              <rect width="100" height="40" fill="url(#grid)" />
               
-              return (
+              {/* ELO line */}
+              {(() => {
+                const maxRating = Math.max(...chartData.map(c => c.newRating));
+                const minRating = Math.min(...chartData.map(c => c.newRating));
+                const range = Math.max(maxRating - minRating, 10); // Ensure minimum range
+                const points = chartData.map((change, index) => {
+                  const x = (index / (chartData.length - 1)) * 100;
+                  const y = 40 - ((change.newRating - minRating) / range) * 35 - 2.5; // 2.5 padding
+                  return `${x},${y}`;
+                }).join(' ');
+                
+                return (
+                  <g>
+                    {/* Line path */}
+                    <polyline
+                      fill="none"
+                      stroke="#7c3aed"
+                      strokeWidth="1.5"
+                      points={points}
+                    />
+                    
+                    {/* Data points */}
+                    {chartData.map((change, index) => {
+                      const x = (index / (chartData.length - 1)) * 100;
+                      const y = 40 - ((change.newRating - minRating) / range) * 35 - 2.5;
+                      const isPositive = change.change > 0;
+                      const isNegative = change.change < 0;
+                      
+                      return (
+                        <g key={index}>
+                          {/* Point circle */}
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r="1.5"
+                            fill={isPositive ? '#10b981' : isNegative ? '#ef4444' : '#6b7280'}
+                            stroke="white"
+                            strokeWidth="0.5"
+                          />
+                          
+                          {/* Change indicator */}
+                          {change.change !== 0 && (
+                            <g>
+                              {/* Arrow or indicator */}
+                              {isPositive ? (
+                                <polygon
+                                  points={`${x-1},${y-3} ${x+1},${y-3} ${x},${y-5}`}
+                                  fill="#10b981"
+                                  opacity="0.8"
+                                />
+                              ) : (
+                                <polygon
+                                  points={`${x-1},${y+3} ${x+1},${y+3} ${x},${y+5}`}
+                                  fill="#ef4444"
+                                  opacity="0.8"
+                                />
+                              )}
+                            </g>
+                          )}
+                        </g>
+                      );
+                    })}
+                  </g>
+                );
+              })()}
+            </svg>
+            
+            {/* Tooltip overlay */}
+            <div className="absolute inset-0 flex">
+              {chartData.map((change, index) => (
                 <div
                   key={index}
-                  className="flex-1 bg-purple-300 rounded-sm transition-all duration-300"
-                  style={{ height: `${Math.max(height, 10)}%` }}
+                  className="flex-1 relative group cursor-pointer"
                   title={`${change.newRating} (${change.change > 0 ? '+' : ''}${change.change})`}
-                />
-              );
-            })}
+                >
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    <div className={`text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap ${
+                      change.change > 0 ? 'bg-green-100 text-green-800 border border-green-200' :
+                      change.change < 0 ? 'bg-red-100 text-red-800 border border-red-200' :
+                      'bg-gray-100 text-gray-800 border border-gray-200'
+                    }`}>
+                      {change.newRating} ({change.change > 0 ? '+' : ''}{change.change})
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="text-xs text-purple-600 mt-1">Recent ELO progression</div>
+          <div className="text-xs text-purple-600 mt-1 flex items-center justify-between">
+            <span>Recent ELO progression</span>
+            <div className="flex items-center space-x-2 text-xs">
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-0 border-t border-green-500"></div>
+                <span className="text-green-600">+</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-0 border-t border-red-500"></div>
+                <span className="text-red-600">-</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       
