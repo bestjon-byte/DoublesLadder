@@ -292,8 +292,8 @@ const CombinedEloCard = ({ eloData, onClick }) => {
   const currentRating = Math.round(eloData.currentRating || 0);
   const change = recentChange ? recentChange.change : 0;
   
-  // Simple line chart data for recent ELO changes (last 5 changes)
-  const chartData = eloData.recentChanges.slice(0, 5).reverse();
+  // Simple line chart data for recent ELO changes (last 12 changes)
+  const chartData = eloData.recentChanges.slice(0, 12).reverse();
   
   return (
     <div 
@@ -321,10 +321,10 @@ const CombinedEloCard = ({ eloData, onClick }) => {
         </div>
       </div>
       
-      {/* Mini ELO progression line chart */}
+      {/* ELO progression line chart */}
       {chartData.length > 1 && (
-        <div className="mb-3">
-          <div className="h-12 relative">
+        <div className="mb-2">
+          <div className="h-16 relative">
             {/* Chart container */}
             <svg className="w-full h-full" viewBox="0 0 100 40">
               {/* Background grid lines */}
@@ -421,19 +421,6 @@ const CombinedEloCard = ({ eloData, onClick }) => {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-          <div className="text-xs text-purple-600 mt-1 flex items-center justify-between">
-            <span>Recent ELO progression</span>
-            <div className="flex items-center space-x-2 text-xs">
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-0 border-t border-green-500"></div>
-                <span className="text-green-600">+</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-0 border-t border-red-500"></div>
-                <span className="text-red-600">-</span>
-              </div>
             </div>
           </div>
         </div>
