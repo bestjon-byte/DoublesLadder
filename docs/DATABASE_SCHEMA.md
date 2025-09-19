@@ -43,10 +43,11 @@ The Tennis Ladder application uses a PostgreSQL database hosted on Supabase with
 ---
 
 ### season_players
-**Purpose**: Player participation in specific seasons
+**Purpose**: Player participation in specific seasons with ELO rating support
 **Rows**: 49 season participations
 **Key Features**:
 - Season-specific player statistics
+- **ELO rating system** for skill-based rankings
 - Dynamic ranking system with history
 - Performance metrics tracking
 
@@ -56,6 +57,7 @@ The Tennis Ladder application uses a PostgreSQL database hosted on Supabase with
 - `rank`, `previous_rank` (INTEGER): Position tracking
 - `matches_played`, `matches_won` (INTEGER): Match statistics
 - `games_played`, `games_won` (INTEGER): Game statistics
+- **`elo_rating` (INTEGER)**: Player's current ELO rating (default: 1200, range: 500-3000)
 
 ---
 
@@ -112,6 +114,35 @@ The Tennis Ladder application uses a PostgreSQL database hosted on Supabase with
 - `pair1_score`, `pair2_score` (INTEGER): Game scores
 - `submitted_by` (UUID): Submitting user
 - `verified` (BOOLEAN): Verification status
+
+---
+
+### elo_history ⭐ **NEW**
+**Purpose**: Complete audit trail of ELO rating changes for every match
+**Rows**: 188+ ELO records (4 per completed match)
+**Key Features**:
+- **Match-by-match ELO tracking** for full audit capability
+- **Expected vs actual score analysis** for prediction accuracy
+- **K-factor recording** for different player categories
+- **Opponent rating context** for ELO calculation verification
+
+**Columns**:
+- `id` (UUID): Unique ELO history record
+- `season_player_id` (UUID): Foreign key to season_players
+- `match_fixture_id` (UUID): Foreign key to match_fixtures
+- `old_rating` (INTEGER): ELO rating before match
+- `new_rating` (INTEGER): ELO rating after match
+- `rating_change` (INTEGER): Net ELO change (+/-)
+- `k_factor` (INTEGER): K-factor used (typically 32)
+- `opponent_avg_rating` (INTEGER): Average opponent ELO
+- `expected_score` (DECIMAL): Expected match outcome (0-1)
+- `actual_score` (DECIMAL): Actual match outcome (0-1)
+- `created_at` (TIMESTAMP): When ELO change occurred
+
+**Performance Notes**:
+- Indexed on `season_player_id` for fast player history queries
+- Indexed on `match_fixture_id` for match-specific ELO analysis
+- Indexed on `created_at` for chronological ELO progression
 
 ---
 
@@ -206,14 +237,53 @@ The Tennis Ladder application uses a PostgreSQL database hosted on Supabase with
 
 ---
 
+## ELO Management Functions ⭐ **NEW**
+
+The database includes 5 specialized PostgreSQL functions for comprehensive ELO management:
+
+### Core ELO Functions:
+1. **`get_most_recent_elo(player_id, before_season_id)`**
+   - Returns player's most recent ELO rating before a specific season
+   - Used for ELO restoration after season deletion
+   - Handles cross-season ELO continuity
+
+2. **`restore_player_elo_after_deletion(player_id, deleted_season_id)`**
+   - Main restoration function for enhanced season deletion
+   - Intelligently restores previous season ELO ratings
+   - Handles players with no previous seasons (resets to 1200)
+
+3. **`calculate_elo_change(old_rating, actual_score, expected_score, k_factor)`**
+   - Core ELO calculation using standard formula
+   - Returns new rating based on match outcome
+   - Consistent K-factor application
+
+### Advanced ELO Functions:
+4. **`recalculate_season_elo(season_id)`**
+   - Recalculates entire season ELO from scratch
+   - Processes all matches chronologically
+   - Used for ELO system corrections or updates
+
+5. **`cleanup_orphaned_elo_history()`**
+   - Removes orphaned ELO history records
+   - Maintains database integrity
+   - Called during enhanced deletion process
+
+### Function Usage:
+- **Automatic**: Called by enhanced deletion system
+- **Manual**: Available for admin troubleshooting
+- **Safe**: All functions include error handling and validation
+
+---
+
 ## Database Relationships
 
 ### Primary Relationships:
 1. **User Management**: `profiles` → `season_players` → `seasons`
 2. **Match Organization**: `seasons` → `matches` → `match_fixtures`
 3. **Score Tracking**: `match_fixtures` → `match_results`
-4. **League Integration**: `match_fixtures` → `league_match_rubbers`
-5. **Availability**: `profiles` → `availability` (by match_date)
+4. **ELO System**: `season_players` → `elo_history` ← `match_fixtures` ⭐ **NEW**
+5. **League Integration**: `match_fixtures` → `league_match_rubbers`
+6. **Availability**: `profiles` → `availability` (by match_date)
 
 ### Constraint Highlights:
 - All score values have non-negative constraints

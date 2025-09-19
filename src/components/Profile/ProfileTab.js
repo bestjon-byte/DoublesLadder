@@ -157,92 +157,32 @@ const ProfileTab = ({
         </div>
       </div>
 
-      {/* Enhanced Overview Stats Cards - Mobile First 2x3 Layout */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {/* ELO Rating Cards (show only if ELO data is available) */}
-        {eloData.currentRating && (
-          <>
-            <StatsCard
-              icon={<Award className="w-6 h-6 text-purple-600" />}
-              title="ELO Rating"
-              value={Math.round(eloData.currentRating)}
-              subtitle={eloData.rankingPosition ? `#${eloData.rankingPosition} in season` : 'current rating'}
-              color="purple"
-              onClick={() => setSelectedStatDetail('eloRating')}
-              detailType="eloRating"
-            />
-            <StatsCard
-              icon={<TrendingUp className="w-6 h-6 text-indigo-600" />}
-              title="Recent ELO Change"
-              value={eloData.recentChanges.length > 0 ? 
-                (eloData.recentChanges[0].change > 0 ? `+${eloData.recentChanges[0].change}` : eloData.recentChanges[0].change) : 
-                '0'}
-              subtitle={eloData.recentChanges.length > 0 ? 'last match' : 'no recent matches'}
-              color={eloData.recentChanges.length > 0 && eloData.recentChanges[0].change > 0 ? 'green' : 
-                     eloData.recentChanges.length > 0 && eloData.recentChanges[0].change < 0 ? 'red' : 'gray'}
-              onClick={() => setSelectedStatDetail('eloHistory')}
-              detailType="eloHistory"
-            />
-          </>
+      {/* Enhanced Overview Stats Cards - Mobile First 2x2 Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+        {/* Combined ELO Rating Card (show for current season, or all-time if any ELO data exists) */}
+        {(eloData.currentRating || (filterType === 'all-time' && (eloData.currentRating || eloData.recentChanges.length > 0))) && (
+          <CombinedEloCard
+            eloData={eloData}
+            onClick={() => setSelectedStatDetail('combinedElo')}
+          />
         )}
-        {/* Match Performance Group */}
-        <StatsCard
-          icon={<Trophy className="w-6 h-6 text-yellow-600" />}
-          title="Matches Won"
-          value={`${overallStats.matchesWon || 0}/${overallStats.totalMatches || 0}`}
-          subtitle={`${overallStats.matchesDrawn || 0} draws`}
-          color="yellow"
-          onClick={() => setSelectedStatDetail('matches')}
-          detailType="matches"
-        />
-        <StatsCard
-          icon={<Target className="w-6 h-6 text-green-600" />}
-          title="Match Win Rate"
-          value={`${Math.round(((overallStats.matchesWon || 0) / Math.max(overallStats.totalMatches || 1, 1)) * 100)}%`}
-          subtitle="including draws"
-          color="green"
-          onClick={() => setSelectedStatDetail('matchWinRate')}
-          detailType="matchWinRate"
+        
+        {/* Combined Match Performance Card */}
+        <CombinedMatchCard
+          stats={overallStats}
+          onClick={() => setSelectedStatDetail('combinedMatch')}
         />
         
-        {/* Game Performance Group */}
-        <StatsCard
-          icon={<Trophy className="w-6 h-6 text-blue-600" />}
-          title="Games Won"
-          value={overallStats.gamesWon || 0}
-          subtitle={`of ${overallStats.totalGames || 0} total`}
-          color="blue"
-          onClick={() => setSelectedStatDetail('games')}
-          detailType="games"
-        />
-        <StatsCard
-          icon={<Target className="w-6 h-6 text-teal-600" />}
-          title="Game Win Rate"
-          value={`${Math.round((overallStats.gameWinRate || 0) * 100)}%`}
-          subtitle="overall performance"
-          color="teal"
-          onClick={() => setSelectedStatDetail('gameWinRate')}
-          detailType="gameWinRate"
+        {/* Combined Game Performance Card */}
+        <CombinedGameCard
+          stats={overallStats}
+          onClick={() => setSelectedStatDetail('combinedGame')}
         />
         
-        {/* Streak Group */}
-        <StatsCard
-          icon={<Activity className="w-6 h-6 text-purple-600" />}
-          title="Current Streak"
-          value={winStreaks.current || 0}
-          subtitle={winStreaks.currentType === 'win' ? 'wins' : winStreaks.currentType === 'loss' ? 'losses' : 'none'}
-          color={winStreaks.currentType === 'win' ? 'green' : winStreaks.currentType === 'loss' ? 'red' : 'gray'}
-          onClick={() => setSelectedStatDetail('currentStreak')}
-          detailType="currentStreak"
-        />
-        <StatsCard
-          icon={<Award className="w-6 h-6 text-orange-600" />}
-          title="Best Streak"
-          value={winStreaks.longest || 0}
-          subtitle="consecutive wins"
-          color="orange"
-          onClick={() => setSelectedStatDetail('bestStreak')}
-          detailType="bestStreak"
+        {/* Combined Streak Card */}
+        <CombinedStreakCard
+          winStreaks={winStreaks}
+          onClick={() => setSelectedStatDetail('combinedStreak')}
         />
       </div>
 
@@ -313,7 +253,7 @@ const ProfileTab = ({
           <Calendar className="w-5 h-5 mr-2 text-[#5D1F1F]" />
           Match History
         </h2>
-        <MatchHistory matches={matchHistory} allUsers={allUsers} />
+        <EnhancedMatchHistory matches={matchHistory} allUsers={allUsers} />
       </div>
 
       {/* Head-to-Head Records */}
@@ -342,6 +282,255 @@ const ProfileTab = ({
           onClose={() => setShowMatchDetail(null)}
         />
       )}
+    </div>
+  );
+};
+
+// Combined ELO Card Component
+const CombinedEloCard = ({ eloData, onClick }) => {
+  const recentChange = eloData.recentChanges[0];
+  const currentRating = Math.round(eloData.currentRating || 0);
+  const change = recentChange ? recentChange.change : 0;
+  
+  // Simple line chart data for recent ELO changes (last 5 changes)
+  const chartData = eloData.recentChanges.slice(0, 5).reverse();
+  
+  return (
+    <div 
+      className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 p-6 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-2">
+          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+            <Award className="w-5 h-5 text-purple-600" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-600">ELO Rating</h3>
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl font-bold text-gray-900">{currentRating}</span>
+              {change !== 0 && (
+                <span className={`text-sm font-bold px-2 py-1 rounded-full ${
+                  change > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {change > 0 ? '+' : ''}{change}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mini ELO progression chart */}
+      {chartData.length > 1 && (
+        <div className="mb-3">
+          <div className="h-8 flex items-end space-x-1">
+            {chartData.map((change, index) => {
+              const maxRating = Math.max(...chartData.map(c => c.newRating));
+              const minRating = Math.min(...chartData.map(c => c.newRating));
+              const range = maxRating - minRating || 1;
+              const height = ((change.newRating - minRating) / range) * 100;
+              
+              return (
+                <div
+                  key={index}
+                  className="flex-1 bg-purple-300 rounded-sm transition-all duration-300"
+                  style={{ height: `${Math.max(height, 10)}%` }}
+                  title={`${change.newRating} (${change.change > 0 ? '+' : ''}${change.change})`}
+                />
+              );
+            })}
+          </div>
+          <div className="text-xs text-purple-600 mt-1">Recent ELO progression</div>
+        </div>
+      )}
+      
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-500">
+          {eloData.rankingPosition ? `#${eloData.rankingPosition} in season` : 'Current rating'}
+        </span>
+        <div className="flex items-center text-gray-400">
+          <span>Tap for history</span>
+          <ChevronRight className="w-3 h-3 ml-1" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Combined Match Card Component
+const CombinedMatchCard = ({ stats, onClick }) => {
+  const winRate = Math.round(((stats.matchesWon || 0) / Math.max(stats.totalMatches || 1, 1)) * 100);
+  
+  return (
+    <div 
+      className="rounded-lg border border-green-200 bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 p-6 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-2">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <Trophy className="w-5 h-5 text-green-600" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-600">Match Performance</h3>
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl font-bold text-green-600">{winRate}%</span>
+              <span className="text-sm text-gray-500">win rate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Win rate visual bar */}
+      <div className="mb-3">
+        <div className="w-full bg-green-200 rounded-full h-2">
+          <div 
+            className="bg-green-500 h-2 rounded-full transition-all duration-700"
+            style={{ width: `${winRate}%` }}
+          />
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-600">
+          {stats.matchesWon || 0}W - {stats.matchesLost || 0}L - {stats.matchesDrawn || 0}D
+        </span>
+        <div className="flex items-center text-gray-400">
+          <span>Tap for details</span>
+          <ChevronRight className="w-3 h-3 ml-1" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Combined Game Card Component
+const CombinedGameCard = ({ stats, onClick }) => {
+  const winRate = Math.round((stats.gameWinRate || 0) * 100);
+  
+  return (
+    <div 
+      className="rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 p-6 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-2">
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <Target className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-600">Game Performance</h3>
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl font-bold text-blue-600">{winRate}%</span>
+              <span className="text-sm text-gray-500">win rate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Win rate visual bar */}
+      <div className="mb-3">
+        <div className="w-full bg-blue-200 rounded-full h-2">
+          <div 
+            className="bg-blue-500 h-2 rounded-full transition-all duration-700"
+            style={{ width: `${winRate}%` }}
+          />
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-600">
+          {stats.gamesWon || 0} of {stats.totalGames || 0} games won
+        </span>
+        <div className="flex items-center text-gray-400">
+          <span>Tap for details</span>
+          <ChevronRight className="w-3 h-3 ml-1" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Combined Streak Card Component
+const CombinedStreakCard = ({ winStreaks, onClick }) => {
+  const currentStreakType = winStreaks.currentType;
+  const currentStreak = winStreaks.current || 0;
+  const bestStreak = winStreaks.longest || 0;
+  
+  const getStreakClasses = (type) => {
+    if (type === 'win') return {
+      border: 'border-green-200',
+      bg: 'bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200',
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600',
+      textColor: 'text-green-600'
+    };
+    if (type === 'loss') return {
+      border: 'border-red-200',
+      bg: 'bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200',
+      iconBg: 'bg-red-100',
+      iconColor: 'text-red-600',
+      textColor: 'text-red-600'
+    };
+    return {
+      border: 'border-gray-200',
+      bg: 'bg-gradient-to-br from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200',
+      iconBg: 'bg-gray-100',
+      iconColor: 'text-gray-600',
+      textColor: 'text-gray-600'
+    };
+  };
+  
+  const classes = getStreakClasses(currentStreakType);
+  
+  return (
+    <div 
+      className={`rounded-lg border ${classes.border} ${classes.bg} p-6 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer`}
+      onClick={onClick}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-2">
+          <div className={`w-10 h-10 ${classes.iconBg} rounded-full flex items-center justify-center`}>
+            <Activity className={`w-5 h-5 ${classes.iconColor}`} />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-600">Current Streak</h3>
+            <div className="flex items-center space-x-2">
+              <span className={`text-2xl font-bold ${classes.textColor}`}>{currentStreak}</span>
+              <span className="text-sm text-gray-500">
+                {currentStreakType === 'win' ? 'wins' : currentStreakType === 'loss' ? 'losses' : 'none'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Streak comparison */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Best streak:</span>
+          <span className="font-bold text-orange-600">{bestStreak} wins</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+          <div 
+            className="bg-orange-500 h-1 rounded-full transition-all duration-700"
+            style={{ width: `${Math.min((currentStreakType === 'win' ? currentStreak : 0) / Math.max(bestStreak, 1) * 100, 100)}%` }}
+          />
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-600">
+          {currentStreakType === 'win' && currentStreak === bestStreak && currentStreak > 0 ? 
+            'Personal best!' : 
+            `${Math.max(bestStreak - (currentStreakType === 'win' ? currentStreak : 0), 0)} from best`}
+        </span>
+        <div className="flex items-center text-gray-400">
+          <span>Tap for details</span>
+          <ChevronRight className="w-3 h-3 ml-1" />
+        </div>
+      </div>
     </div>
   );
 };
@@ -681,6 +870,137 @@ const FormGuide = ({ matches, allUsers, onMatchClick }) => (
   </div>
 );
 
+// Enhanced Match History Component
+const EnhancedMatchHistory = ({ matches, allUsers }) => {
+  const [showAll, setShowAll] = useState(false);
+  const [filter, setFilter] = useState('all'); // 'all', 'wins', 'losses', 'draws'
+  
+  const filteredMatches = matches.filter(match => {
+    if (filter === 'wins') return match.won;
+    if (filter === 'losses') return !match.won && !match.tie;
+    if (filter === 'draws') return match.tie;
+    return true;
+  });
+  
+  const displayedMatches = showAll ? filteredMatches : filteredMatches.slice(0, 15);
+
+  return (
+    <div className="space-y-4">
+      {matches.length === 0 ? (
+        <div className="text-center py-8">
+          <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 text-sm mb-1">No match history available</p>
+          <p className="text-xs text-gray-400">Your match history will appear here as you play</p>
+        </div>
+      ) : (
+        <>
+          {/* Filter buttons */}
+          <div className="flex space-x-2 mb-4">
+            {[
+              { key: 'all', label: 'All', count: matches.length },
+              { key: 'wins', label: 'Wins', count: matches.filter(m => m.won).length },
+              { key: 'losses', label: 'Losses', count: matches.filter(m => !m.won && !m.tie).length },
+              { key: 'draws', label: 'Draws', count: matches.filter(m => m.tie).length }
+            ].map(({ key, label, count }) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                  filter === key
+                    ? 'bg-[#5D1F1F] text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {label} ({count})
+              </button>
+            ))}
+          </div>
+          
+          <div className="max-h-96 overflow-y-auto space-y-2 pr-2">
+            {displayedMatches.map((match, index) => (
+              <div key={index} className={`border rounded-lg p-3 transition-all duration-200 hover:shadow-md ${
+                match.tie ? 'border-gray-200 bg-gray-50/30' :
+                match.won ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/30'
+              }`}>
+                <div className="flex justify-between items-center">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <div className={`px-2 py-1 text-xs font-bold rounded ${
+                        match.tie ? 'bg-gray-500 text-white' :
+                        match.won ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                      }`}>
+                        {match.tie ? 'D' : match.won ? 'W' : 'L'}
+                      </div>
+                      <span className="text-xs text-gray-600">
+                        {new Date(match.date).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric'
+                        })}
+                      </span>
+                      {match.seasonName && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                          {match.seasonName}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="text-sm">
+                      <div className="flex items-center space-x-1 text-gray-700">
+                        {match.partnerName && (
+                          <>
+                            <span>with</span>
+                            <span className="font-medium">{match.partnerName}</span>
+                            <span>•</span>
+                          </>
+                        )}
+                        <span>vs</span>
+                        <span className="font-medium">
+                          {match.opponentNames?.length > 0 ? 
+                            match.opponentNames.join(' & ') : 
+                            'Unknown opponents'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-right ml-3">
+                    <div className={`text-lg font-bold ${
+                      match.tie ? 'text-gray-600' :
+                      match.won ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {match.score}
+                    </div>
+                    {match.eloImpact && (
+                      <div className={`text-xs font-bold ${
+                        match.eloImpact.change > 0 ? 'text-green-600' :
+                        match.eloImpact.change < 0 ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {match.eloImpact.change > 0 ? '+' : ''}{match.eloImpact.change}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {filteredMatches.length > 15 && (
+            <div className="text-center pt-3 border-t border-gray-100">
+              <button 
+                onClick={() => setShowAll(!showAll)}
+                className="text-sm text-[#5D1F1F] hover:text-red-800 font-medium transition-colors"
+              >
+                {showAll ? `Show less ↑` : `View all ${filteredMatches.length} ${filter} matches ↓`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
 const MatchHistory = ({ matches, allUsers }) => {
   const [showAll, setShowAll] = useState(false);
   const displayedMatches = showAll ? matches : matches.slice(0, 20);
@@ -775,11 +1095,8 @@ const MatchHistory = ({ matches, allUsers }) => {
                     match.eloImpact.change > 0 ? 'text-green-600' :
                     match.eloImpact.change < 0 ? 'text-red-600' : 'text-gray-600'
                   }`}>
-                    ELO {match.eloImpact.change > 0 ? '+' : ''}{match.eloImpact.change}
+                    {match.eloImpact.change > 0 ? '+' : ''}{match.eloImpact.change}
                   </div>
-                )}
-                {match.courtNumber && (
-                  <div className="text-xs text-gray-500">Court {match.courtNumber}</div>
                 )}
               </div>
             </div>
@@ -968,6 +1285,195 @@ const StatsDetailModal = ({ type, stats, winStreaks, matchHistory, eloData, allU
           </div>
         );
       
+      case 'combinedElo':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">ELO Rating History</h3>
+            <div className="text-center p-8 rounded-lg bg-purple-50 border border-purple-200">
+              <div className="text-6xl font-bold text-purple-600 mb-2">
+                {Math.round(eloData.currentRating || 0)}
+              </div>
+              <div className="text-lg text-purple-700">Current ELO Rating</div>
+              {eloData.rankingPosition && (
+                <div className="text-sm text-purple-600 mt-2">
+                  #{eloData.rankingPosition} in season
+                </div>
+              )}
+            </div>
+            
+            {/* Recent matches with ELO changes */}
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              <h4 className="font-medium text-gray-900">Recent ELO Changes</h4>
+              {eloData.recentChanges.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No recent ELO changes available
+                </div>
+              ) : (
+                eloData.recentChanges.map((change, index) => {
+                  // Find matching match from matchHistory for player names
+                  const matchInfo = matchHistory.find(m => m.eloImpact?.change === change.change && 
+                    Math.abs(new Date(m.date) - new Date(change.date)) < 24 * 60 * 60 * 1000);
+                  
+                  return (
+                    <div key={change.id} className={`border rounded-lg p-3 ${
+                      change.change > 0 ? 'border-green-200 bg-green-50' :
+                      change.change < 0 ? 'border-red-200 bg-red-50' :
+                      'border-gray-200 bg-gray-50'
+                    }`}>
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className={`text-lg font-bold ${
+                              change.change > 0 ? 'text-green-600' :
+                              change.change < 0 ? 'text-red-600' :
+                              'text-gray-600'
+                            }`}>
+                              {change.change > 0 ? '+' : ''}{change.change}
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              {change.oldRating} → {change.newRating}
+                            </span>
+                          </div>
+                          {matchInfo && (
+                            <div className="text-sm text-gray-600">
+                              vs {matchInfo.opponentNames?.join(' & ') || 'Unknown'}
+                              {matchInfo.partnerName && ` (with ${matchInfo.partnerName})`}
+                            </div>
+                          )}
+                          {change.score && (
+                            <div className="text-sm text-gray-600">
+                              Score: {change.score}
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500">
+                            {new Date(change.date).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+        
+      case 'combinedMatch':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Match Performance Details</h3>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <div className="text-3xl font-bold text-green-600">{stats.matchesWon || 0}</div>
+                <div className="text-sm text-green-700">Wins</div>
+              </div>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <div className="text-3xl font-bold text-red-600">{stats.matchesLost || 0}</div>
+                <div className="text-sm text-red-700">Losses</div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <div className="text-3xl font-bold text-gray-600">{stats.matchesDrawn || 0}</div>
+                <div className="text-sm text-gray-700">Draws</div>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="text-sm font-medium text-blue-900 mb-2">Performance Analysis</div>
+              <div className="text-xs text-blue-700 space-y-1">
+                <div>Total matches played: {stats.totalMatches || 0}</div>
+                <div>Win rate (including draws): {Math.round(((stats.matchesWon || 0) / Math.max(stats.totalMatches || 1, 1)) * 100)}%</div>
+                <div>Win rate (excluding draws): {Math.round(((stats.matchesWon || 0) / Math.max((stats.matchesWon || 0) + (stats.matchesLost || 0), 1)) * 100)}%</div>
+              </div>
+            </div>
+          </div>
+        );
+        
+      case 'combinedGame':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Game Performance Details</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                <div className="text-3xl font-bold text-blue-600">{stats.gamesWon || 0}</div>
+                <div className="text-sm text-blue-700">Games Won</div>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <div className="text-3xl font-bold text-gray-600">{(stats.totalGames || 0) - (stats.gamesWon || 0)}</div>
+                <div className="text-sm text-gray-700">Games Lost</div>
+              </div>
+            </div>
+            
+            <div className="text-center p-6 rounded-lg bg-gradient-to-r from-blue-50 to-teal-50 border border-blue-200">
+              <div className="text-4xl font-bold text-blue-600 mb-2">
+                {Math.round((stats.gameWinRate || 0) * 100)}%
+              </div>
+              <div className="text-lg text-blue-700">Overall Game Win Rate</div>
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="text-sm font-medium text-blue-900 mb-2">Game Statistics</div>
+              <div className="text-xs text-blue-700 space-y-1">
+                <div>Total games played: {stats.totalGames || 0}</div>
+                <div>Games won: {stats.gamesWon || 0}</div>
+                <div>Games lost: {(stats.totalGames || 0) - (stats.gamesWon || 0)}</div>
+                <div>Average games per match: {stats.totalMatches > 0 ? Math.round((stats.totalGames || 0) / stats.totalMatches) : 0}</div>
+              </div>
+            </div>
+          </div>
+        );
+        
+      case 'combinedStreak':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Streak Analysis</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className={`text-center p-6 rounded-lg border ${
+                winStreaks.currentType === 'win' ? 'bg-green-50 border-green-200' : 
+                winStreaks.currentType === 'loss' ? 'bg-red-50 border-red-200' : 
+                'bg-gray-50 border-gray-200'
+              }`}>
+                <div className={`text-4xl font-bold mb-2 ${
+                  winStreaks.currentType === 'win' ? 'text-green-600' : 
+                  winStreaks.currentType === 'loss' ? 'text-red-600' : 
+                  'text-gray-600'
+                }`}>
+                  {winStreaks.current || 0}
+                </div>
+                <div className={`text-lg ${
+                  winStreaks.currentType === 'win' ? 'text-green-700' : 
+                  winStreaks.currentType === 'loss' ? 'text-red-700' : 
+                  'text-gray-700'
+                }`}>
+                  Current {winStreaks.currentType === 'win' ? 'winning' : winStreaks.currentType === 'loss' ? 'losing' : ''} streak
+                </div>
+              </div>
+              
+              <div className="text-center p-6 rounded-lg bg-orange-50 border border-orange-200">
+                <div className="text-4xl font-bold text-orange-600 mb-2">
+                  {winStreaks.longest || 0}
+                </div>
+                <div className="text-lg text-orange-700">
+                  Best winning streak
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="text-sm font-medium text-blue-900 mb-2">Streak Progress</div>
+              <div className="text-xs text-blue-700">
+                {winStreaks.currentType === 'win' && winStreaks.current === winStreaks.longest && winStreaks.current > 0 ? 
+                  'You\'re currently on your best winning streak!' : 
+                  winStreaks.currentType === 'win' ? 
+                    `${Math.max((winStreaks.longest || 0) - (winStreaks.current || 0), 0)} wins away from your best streak` :
+                    `Your best winning streak was ${winStreaks.longest || 0} consecutive wins`}
+              </div>
+            </div>
+          </div>
+        );
+        
       case 'currentStreak':
       case 'bestStreak':
         const isCurrentStreak = type === 'currentStreak';
