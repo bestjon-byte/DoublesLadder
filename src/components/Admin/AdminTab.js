@@ -13,30 +13,31 @@ import SinglesImportModal from './SinglesImportModal';
 import AddExternalPlayerModal from './AddExternalPlayerModal';
 import EloSeedingModal from './EloSeedingModal';
 
-const AdminTab = ({
-  users,
-  ladderPlayers = [], // Current season players
+const AdminTab = ({ 
+  users, 
+  ladderPlayers = [], // NEW: Current season players
   currentUser,
   currentSeason,
-  activeSeason, // Active season for admin controls
+  activeSeason, // NEW: Active season for admin controls
   approveUser,
-  updateUserRole, // Function to promote/demote users
-  addToLadder,
+  updateUserRole, // NEW: Function to promote/demote users
+  addToLadder, 
   fetchUsers,
-  deleteSeason, // Function to delete seasons
-  deleteUser, // Function to delete/deactivate users
+  clearOldMatches,
+  deleteSeason, // NEW: Function to delete seasons
+  deleteUser, // NEW: Function to delete/deactivate users
   matchFixtures,
   matchResults,
   seasonActions,
-  // Season data for DeleteSeasonModal
+  // NEW: Season data for DeleteSeasonModal
   selectedSeason,
   seasons,
-  // Supabase instance for LeagueImportModal
+  // NEW: Supabase instance for LeagueImportModal
   supabase,
-  // Match management functions
+  // NEW: Match management functions
   setShowScheduleModal,
   addMatchToSeason,
-  // Refetch functions for data refresh
+  // NEW: Refetch functions for data refresh
   refetch
 }) => {
   const [loading, setLoading] = useState(false);
@@ -108,17 +109,6 @@ const AdminTab = ({
     setLoading(false);
   };
 
-  // Helper to check if a match is complete
-  const isMatchComplete = (matchId) => {
-    const matchGameFixtures = matchFixtures?.filter(f => f.match_id === matchId) || [];
-    if (matchGameFixtures.length === 0) return false;
-    
-    const completedGames = matchGameFixtures.filter(fixture => 
-      matchResults?.some(result => result.fixture_id === fixture.id)
-    ).length;
-    
-    return completedGames === matchGameFixtures.length && matchGameFixtures.length > 0;
-  };
 
   return (
     <div className="space-y-6">
@@ -420,7 +410,8 @@ const AdminTab = ({
         </div>
       </div>
 
-      {/* Player Merge Modal */
+
+      {/* Player Merge Modal */}
       <PlayerMergeModal 
         showModal={showMergeModal}
         setShowModal={setShowMergeModal}
