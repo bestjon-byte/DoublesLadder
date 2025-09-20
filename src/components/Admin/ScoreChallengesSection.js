@@ -47,7 +47,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
   const fetchMatchResults = async (seasonId) => {
     // Use the provided seasonId or fall back to current season
     const targetSeasonId = seasonId || currentSeason?.id;
-    
+
     if (!targetSeasonId) {
       // No season available - return empty results
       return [];
@@ -60,7 +60,8 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       return [];
     }
 
-    // Fetching match results for current season
+    // Fetching match results for selected season only
+    console.log('🔍 Fetching match results for season:', targetSeasonId);
 
     const { data, error } = await supabase
       .from('match_results')
@@ -82,9 +83,14 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       console.error('❌ Error fetching match results:', error);
       throw error;
     }
-    
-    // Match results fetched successfully
-    return data || [];
+
+    // Filter out results that don't belong to the target season (extra safety)
+    const filteredData = data?.filter(result =>
+      result.fixture?.match?.season_id === targetSeasonId
+    ) || [];
+
+    console.log(`✅ Found ${filteredData.length} match results for season ${targetSeasonId}`);
+    return filteredData;
   };
 
  const resolveChallenge = async (challengeId, decision, newScore = null) => {
@@ -343,10 +349,20 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       {/* Challenges Tab */}
       {activeTab === 'challenges' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h4 className="font-semibold mb-4 flex items-center">
-            <Flag className="w-5 h-5 mr-2 text-orange-500" />
-            Score Challenges ({challenges.length})
-          </h4>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+            <h4 className="font-semibold flex items-center">
+              <Flag className="w-5 h-5 mr-2 text-orange-500" />
+              Score Challenges ({challenges.length})
+            </h4>
+            {selectedSeason && (
+              <div className="text-sm text-gray-600 mt-1 sm:mt-0">
+                Season: <span className="font-medium">{selectedSeason.name}</span>
+                {selectedSeason.status === 'completed' && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Completed</span>
+                )}
+              </div>
+            )}
+          </div>
           
           {/* Show warning for completed seasons */}
           {selectedSeason?.status === 'completed' && (
@@ -415,10 +431,20 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       {/* Conflicts Tab */}
       {activeTab === 'conflicts' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h4 className="font-semibold mb-4 flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
-            Score Conflicts ({conflicts.length})
-          </h4>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+            <h4 className="font-semibold flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
+              Score Conflicts ({conflicts.length})
+            </h4>
+            {selectedSeason && (
+              <div className="text-sm text-gray-600 mt-1 sm:mt-0">
+                Season: <span className="font-medium">{selectedSeason.name}</span>
+                {selectedSeason.status === 'completed' && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Completed</span>
+                )}
+              </div>
+            )}
+          </div>
           
           {conflicts.length === 0 ? (
             <p className="text-gray-500 text-center py-4">No score conflicts detected</p>
@@ -466,7 +492,17 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       {/* Results Tab */}
       {activeTab === 'results' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h4 className="font-semibold mb-4">All Match Results ({allResults.length})</h4>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+            <h4 className="font-semibold">Match Results ({allResults.length})</h4>
+            {selectedSeason && (
+              <div className="text-sm text-gray-600 mt-1 sm:mt-0">
+                Season: <span className="font-medium">{selectedSeason.name}</span>
+                {selectedSeason.status === 'completed' && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Completed</span>
+                )}
+              </div>
+            )}
+          </div>
           
           {allResults.length === 0 ? (
             <p className="text-gray-500 text-center py-4">No match results found</p>

@@ -13,34 +13,30 @@ import SinglesImportModal from './SinglesImportModal';
 import AddExternalPlayerModal from './AddExternalPlayerModal';
 import EloSeedingModal from './EloSeedingModal';
 
-const AdminTab = ({ 
-  users, 
-  ladderPlayers = [], // NEW: Current season players
+const AdminTab = ({
+  users,
+  ladderPlayers = [], // Current season players
   currentUser,
   currentSeason,
-  activeSeason, // NEW: Active season for admin controls
+  activeSeason, // Active season for admin controls
   approveUser,
-  updateUserRole, // NEW: Function to promote/demote users
-  addToLadder, 
+  updateUserRole, // Function to promote/demote users
+  addToLadder,
   fetchUsers,
-  setPlayerAvailability,
-  getPlayerAvailability,
-  getAvailabilityStats,
-  clearOldMatches,
-  deleteSeason, // NEW: Function to delete seasons
-  deleteUser, // NEW: Function to delete/deactivate users
+  deleteSeason, // Function to delete seasons
+  deleteUser, // Function to delete/deactivate users
   matchFixtures,
   matchResults,
   seasonActions,
-  // NEW: Season data for DeleteSeasonModal
+  // Season data for DeleteSeasonModal
   selectedSeason,
   seasons,
-  // NEW: Supabase instance for LeagueImportModal
+  // Supabase instance for LeagueImportModal
   supabase,
-  // NEW: Match management functions
+  // Match management functions
   setShowScheduleModal,
   addMatchToSeason,
-  // NEW: Refetch functions for data refresh
+  // Refetch functions for data refresh
   refetch
 }) => {
   const [loading, setLoading] = useState(false);
@@ -424,104 +420,7 @@ const AdminTab = ({
         </div>
       </div>
 
-      {/* Player Availability Management - Only for ladder seasons */}
-      {currentSeason?.matches && currentSeason?.season_type !== 'league' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Set Player Availability</h3>
-          <p className="text-sm text-gray-600 mb-4">Set availability on behalf of players</p>
-          
-          {currentSeason.matches.map((match) => {
-            // Use ladderPlayers prop instead of filtering users
-            const matchComplete = isMatchComplete(match.id);
-            
-            return (
-              <div key={match.id} className="mb-6 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium mb-3">
-                  Week {match.week_number} - {match.match_date ? new Date(match.match_date).toLocaleDateString('en-GB') : 'No date set'}
-                  {matchComplete && (
-                    <span className="ml-2 text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                      ✅ Completed
-                    </span>
-                  )}
-                </h4>
-                {matchComplete ? (
-                  <div className="text-sm text-gray-600 italic">
-                    All results have been entered for this match. Availability cannot be changed.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {ladderPlayers.map(player => {
-                      const playerAvailability = getPlayerAvailability(player.id, match.id);
-                      return (
-                        <div key={player.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <span className="text-sm font-medium">{player.name}</span>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => setPlayerAvailability(match.id, true, player.id)}
-                              className={`px-2 py-1 text-xs rounded transition-colors ${
-                                playerAvailability === true
-                                  ? 'bg-green-600 text-white'
-                                  : 'bg-gray-200 text-gray-700 hover:bg-green-100'
-                              }`}
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={() => setPlayerAvailability(match.id, false, player.id)}
-                              className={`px-2 py-1 text-xs rounded transition-colors ${
-                                playerAvailability === false
-                                  ? 'bg-red-600 text-white'
-                                  : 'bg-gray-200 text-gray-700 hover:bg-red-100'
-                              }`}
-                            >
-                              ✗
-                            </button>
-                            {playerAvailability !== undefined && (
-                              <button
-                                onClick={() => setPlayerAvailability(match.id, undefined, player.id)}
-                                className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-                              >
-                                Clear
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-
-
-      {/* Debug/Maintenance Section */}
-      <div className="bg-red-50 border border-red-200 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4 text-red-800">⚠️ Admin Maintenance</h3>
-        <p className="text-sm text-red-600 mb-4">Use these tools carefully - they will delete data permanently!</p>
-        <div className="space-y-2">
-          <p className="text-xs text-gray-600">
-            This will reset everything except users (profiles). All seasons, matches, results, availability, and ladder data will be permanently deleted.
-          </p>
-          <button
-            onClick={() => {
-              if (window.confirm('This will delete ALL seasons, matches, fixtures, results, availability, and ladder data. Only users will be preserved. Are you absolutely sure?')) {
-                if (window.confirm('⚠️ FINAL WARNING: This action cannot be undone! Click OK to proceed with complete data reset.')) {
-                  clearOldMatches();
-                }
-              }
-            }}
-            className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
-          >
-            🗑️ Clear All Season & Match Data
-          </button>
-        </div>
-      </div>
-
-      {/* Player Merge Modal */}
+      {/* Player Merge Modal */
       <PlayerMergeModal 
         showModal={showMergeModal}
         setShowModal={setShowMergeModal}

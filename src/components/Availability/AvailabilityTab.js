@@ -1,21 +1,37 @@
 // src/components/Availability/AvailabilityTab.js
 import React from 'react';
 
-const AvailabilityTab = ({ 
-  currentUser, 
-  currentSeason, 
+const AvailabilityTab = ({
+  currentUser,
+  currentSeason,
   selectedSeason,
   ladderPlayers,
-  getPlayerAvailability, 
-  setPlayerAvailability, 
-  matchFixtures, 
-  matchResults, 
-  getMatchScore 
+  getPlayerAvailability,
+  setPlayerAvailability,
+  matchFixtures,
+  matchResults,
+  getMatchScore
 }) => {
+  const [adminMode, setAdminMode] = React.useState(false);
+  // Check if user is admin
+  const isAdmin = currentUser?.role === 'admin';
+
   // Check if user is in the selected season's ladder
   const userInSeason = ladderPlayers?.find(player => player.id === currentUser.id);
-  
-  if (!userInSeason) {
+
+  // Helper to check if a match is complete
+  const isMatchComplete = (matchId) => {
+    const matchGameFixtures = matchFixtures?.filter(f => f.match_id === matchId) || [];
+    if (matchGameFixtures.length === 0) return false;
+
+    const completedGames = matchGameFixtures.filter(fixture =>
+      matchResults?.some(result => result.fixture_id === fixture.id)
+    ).length;
+
+    return completedGames === matchGameFixtures.length && matchGameFixtures.length > 0;
+  };
+
+  if (!userInSeason && !isAdmin) {
     return (
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-gray-900">Match Availability</h2>
@@ -56,17 +72,6 @@ const AvailabilityTab = ({
     return matchDate < today;
   }) || [];
 
-  // Helper to check if a match is complete
-  const isMatchComplete = (matchId) => {
-    const matchGameFixtures = matchFixtures.filter(f => f.match_id === matchId);
-    if (matchGameFixtures.length === 0) return false;
-    
-    const completedGames = matchGameFixtures.filter(fixture => 
-      matchResults.some(result => result.fixture_id === fixture.id)
-    ).length;
-    
-    return completedGames === matchGameFixtures.length && matchGameFixtures.length > 0;
-  };
 
   // Helper to get player's scores for a match
   const getPlayerScoresForMatch = (matchId) => {
@@ -105,12 +110,98 @@ const AvailabilityTab = ({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Match Availability</h2>
-      
-      {/* Future Matches */}
-      {futureMatches.length > 0 && (
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 className="text-2xl font-bold text-gray-900">Match Availability</h2>
+        {isAdmin && (
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={adminMode}
+                onChange={(e) => setAdminMode(e.target.checked)}
+                className="rounded border-gray-300 text-[#5D1F1F] focus:ring-[#5D1F1F]"
+              />
+              <span className="font-medium">Manage All Players</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Admin Player Availability Management */}
+      {isAdmin && adminMode && currentSeason?.matches && currentSeason?.season_type !== 'league' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">Manage Player Availability</h3>
+          <p className="text-sm text-gray-600 mb-4">Set availability on behalf of all players</p>
+
+          {currentSeason.matches.map((match) => {
+            const matchComplete = isMatchComplete(match.id);
+
+            return (
+              <div key={match.id} className="mb-6 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium mb-3">
+                  Week {match.week_number} - {match.match_date ? new Date(match.match_date).toLocaleDateString('en-GB') : 'No date set'}
+                  {matchComplete && (
+                    <span className="ml-2 text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                      ✅ Completed
+                    </span>
+                  )}
+                </h4>
+                {matchComplete ? (
+                  <div className="text-sm text-gray-600 italic">
+                    All results have been entered for this match. Availability cannot be changed.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {ladderPlayers?.map(player => {
+                      const playerAvailability = getPlayerAvailability(player.id, match.id);
+                      return (
+                        <div key={player.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <span className="text-sm font-medium">{player.name}</span>
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => setPlayerAvailability(match.id, true, player.id)}
+                              className={`px-2 py-1 text-xs rounded transition-colors ${
+                                playerAvailability === true
+                                  ? 'bg-green-600 text-white'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-green-100'
+                              }`}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => setPlayerAvailability(match.id, false, player.id)}
+                              className={`px-2 py-1 text-xs rounded transition-colors ${
+                                playerAvailability === false
+                                  ? 'bg-red-600 text-white'
+                                  : 'bg-gray-200 text-gray-700 hover:bg-red-100'
+                              }`}
+                            >
+                              ✗
+                            </button>
+                            {playerAvailability !== undefined && (
+                              <button
+                                onClick={() => setPlayerAvailability(match.id, undefined, player.id)}
+                                className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Future Matches - Player's Own Availability */}
+      {!adminMode && userInSeason && futureMatches.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold mb-4">Upcoming Matches</h3>
+          <h3 className="text-lg font-semibold mb-4">Your Upcoming Matches</h3>
           <p className="text-gray-600 mb-4">Please set your availability for upcoming matches</p>
           
           <div className="space-y-4">
@@ -184,8 +275,8 @@ const AvailabilityTab = ({
         </div>
       )}
 
-      {/* Past Matches */}
-      {pastMatches.length > 0 && (
+      {/* Past Matches - Player's Own Results */}
+      {!adminMode && userInSeason && pastMatches.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-4">Past Matches</h3>
           <div className="space-y-4">
@@ -225,9 +316,15 @@ const AvailabilityTab = ({
         </div>
       )}
 
-      {futureMatches.length === 0 && pastMatches.length === 0 && (
+      {!adminMode && userInSeason && futureMatches.length === 0 && pastMatches.length === 0 && (
         <div className="bg-white rounded-lg shadow p-6 text-center">
           <p className="text-gray-500">No matches scheduled yet.</p>
+        </div>
+      )}
+
+      {adminMode && (!currentSeason?.matches || currentSeason.matches.length === 0) && (
+        <div className="bg-white rounded-lg shadow p-6 text-center">
+          <p className="text-gray-500">No matches scheduled for this season yet.</p>
         </div>
       )}
     </div>

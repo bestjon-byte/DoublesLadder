@@ -37,6 +37,11 @@
 - **Dev Server**: `npm run dev`
 - **Build**: `npm run build`
 - **Test**: `npm test`
+- **Deploy**: `./deploy`
+
+## Deployment Instructions
+- **Auto-Deploy**: When work is completed and tested successfully, automatically deploy using `./deploy`
+- **Deploy Criteria**: Only auto-deploy when compilation is successful and functionality is verified
 
 ## Key Files & Components
 - **Supabase Client**: src/supabaseClient.js
