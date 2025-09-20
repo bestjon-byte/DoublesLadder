@@ -8,7 +8,9 @@ import {
   Plus,
   Search,
   Filter,
-  Sparkles
+  Sparkles,
+  Edit,
+  Trash2
 } from 'lucide-react';
 
 const TrophyCabinetTab = ({
@@ -43,17 +45,7 @@ const TrophyCabinetTab = ({
     });
   }, [trophies, searchTerm, filterSeason, filterType]);
 
-  // Group trophies into shelves (max 6 per shelf for visual appeal)
-  const shelves = useMemo(() => {
-    const trophiesPerShelf = 6;
-    const groupedShelves = [];
-
-    for (let i = 0; i < filteredTrophies.length; i += trophiesPerShelf) {
-      groupedShelves.push(filteredTrophies.slice(i, i + trophiesPerShelf));
-    }
-
-    return groupedShelves;
-  }, [filteredTrophies]);
+  // Simple trophy grid - no shelf grouping needed
 
   const handleTrophyClick = (trophy) => {
     setSelectedTrophy(trophy);
@@ -155,7 +147,7 @@ const TrophyCabinetTab = ({
         </div>
       </div>
 
-      {/* Trophy Cabinet */}
+      {/* Trophy Display */}
       {filteredTrophies.length === 0 ? (
         <div className="bg-white rounded-lg shadow-sm p-12">
           <div className="text-center">
@@ -180,8 +172,8 @@ const TrophyCabinetTab = ({
           </div>
         </div>
       ) : (
-        <TrophyCabinet
-          shelves={shelves}
+        <TrophyGrid
+          trophies={filteredTrophies}
           onTrophyClick={handleTrophyClick}
           currentUser={currentUser}
           onEdit={(trophy) => {
@@ -232,134 +224,43 @@ const TrophyCabinetTab = ({
   );
 };
 
-// Trophy Cabinet Component with Shelf Design
-const TrophyCabinet = ({ shelves, onTrophyClick, currentUser, onEdit, onDelete }) => {
+// Simple Trophy Grid Component
+const TrophyGrid = ({ trophies, onTrophyClick, currentUser, onEdit, onDelete }) => {
   return (
-    <div className="trophy-cabinet">
-      {/* Cabinet Background */}
-      <div className="relative bg-gradient-to-b from-amber-900 via-amber-800 to-amber-900 rounded-lg shadow-2xl p-6 border-4 border-amber-700" style={{
-        backgroundImage: `
-          radial-gradient(circle at 20% 20%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
-          radial-gradient(circle at 80% 80%, rgba(160, 82, 45, 0.1) 0%, transparent 50%),
-          linear-gradient(90deg, transparent 0%, rgba(139, 69, 19, 0.05) 50%, transparent 100%)
-        `
-      }}>
-
-        {/* Cabinet Interior */}
-        <div className="bg-gradient-to-b from-amber-50 to-amber-100 rounded-lg p-4 min-h-[600px] border-2 border-amber-200 shadow-inner">
-
-          {shelves.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center text-amber-600">
-                <Trophy className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">Cabinet is empty</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {shelves.map((shelf, shelfIndex) => (
-                <TrophyShelf
-                  key={shelfIndex}
-                  trophies={shelf}
-                  shelfIndex={shelfIndex}
-                  onTrophyClick={onTrophyClick}
-                  currentUser={currentUser}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Glass effect overlay */}
-          <div className="absolute inset-4 rounded-lg pointer-events-none bg-gradient-to-br from-transparent via-white/5 to-transparent opacity-30"></div>
-        </div>
-
-        {/* Cabinet Hardware */}
-        <div className="absolute top-4 right-4 w-3 h-8 bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-full shadow-md"></div>
-        <div className="absolute top-4 left-4 w-3 h-8 bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-full shadow-md"></div>
-
-        {/* Cabinet Legs */}
-        <div className="absolute -bottom-2 left-8 w-4 h-4 bg-amber-800 rounded-full shadow-lg"></div>
-        <div className="absolute -bottom-2 right-8 w-4 h-4 bg-amber-800 rounded-full shadow-lg"></div>
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+        {trophies.map((trophy) => (
+          <TrophyCard
+            key={trophy.id}
+            trophy={trophy}
+            onClick={() => onTrophyClick(trophy)}
+            currentUser={currentUser}
+            onEdit={() => onEdit(trophy)}
+            onDelete={() => onDelete(trophy.id)}
+          />
+        ))}
       </div>
     </div>
   );
 };
 
-// Individual Shelf Component
-const TrophyShelf = ({ trophies, shelfIndex, onTrophyClick, currentUser, onEdit, onDelete }) => {
+// Individual Trophy Card Component - Large and Clear Display
+const TrophyCard = ({ trophy, onClick, currentUser, onEdit, onDelete }) => {
   return (
-    <div className="relative">
-      {/* Shelf Surface */}
-      <div className="bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 border-t-4 border-amber-200 border-b-2 border-amber-300 shadow-lg rounded-sm mb-4">
-
-        {/* Shelf Edge */}
-        <div className="h-2 bg-gradient-to-r from-amber-200 to-amber-300 rounded-sm shadow-inner"></div>
-
-        {/* Trophy Display Area */}
-        <div className="flex items-end justify-around gap-2 p-4 min-h-[140px]">
-          {trophies.map((trophy, index) => (
-            <TrophyDisplay
-              key={trophy.id}
-              trophy={trophy}
-              onClick={() => onTrophyClick(trophy)}
-              currentUser={currentUser}
-              onEdit={() => onEdit(trophy)}
-              onDelete={() => onDelete(trophy.id)}
-              size={index === Math.floor(trophies.length / 2) ? 'large' : 'medium'} // Center trophy slightly larger
-            />
-          ))}
-        </div>
-
-        {/* Shelf Reflection */}
-        <div className="h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-full mx-8"></div>
-      </div>
-
-      {/* Shelf Label */}
-      <div className="text-center mb-2">
-        <span className="text-xs text-amber-700 font-medium bg-amber-100 px-2 py-1 rounded-full">
-          Shelf {shelfIndex + 1}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-// Individual Trophy Display Component
-const TrophyDisplay = ({ trophy, onClick, currentUser, onEdit, onDelete, size = 'medium' }) => {
-  const sizeClasses = {
-    small: 'w-16 h-20',
-    medium: 'w-20 h-24',
-    large: 'w-24 h-28'
-  };
-
-  return (
-    <div className="relative group">
-      {/* Trophy Container */}
+    <div className="relative group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-amber-300">
+      {/* Trophy Image */}
       <div
-        className={`${sizeClasses[size]} cursor-pointer transform transition-all duration-300 hover:scale-110 hover:-translate-y-2 hover:drop-shadow-xl flex flex-col items-center justify-end p-2`}
+        className="aspect-square relative cursor-pointer overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100"
         onClick={onClick}
       >
-        {/* Trophy Visual */}
-        <div className="flex-1 flex items-end justify-center mb-1">
-          <OptimizedTrophyImage
-            imageUrl={trophy.trophy_image_url}
-            size={size}
-          />
-        </div>
-
-        {/* Trophy Nameplate */}
-        <div className="bg-gradient-to-r from-yellow-600 to-yellow-500 text-white text-xs px-2 py-1 rounded-sm shadow-md transform perspective-500 rotateX-12 text-center min-h-[20px] flex items-center justify-center">
-          <span className="font-semibold text-[10px] leading-tight truncate max-w-full">
-            {trophy.winner1_name}
-            {trophy.winner2_name && ` & ${trophy.winner2_name}`}
-          </span>
-        </div>
+        <OptimizedTrophyImage
+          imageUrl={trophy.trophy_image_url}
+          alt={`${trophy.custom_title || 'Trophy'} - ${trophy.winner1_name}`}
+        />
 
         {/* Position Badge */}
-        {trophy.position <= 3 && (
-          <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg ${
+        {trophy.position && trophy.position <= 3 && (
+          <div className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg ${
             trophy.position === 1 ? 'bg-yellow-500' :
             trophy.position === 2 ? 'bg-gray-400' :
             'bg-amber-600'
@@ -370,26 +271,53 @@ const TrophyDisplay = ({ trophy, onClick, currentUser, onEdit, onDelete, size = 
 
         {/* Featured Badge */}
         {trophy.is_featured && (
-          <div className="absolute -top-1 -left-1">
-            <Sparkles className="w-4 h-4 text-purple-600 drop-shadow-sm" />
+          <div className="absolute top-3 left-3">
+            <div className="bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              Featured
+            </div>
           </div>
         )}
+
+        {/* Hover Overlay */}
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center">
+          <div className="transform scale-0 group-hover:scale-100 transition-transform duration-300 bg-white rounded-lg px-3 py-2 shadow-lg">
+            <span className="text-sm font-medium text-gray-900">View Details</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Trophy Info */}
+      <div className="p-4">
+        <h3 className="font-semibold text-gray-900 mb-1 text-sm leading-tight">
+          {trophy.custom_title || getTrophyTitle(trophy.competition_type)}
+        </h3>
+        <p className="text-sm text-gray-600 mb-2">
+          {trophy.winner1_name}
+          {trophy.winner2_name && ` & ${trophy.winner2_name}`}
+        </p>
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>{trophy.season_name}</span>
+          <span>{new Date(trophy.awarded_date).getFullYear()}</span>
+        </div>
       </div>
 
       {/* Admin Actions (Show on Hover) */}
       {currentUser?.role === 'admin' && (
-        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1">
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+            className="bg-blue-600 text-white p-1.5 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+            title="Edit Trophy"
           >
-            Edit
+            <Edit className="w-3 h-3" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded hover:bg-red-100 transition-colors"
+            className="bg-red-600 text-white p-1.5 rounded-lg hover:bg-red-700 transition-colors shadow-lg"
+            title="Delete Trophy"
           >
-            Delete
+            <Trash2 className="w-3 h-3" />
           </button>
         </div>
       )}
@@ -397,51 +325,64 @@ const TrophyDisplay = ({ trophy, onClick, currentUser, onEdit, onDelete, size = 
   );
 };
 
-// Optimized Trophy Image Component - Custom Images Only
-const OptimizedTrophyImage = ({ imageUrl, size = 'medium' }) => {
+// Large Trophy Image Component - Optimized for Performance
+const OptimizedTrophyImage = ({ imageUrl, alt = 'Trophy' }) => {
   const [imageError, setImageError] = useState(false);
-  const [showImage, setShowImage] = useState(false);
-
-  const sizeClasses = {
-    small: 'w-12 h-12',
-    medium: 'w-16 h-16',
-    large: 'w-20 h-20'
-  };
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   if (!imageUrl || imageError) {
     // Fallback placeholder for missing or failed images
     return (
-      <div className={`${sizeClasses[size]} bg-gradient-to-br from-yellow-100 to-amber-200 rounded-lg flex items-center justify-center border-2 border-amber-300 shadow-lg`}>
-        <Trophy className="w-8 h-8 text-amber-600" />
+      <div className="w-full h-full bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center border border-amber-200">
+        <Trophy className="w-16 h-16 text-amber-400" />
       </div>
     );
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full h-full">
       {/* Loading placeholder */}
-      {!showImage && (
-        <div className={`${sizeClasses[size]} bg-gray-200 animate-pulse rounded-lg flex items-center justify-center border-2 border-gray-300`}>
-          <Trophy className="w-6 h-6 text-gray-400" />
+      {!imageLoaded && (
+        <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
+          <Trophy className="w-12 h-12 text-gray-400" />
         </div>
       )}
 
-      {/* Actual trophy image */}
+      {/* Actual trophy image - Large and clear */}
       <img
         src={imageUrl}
-        alt="Trophy"
-        className={`${sizeClasses[size]} object-contain rounded-lg shadow-lg transition-all duration-300 ${
-          showImage ? 'opacity-100' : 'opacity-0 absolute inset-0'
+        alt={alt}
+        className={`w-full h-full object-cover transition-opacity duration-500 ${
+          imageLoaded ? 'opacity-100' : 'opacity-0'
         }`}
-        onLoad={() => setShowImage(true)}
+        onLoad={() => setImageLoaded(true)}
         onError={() => setImageError(true)}
         loading="lazy"
         style={{
-          filter: showImage ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' : 'none'
+          objectFit: 'cover',
+          objectPosition: 'center'
         }}
       />
     </div>
   );
+};
+
+// Helper function for trophy titles
+const getTrophyTitle = (competitionType) => {
+  const titles = {
+    singles_winner: 'Singles Champion',
+    doubles_winner: 'Doubles Champion',
+    league_winner: 'League Winner',
+    tournament_winner: 'Tournament Winner',
+    best_player: 'Player of the Season',
+    most_improved: 'Most Improved Player',
+    sportsmanship: 'Sportsmanship Award',
+    participation: 'Participation Award',
+    season_champion: 'Season Champion',
+    custom: 'Special Achievement'
+  };
+
+  return titles[competitionType] || 'Champion';
 };
 
 export default TrophyCabinetTab;
