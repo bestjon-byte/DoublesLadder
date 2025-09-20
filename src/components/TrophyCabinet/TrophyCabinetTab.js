@@ -269,15 +269,6 @@ const TrophyCard = ({ trophy, onClick, currentUser, onEdit, onDelete }) => {
           </div>
         )}
 
-        {/* Featured Badge */}
-        {trophy.is_featured && (
-          <div className="absolute top-3 left-3">
-            <div className="bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-              <Sparkles className="w-3 h-3" />
-              Featured
-            </div>
-          </div>
-        )}
 
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center">
@@ -352,14 +343,14 @@ const OptimizedTrophyImage = ({ imageUrl, alt = 'Trophy' }) => {
       <img
         src={imageUrl}
         alt={alt}
-        className={`w-full h-full object-cover transition-opacity duration-500 ${
+        className={`w-full h-full object-contain transition-opacity duration-500 ${
           imageLoaded ? 'opacity-100' : 'opacity-0'
         }`}
         onLoad={() => setImageLoaded(true)}
         onError={() => setImageError(true)}
         loading="lazy"
         style={{
-          objectFit: 'cover',
+          objectFit: 'contain',
           objectPosition: 'center'
         }}
       />
