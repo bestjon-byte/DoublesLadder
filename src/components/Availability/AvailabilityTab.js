@@ -1,35 +1,24 @@
 // src/components/Availability/AvailabilityTab.js
 import React from 'react';
 
-const AvailabilityTab = ({
-  currentUser,
-  currentSeason,
+const AvailabilityTab = ({ 
+  currentUser, 
+  currentSeason, 
   selectedSeason,
   ladderPlayers,
-  getPlayerAvailability,
-  setPlayerAvailability,
-  matchFixtures,
-  matchResults,
-  getMatchScore
+  getPlayerAvailability, 
+  setPlayerAvailability, 
+  matchFixtures, 
+  matchResults, 
+  getMatchScore 
 }) => {
   const [adminMode, setAdminMode] = React.useState(false);
+
   // Check if user is admin
   const isAdmin = currentUser?.role === 'admin';
 
   // Check if user is in the selected season's ladder
   const userInSeason = ladderPlayers?.find(player => player.id === currentUser.id);
-
-  // Helper to check if a match is complete
-  const isMatchComplete = (matchId) => {
-    const matchGameFixtures = matchFixtures?.filter(f => f.match_id === matchId) || [];
-    if (matchGameFixtures.length === 0) return false;
-
-    const completedGames = matchGameFixtures.filter(fixture =>
-      matchResults?.some(result => result.fixture_id === fixture.id)
-    ).length;
-
-    return completedGames === matchGameFixtures.length && matchGameFixtures.length > 0;
-  };
 
   if (!userInSeason && !isAdmin) {
     return (
@@ -72,6 +61,17 @@ const AvailabilityTab = ({
     return matchDate < today;
   }) || [];
 
+  // Helper to check if a match is complete
+  const isMatchComplete = (matchId) => {
+    const matchGameFixtures = matchFixtures.filter(f => f.match_id === matchId);
+    if (matchGameFixtures.length === 0) return false;
+    
+    const completedGames = matchGameFixtures.filter(fixture => 
+      matchResults.some(result => result.fixture_id === fixture.id)
+    ).length;
+    
+    return completedGames === matchGameFixtures.length && matchGameFixtures.length > 0;
+  };
 
   // Helper to get player's scores for a match
   const getPlayerScoresForMatch = (matchId) => {

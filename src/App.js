@@ -299,9 +299,11 @@ const CawoodTennisApp = () => {
               selectedSeason={selectedSeason} // NEW: Pass selected season for status checks
               ladderPlayers={ladderPlayers} // NEW: Pass ladder players to check membership
               getPlayerAvailability={helpers?.getPlayerAvailability || (() => undefined)}
-              setPlayerAvailability={(matchId, available) => {
+              setPlayerAvailability={(matchId, available, playerId) => {
                 if (actions?.setPlayerAvailability) {
-                  actions.setPlayerAvailability(matchId, available, user.id);
+                  // Use provided playerId (for admin mode) or default to current user
+                  const targetPlayerId = playerId || user.id;
+                  actions.setPlayerAvailability(matchId, available, targetPlayerId);
                 }
               }}
               matchFixtures={matchFixtures}
