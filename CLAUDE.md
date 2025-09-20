@@ -18,9 +18,9 @@
 - **Frontend**: "react"
 
 ## Supabase Implementation Details
-- **Project URL**: https://hwpjrkmplydqaxiikupv.supabase.co
-- **Project Reference**: hwpjrkmplydqaxiikupv
-- **Anonymous Key**: eyJhbGciOiJIUzI1NiIs... (truncated for security)
+- **Project URL**: [Configured via environment variables]
+- **Project Reference**: [Configured via environment variables]
+- **Anonymous Key**: [Configured via environment variables]
 - **Database Schema Files**: 
   - /Users/jonbest/Documents/GitHub/DoublesLadder.Old/elo_management_functions.sql
 
