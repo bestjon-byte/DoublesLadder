@@ -109,30 +109,30 @@ const MatchesTab = ({
                     selectedSeason?.matches?.find(m => m.id === matchId);
       
       if (!match) {
-        console.error('Match not found for preview');
+        // Match not found for preview
         return;
       }
 
-      console.log('Generating preview for match:', match);
+      // Generating preview for match
 
       // Use the users prop directly - it now contains the correct season players from ladderPlayers
       // The users prop is now passed as ladderPlayers from App.js, so we don't need complex lookup logic
       const ladderPlayers = users || [];
-      console.log('Using ladder players from props:', ladderPlayers.length, 'players');
+      // Using ladder players from props
       
       // Filter available players for this match
       const availablePlayers = ladderPlayers.filter(user => {
         const userAvailability = availability.find(
           a => a.player_id === user.id && a.match_date === match.match_date
         );
-        console.log(`User ${user.name || user.id} availability:`, userAvailability);
+        // Check user availability
         return userAvailability?.is_available === true;
       });
 
-      console.log('Available players for this match:', availablePlayers);
+      // Available players for this match
 
       if (availablePlayers.length === 0) {
-        console.warn('No available players found for preview');
+        // No available players found for preview
         setWinPercentPreview([]);
         setEloPreview([]);
         return;
@@ -146,9 +146,9 @@ const MatchesTab = ({
           win_percentage: Math.round((player.games_won || 0) / Math.max(player.games_played || 1, 1) * 100)
         }));
       
-      console.log('Win% sorted players:', winPercentSorted);
+      // Win% sorted players
       const winPercentCourts = generateCourtPreview(winPercentSorted);
-      console.log('Win% courts:', winPercentCourts);
+      // Win% courts
       setWinPercentPreview(winPercentCourts);
 
       // Generate ELO preview (sorted by ELO rating)
@@ -164,9 +164,9 @@ const MatchesTab = ({
           initialRating
         }));
       
-      console.log('ELO sorted players:', eloSorted);
+      // ELO sorted players
       const eloCourts = generateCourtPreview(eloSorted);
-      console.log('ELO courts:', eloCourts);
+      // ELO courts
       setEloPreview(eloCourts);
 
     } catch (error) {

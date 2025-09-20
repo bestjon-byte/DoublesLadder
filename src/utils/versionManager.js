@@ -13,17 +13,17 @@ class VersionManager {
   async init() {
     if ('serviceWorker' in navigator) {
       try {
-        console.log('[VM] Registering service worker...');
+        // Registering service worker
         this.swRegistration = await navigator.serviceWorker.register('/sw.js');
         
         // Listen for service worker updates
         this.swRegistration.addEventListener('updatefound', () => {
-          console.log('[VM] New service worker found, installing...');
+          // New service worker found, installing
           const newWorker = this.swRegistration.installing;
           
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[VM] New version available!');
+              // New version available
               this.updateAvailable = true;
               this.notifyListeners('updateAvailable', { version: this.currentVersion });
             }
@@ -32,7 +32,7 @@ class VersionManager {
 
         // Listen for service worker messages
         navigator.serviceWorker.addEventListener('message', (event) => {
-          console.log('[VM] Received message from SW:', event.data);
+          // Received message from service worker
           
           if (event.data.type === 'NEW_VERSION_ACTIVE') {
             this.notifyListeners('newVersionActive', event.data);
@@ -47,7 +47,7 @@ class VersionManager {
         // Initial check
         this.checkForUpdates();
         
-        console.log('[VM] Version manager initialized successfully');
+        // Version manager initialized successfully
         return true;
       } catch (error) {
         console.error('[VM] Service worker registration failed:', error);
@@ -64,7 +64,7 @@ class VersionManager {
     if (this.swRegistration) {
       try {
         await this.swRegistration.update();
-        console.log('[VM] Checked for updates');
+        // Checked for updates
       } catch (error) {
         console.error('[VM] Update check failed:', error);
       }
@@ -76,7 +76,7 @@ class VersionManager {
     if (this.swRegistration && this.updateAvailable) {
       const newWorker = this.swRegistration.waiting;
       if (newWorker) {
-        console.log('[VM] Applying update...');
+        // Applying update
         newWorker.postMessage({ type: 'SKIP_WAITING' });
         
         // Reload page after a short delay
@@ -98,7 +98,7 @@ class VersionManager {
         const messageChannel = new MessageChannel();
         messageChannel.port1.onmessage = (event) => {
           if (event.data.type === 'CACHE_CLEARED') {
-            console.log('[VM] Cache cleared, reloading...');
+            // Cache cleared, reloading
             window.location.reload();
           }
         };

@@ -61,7 +61,6 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
     }
 
     // Fetching match results for selected season only
-    console.log('🔍 Fetching match results for season:', targetSeasonId);
 
     const { data, error } = await supabase
       .from('match_results')
@@ -89,7 +88,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       result.fixture?.match?.season_id === targetSeasonId
     ) || [];
 
-    console.log(`✅ Found ${filteredData.length} match results for season ${targetSeasonId}`);
+    // Match results fetched successfully
     return filteredData;
   };
 
@@ -189,10 +188,10 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
         const challenge = challenges.find(c => c.id === challengeId);
         if (challenge?.fixture_id) {
           try {
-            console.log('🎯 Updating ELO ratings after score correction...');
+            // Updating ELO ratings after score correction
             const eloResult = await updateMatchElos(challenge.fixture_id, newScore);
             if (eloResult.success) {
-              console.log('✅ ELO ratings updated successfully');
+              // ELO ratings updated successfully
             } else {
               console.warn('⚠️ ELO update failed (non-critical):', eloResult.error);
             }
@@ -261,14 +260,14 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
         // Update ELO ratings if fixture ID is available and ELO is enabled
         if (fixtureId) {
           try {
-            console.log('🎯 Updating ELO ratings after score edit...');
+            // Updating ELO ratings after score edit
             const newScore = {
               pair1_score: parseInt(editForm.pair1_score),
               pair2_score: parseInt(editForm.pair2_score)
             };
             const eloResult = await updateMatchElos(fixtureId, newScore);
             if (eloResult.success) {
-              console.log('✅ ELO ratings updated successfully');
+              // ELO ratings updated successfully
             } else {
               console.warn('⚠️ ELO update failed (non-critical):', eloResult.error);
             }
