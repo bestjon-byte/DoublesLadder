@@ -1,6 +1,6 @@
 // League Import Modal - New Implementation
 import React, { useState, useEffect } from 'react';
-import { X, Globe, AlertCircle, CheckCircle, Download, FileText, Users, UserPlus } from 'lucide-react';
+import { X, AlertCircle, CheckCircle, FileText, Users, UserPlus } from 'lucide-react';
 import { parseLeagueMatchFromText } from '../../utils/leagueTextParser';
 import { findPlayerMatches, identifyCawoodPlayers, generateDummyEmail, getCachedPlayerMatches, saveCachedPlayerMatch } from '../../utils/playerMatcher';
 
@@ -14,7 +14,6 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
   const [cachedMatches, setCachedMatches] = useState([]);
   const [playerMatches, setPlayerMatches] = useState([]);
   const [matchingData, setMatchingData] = useState(null);
-  const [importSuccess, setImportSuccess] = useState(false);
 
   // Fetch existing players and cached matches on component mount
   useEffect(() => {
@@ -413,7 +412,7 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
 
     try {
       const { matchDate, homeTeam, awayTeam, scoringMatrix } = result;
-      const { cawoodPlayers, opponentPlayers, opponentClub, cawoodIsHome } = matchingData;
+      const { opponentPlayers, opponentClub, cawoodIsHome } = matchingData;
 
       // Extract team name (1sts or 2nds) from Cawood team name
       const cawoodTeamName = cawoodIsHome ? homeTeam : awayTeam;
@@ -573,7 +572,6 @@ const LeagueImportModal = ({ isOpen, onClose, supabase, selectedSeason }) => {
         }
       }
 
-      setImportSuccess(true);
       setStep('success');
       
     } catch (err) {

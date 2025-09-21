@@ -1,6 +1,6 @@
 // src/components/Notifications/NotificationSettings.js
-import React, { useState, useEffect } from 'react';
-import { Bell, BellOff, Check, X, Settings } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Bell, BellOff, Settings } from 'lucide-react';
 import { notificationManager } from '../../utils/notificationManager';
 
 const NotificationSettings = ({ currentUser, onSettingsUpdate }) => {
@@ -14,26 +14,26 @@ const NotificationSettings = ({ currentUser, onSettingsUpdate }) => {
     rankingUpdates: true,
   });
 
-  useEffect(() => {
-    checkSubscriptionStatus();
-    loadUserSettings();
-  }, [currentUser]);
-
-  const checkSubscriptionStatus = async () => {
-    if (!notificationManager.isSupported) return;
-    
-    await notificationManager.init();
-    const subscription = await notificationManager.getSubscription();
-    setIsSubscribed(!!subscription);
-  };
-
-  const loadUserSettings = () => {
+  const loadUserSettings = useCallback(() => {
     // In a real app, this would load from your database
     const savedSettings = localStorage.getItem(`notifications_${currentUser?.id}`);
     if (savedSettings) {
       setSettings(JSON.parse(savedSettings));
     }
+  }, [currentUser?.id]);
+
+  const checkSubscriptionStatus = async () => {
+    if (!notificationManager.isSupported) return;
+
+    await notificationManager.init();
+    const subscription = await notificationManager.getSubscription();
+    setIsSubscribed(!!subscription);
   };
+
+  useEffect(() => {
+    checkSubscriptionStatus();
+    loadUserSettings();
+  }, [currentUser, loadUserSettings]);
 
   const saveSettings = (newSettings) => {
     setSettings(newSettings);

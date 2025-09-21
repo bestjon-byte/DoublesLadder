@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useEloCalculations } from '../../hooks/useEloCalculations';
 import { getEloRankLabel, getEloRankColor } from '../../utils/eloCalculator';
@@ -11,22 +11,14 @@ const EloSeedingModal = ({ isOpen, onClose, season, onSuccess }) => {
   const [csvData, setCsvData] = useState('');
   const [previousSeasons, setPreviousSeasons] = useState([]);
   const [selectedPreviousSeason, setSelectedPreviousSeason] = useState('');
-  
-  const { 
-    bulkUpdatePlayerElos, 
-    copyElosFromPreviousSeason, 
-    triggerEloRecalculation,
-    updateSeasonEloSettings
+
+  const {
+    bulkUpdatePlayerElos,
+    copyElosFromPreviousSeason,
+    triggerEloRecalculation
   } = useEloCalculations();
 
-  useEffect(() => {
-    if (isOpen && season) {
-      fetchSeasonPlayers();
-      fetchPreviousSeasons();
-    }
-  }, [isOpen, season]);
-
-  const fetchSeasonPlayers = async () => {
+  const fetchSeasonPlayers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('season_players')
@@ -46,9 +38,9 @@ const EloSeedingModal = ({ isOpen, onClose, season, onSuccess }) => {
     } catch (error) {
       console.error('Error fetching season players:', error);
     }
-  };
+  }, [season]);
 
-  const fetchPreviousSeasons = async () => {
+  const fetchPreviousSeasons = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('seasons')
@@ -62,7 +54,14 @@ const EloSeedingModal = ({ isOpen, onClose, season, onSuccess }) => {
     } catch (error) {
       console.error('Error fetching previous seasons:', error);
     }
-  };
+  }, [season]);
+
+  useEffect(() => {
+    if (isOpen && season) {
+      fetchSeasonPlayers();
+      fetchPreviousSeasons();
+    }
+  }, [isOpen, season, fetchSeasonPlayers, fetchPreviousSeasons]);
 
   const handlePlayerEloChange = (playerId, newRating) => {
     const rating = Math.max(500, Math.min(3000, parseInt(newRating) || 1200));

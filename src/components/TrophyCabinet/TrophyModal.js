@@ -1,6 +1,6 @@
 // src/components/TrophyCabinet/TrophyModal.js
 import React, { useState, useEffect } from 'react';
-import { X, Trophy, Users, Calendar, Star, Shield, Award } from 'lucide-react';
+import { X, Trophy, Star } from 'lucide-react';
 
 const TrophyModal = ({ 
   isOpen, 
@@ -28,7 +28,6 @@ const TrophyModal = ({
 
   const [errors, setErrors] = useState({});
   const [previewMode, setPreviewMode] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
   // Trophy type options with descriptions
@@ -97,7 +96,7 @@ const TrophyModal = ({
         });
       }
       setErrors({});
-      setImageFile(null);
+      // setImageFile(null);
       setImagePreview(null);
     }
   }, [isOpen, trophy]);
@@ -159,7 +158,7 @@ const TrophyModal = ({
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
+      // setImageFile(file);
       
       // Create preview URL
       const reader = new FileReader();
@@ -171,7 +170,7 @@ const TrophyModal = ({
   };
 
   const removeImage = () => {
-    setImageFile(null);
+    // setImageFile(null);
     setImagePreview(null);
     handleInputChange('trophy_image_url', '');
   };

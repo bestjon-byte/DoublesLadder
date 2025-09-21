@@ -51,7 +51,7 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
       } else if (authMode === 'register') {
         // Attempting user registration with provided details
         
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email: authForm.email,
           password: authForm.password,
           options: {

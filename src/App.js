@@ -152,8 +152,6 @@ const CawoodTennisApp = () => {
         setShowScheduleModal(false);
         setNewMatchDate('');
       }
-    } else {
-      console.error('❌ No addMatchToSeason action available');
     }
   };
 
@@ -212,7 +210,6 @@ const CawoodTennisApp = () => {
                       try {
                         await authActions.signOut();
                       } catch (error) {
-                        console.error('❌ Logout failed:', error);
                         alert('Error signing out. Please try again.');
                       }
                     }

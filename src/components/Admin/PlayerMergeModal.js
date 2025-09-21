@@ -1,6 +1,6 @@
 // src/components/Admin/PlayerMergeModal.js
 import React, { useState, useEffect } from 'react';
-import { X, Search, ArrowRight, AlertTriangle, CheckCircle, Users, ToggleLeft, ToggleRight } from 'lucide-react';
+import { X, Search, ArrowRight, AlertTriangle, CheckCircle } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useAppToast } from '../../contexts/ToastContext';
 
@@ -222,11 +222,11 @@ const PlayerMergeModal = ({
       ];
 
       for (const update of fixtureUpdates) {
-        const { error, count } = await supabase
+        const { error } = await supabase
           .from('match_fixtures')
           .update({ [update.field]: selectedRealUser.id })
           .eq(update.field, selectedCsvPlayer.id);
-        
+
         if (error) {
           console.warn(`Warning updating ${update.desc}:`, error);
         }
@@ -243,7 +243,7 @@ const PlayerMergeModal = ({
 
       // Step 4: Update availability records
       // Updating availability records for merged player
-      const { error: availError, count: availCount } = await supabase
+      const { error: availError } = await supabase
         .from('availability')
         .update({ player_id: selectedRealUser.id })
         .eq('player_id', selectedCsvPlayer.id);
@@ -255,7 +255,7 @@ const PlayerMergeModal = ({
 
       // Step 5: Update any score challenges
       // Updating score challenges for merged player
-      const { error: challengesError, count: challengesCount } = await supabase
+      const { error: challengesError } = await supabase
         .from('score_challenges')
         .update({ challenger_id: selectedRealUser.id })
         .eq('challenger_id', selectedCsvPlayer.id);
@@ -267,7 +267,7 @@ const PlayerMergeModal = ({
 
       // Step 6: Update any score conflicts
       // Updating score conflicts for merged player
-      const { error: conflictsError, count: conflictsCount } = await supabase
+      const { error: conflictsError } = await supabase
         .from('score_conflicts')
         .update({ conflicting_user_id: selectedRealUser.id })
         .eq('conflicting_user_id', selectedCsvPlayer.id);
@@ -567,17 +567,15 @@ const PlayerMergeModal = ({
         { table: 'player_match_cache', field: 'matched_player_id' }
       ];
 
-      let hasRemainingReferences = false;
       for (const query of verificationQueries) {
         const { data: remaining } = await supabase
           .from(query.table)
           .select('id')
           .eq(query.field, selectedSourcePlayer.id)
           .limit(1);
-        
+
         if (remaining && remaining.length > 0) {
           console.warn(`Remaining references in ${query.table}.${query.field}`);
-          hasRemainingReferences = true;
         }
       }
 
@@ -590,7 +588,6 @@ const PlayerMergeModal = ({
 
       if (remainingFixtures && remainingFixtures.length > 0) {
         console.warn('Remaining fixture references found');
-        hasRemainingReferences = true;
       }
 
       // Attempt to delete the source profile

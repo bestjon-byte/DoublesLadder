@@ -66,7 +66,7 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
     try {
       // Attempting to update user password
       
-      const { data, error } = await supabase.auth.updateUser({
+      const { error } = await supabase.auth.updateUser({
         password: password
       });
 

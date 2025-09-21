@@ -1,5 +1,5 @@
 // src/components/Admin/ScoreChallengesSection.js - ENHANCED WITH CHALLENGE REVIEW
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Flag, Check, X, Edit, AlertTriangle, Clock } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { fetchScoreChallenges, fetchScoreConflicts } from '../../utils/scoreSubmission';
@@ -14,37 +14,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
   const [editForm, setEditForm] = useState({ pair1_score: '', pair2_score: '' });
   const [activeTab, setActiveTab] = useState('challenges'); // challenges, conflicts, results
 
-  useEffect(() => {
-    // Fetch challenges, conflicts, and results data for the selected season
-    fetchAllData();
-  }, [selectedSeason?.id, currentSeason?.id]); // Re-fetch when selected or current season changes
-
-  const fetchAllData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch challenges, conflicts, and results in parallel
-      const [challengesData, conflictsData, resultsData] = await Promise.all([
-        fetchScoreChallenges(selectedSeason?.id),
-        fetchScoreConflicts(selectedSeason?.id), 
-        fetchMatchResults(selectedSeason?.id)
-      ]);
-      
-      // Data fetched successfully from all endpoints
-      
-      setChallenges(challengesData || []);
-      setConflicts(conflictsData || []);
-      setAllResults(resultsData || []);
-      
-    } catch (error) {
-      console.error('❌ Error fetching data:', error);
-      alert('Error loading challenges: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMatchResults = async (seasonId) => {
+  const fetchMatchResults = useCallback(async (seasonId) => {
     // Use the provided seasonId or fall back to current season
     const targetSeasonId = seasonId || currentSeason?.id;
 
@@ -91,7 +61,37 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
 
     console.log(`✅ Found ${filteredData.length} match results for season ${targetSeasonId}`);
     return filteredData;
-  };
+  }, [currentSeason, selectedSeason]);
+
+  const fetchAllData = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Fetch challenges, conflicts, and results in parallel
+      const [challengesData, conflictsData, resultsData] = await Promise.all([
+        fetchScoreChallenges(selectedSeason?.id),
+        fetchScoreConflicts(selectedSeason?.id),
+        fetchMatchResults(selectedSeason?.id)
+      ]);
+
+      // Data fetched successfully from all endpoints
+
+      setChallenges(challengesData || []);
+      setConflicts(conflictsData || []);
+      setAllResults(resultsData || []);
+
+    } catch (error) {
+      console.error('❌ Error fetching data:', error);
+      alert('Error loading challenges: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedSeason?.id, currentSeason?.id, fetchMatchResults]);
+
+  useEffect(() => {
+    // Fetch challenges, conflicts, and results data for the selected season
+    fetchAllData();
+  }, [selectedSeason?.id, currentSeason?.id, fetchAllData]); // Re-fetch when selected or current season changes
 
  const resolveChallenge = async (challengeId, decision, newScore = null) => {
     // Prevent resolving challenges for completed seasons
@@ -112,7 +112,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
           // Creating corrected score record
           
           // Create new result record with corrected score
-          const { data: correctedResult, error: createError } = await supabase
+          const { error: createError } = await supabase
             .from('match_results')
             .insert({
               fixture_id: challenge.fixture_id,
@@ -163,7 +163,7 @@ const ScoreChallengesSection = ({ currentUser, currentSeason, activeSeason, sele
       
       // Sending challenge update to database
       
-      const { data: updateResult, error: challengeError } = await supabase
+      const { error: challengeError } = await supabase
         .from('score_challenges')
         .update(updateData)
         .eq('id', challengeId)

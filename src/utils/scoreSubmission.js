@@ -13,7 +13,6 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
       .maybeSingle();
 
     if (checkError) {
-      console.error('❌ Error checking existing result:', checkError);
       throw new Error(`Error checking existing result: ${checkError.message}`);
     }
 
@@ -35,7 +34,6 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
         });
 
       if (conflictError) {
-        console.error('❌ Error creating conflict record:', conflictError);
         throw new Error(`Error creating conflict record: ${conflictError.message}`);
       }
 

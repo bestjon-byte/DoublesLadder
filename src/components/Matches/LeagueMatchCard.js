@@ -1,5 +1,5 @@
 // LeagueMatchCard - Displays league matches with expandable rubber details
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronDown, Users, Trophy, Calendar } from 'lucide-react';
 
 const LeagueMatchCard = ({ match, fixture, supabase }) => {
@@ -12,18 +12,18 @@ const LeagueMatchCard = ({ match, fixture, supabase }) => {
     if (!rubberDetails.length) {
       fetchRubberDetails();
     }
-  }, []);
+  }, [fetchRubberDetails, rubberDetails.length]);
 
   // Additional fetch when expanded if needed
   useEffect(() => {
     if (expanded && !rubberDetails.length) {
       fetchRubberDetails();
     }
-  }, [expanded]);
+  }, [expanded, fetchRubberDetails, rubberDetails.length]);
 
-  const fetchRubberDetails = async () => {
+  const fetchRubberDetails = useCallback(async () => {
     if (!supabase || !fixture?.id) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -45,7 +45,7 @@ const LeagueMatchCard = ({ match, fixture, supabase }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase, fixture?.id]);
 
   const formatMatchDate = (dateString) => {
     const date = new Date(dateString);

@@ -1,6 +1,6 @@
 // src/components/Ladder/LadderTab.js - RENAMED to support League expansion
 import React, { useState } from 'react';
-import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo, formatLeagueStats } from '../../utils/helpers';
+import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo } from '../../utils/helpers';
 import { getEloRankColor } from '../../utils/eloCalculator';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 

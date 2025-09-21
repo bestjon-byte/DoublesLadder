@@ -36,7 +36,6 @@ export const useAuth = () => {
       const { data: profile, error } = result;
 
       if (error) {
-        console.error('❌ Profile error:', error);
         if (error.code === 'PGRST116') {
           return null;
         }
@@ -47,8 +46,6 @@ export const useAuth = () => {
       return profile;
     } catch (error) {
       if (error.message === 'Profile query timeout') {
-        console.error('💥 Profile query timed out - database connection issue');
-        
         // Try to continue without profile data
         return {
           id: userId,
@@ -58,7 +55,6 @@ export const useAuth = () => {
           role: 'player'
         };
       } else {
-        console.error('💥 Error loading profile:', error);
         return null;
       }
     }
@@ -77,7 +73,6 @@ export const useAuth = () => {
       });
       
       if (error) {
-        console.error('❌ Login error:', error);
         setError(error);
         return { success: false, error };
       }
@@ -86,7 +81,6 @@ export const useAuth = () => {
       
       return { success: true, user: profile };
     } catch (error) {
-      console.error('💥 Unexpected error:', error);
       setError(error);
       return { success: false, error };
     } finally {
@@ -110,14 +104,12 @@ export const useAuth = () => {
       });
       
       if (error) {
-        console.error('❌ Registration error:', error);
         setError(error);
         return { success: false, error };
       }
       
       return { success: true, needsApproval: true };
     } catch (error) {
-      console.error('💥 Unexpected error:', error);
       setError(error);
       return { success: false, error };
     } finally {
@@ -132,7 +124,6 @@ export const useAuth = () => {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('❌ Supabase signout error:', error);
         throw error;
       }
       
@@ -141,7 +132,6 @@ export const useAuth = () => {
       setError(null);
       return { success: true };
     } catch (error) {
-      console.error('❌ Error signing out:', error);
       setError(error);
       return { success: false, error };
     } finally {
@@ -160,7 +150,6 @@ export const useAuth = () => {
       });
 
       if (error) {
-        console.error('❌ Password reset error:', error);
         setError(error);
         return { success: false, error };
       }
@@ -186,7 +175,6 @@ export const useAuth = () => {
       });
 
       if (error) {
-        console.error('❌ Password update error:', error);
         setError(error);
         return { success: false, error };
       }
@@ -232,7 +220,6 @@ export const useAuth = () => {
         if (!isActive) return; // Component unmounted
         
         if (error) {
-          console.error('❌ Session error:', error);
           setError(error);
           setLoading(false);
           return;
@@ -269,16 +256,15 @@ export const useAuth = () => {
                   });
                 
                 if (syncError) {
-                  console.warn('⚠️ Background profile sync failed:', syncError);
+                  // Background sync failed - not critical
                 }
               } catch (syncError) {
-                console.warn('⚠️ Background sync error:', syncError);
+                // Background sync error - not critical
               }
             }, 1000);
           }
         }
       } catch (error) {
-        console.error('💥 Auth initialization failed:', error);
         if (isActive) {
           setError(error);
         }
