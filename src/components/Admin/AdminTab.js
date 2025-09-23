@@ -12,6 +12,7 @@ import LeagueImportModal from './LeagueImportModal';
 import SinglesImportModal from './SinglesImportModal';
 import AddExternalPlayerModal from './AddExternalPlayerModal';
 import EloSeedingModal from './EloSeedingModal';
+import UsageStatsSection from './UsageStatsSection';
 
 const AdminTab = ({ 
   users, 
@@ -665,6 +666,14 @@ const AdminTab = ({
           if (fetchUsers) fetchUsers();
         }}
       />
+
+      {/* Usage Statistics Section */}
+      <div className="mt-8 pt-8 border-t border-gray-200">
+        <UsageStatsSection
+          currentSeason={currentSeason}
+          selectedSeason={selectedSeason}
+        />
+      </div>
 
     </div>
   );
