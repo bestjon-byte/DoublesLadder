@@ -25,6 +25,10 @@
       "dest": "/static/$1"
     },
     {
+      "src": "/club-logo.png",
+      "dest": "/club-logo.png"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
