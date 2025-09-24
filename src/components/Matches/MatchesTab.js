@@ -1,10 +1,11 @@
 // src/components/Matches/MatchesTab.js - FIXED for today's dates
 import React, { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, MessageCircle } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 import LeagueMatchCard from './LeagueMatchCard';
 import EnhancedMatchResult from './EnhancedMatchResult';
 import SchedulingOptionsModal from '../Modals/SchedulingOptionsModal';
+import WhatsAppPostGenerator from '../WhatsApp/WhatsAppPostGenerator';
 
 const MatchesTab = ({ 
   currentUser, 
@@ -32,6 +33,9 @@ const MatchesTab = ({
   const [winPercentPreview, setWinPercentPreview] = useState([]);
   const [eloPreview, setEloPreview] = useState([]);
   const [isLoadingPreviews, setIsLoadingPreviews] = useState(false);
+  // State for WhatsApp post generator
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppMatchData, setWhatsAppMatchData] = useState(null);
 
   // Refresh data when component mounts or season changes
   useEffect(() => {
@@ -638,6 +642,29 @@ const MatchesTab = ({
                     </div>
                     
                     <div className="flex items-center space-x-2">
+                      {/* WhatsApp button - Available for all ladder matches */}
+                      {selectedSeason?.season_type === 'ladder' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const matchFixtures = courtFixtures.length > 0 ?
+                              courtFixtures.flatMap(court => court.fixtures) :
+                              null;
+                            setWhatsAppMatchData({
+                              match,
+                              fixtures: matchFixtures,
+                              users,
+                              availabilityStats: stats
+                            });
+                            setShowWhatsAppModal(true);
+                          }}
+                          className="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center space-x-1"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span>WhatsApp</span>
+                        </button>
+                      )}
+
                       {/* Admin Controls - Always visible - FIXED: Allow today's matches */}
                       {isAdmin && !isSeasonCompleted && matchStatus === 'future-no-fixtures' && stats.available >= 4 && (
                         <button
@@ -815,8 +842,22 @@ const MatchesTab = ({
         )
       )}
 
+      {/* WhatsApp Post Generator Modal */}
+      {showWhatsAppModal && whatsAppMatchData && (
+        <WhatsAppPostGenerator
+          match={whatsAppMatchData.match}
+          fixtures={whatsAppMatchData.fixtures}
+          users={whatsAppMatchData.users}
+          availabilityStats={whatsAppMatchData.availabilityStats}
+          onClose={() => {
+            setShowWhatsAppModal(false);
+            setWhatsAppMatchData(null);
+          }}
+        />
+      )}
+
       {/* Scheduling Options Modal */}
-      <SchedulingOptionsModal 
+      <SchedulingOptionsModal
         showModal={showSchedulingModal}
         setShowModal={setShowSchedulingModal}
         availablePlayersCount={pendingAvailableCount}
