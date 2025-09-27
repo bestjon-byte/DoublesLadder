@@ -67,8 +67,8 @@ const WhatsAppPostGenerator = ({
 
         // Create a beautiful table for matches
         message.push('```');
-        message.push('Match | Pair 1      vs  Pair 2');
-        message.push('------|------------------------');
+        message.push('Match | Pair 1           vs  Pair 2');
+        message.push('------|----------------------------------');
 
         courtFixtures.forEach((fixture, index) => {
           const pair1Names = [fixture.player1?.name, fixture.player2?.name].filter(Boolean);
@@ -78,19 +78,18 @@ const WhatsAppPostGenerator = ({
           const pair1 = pair1Names.join(' & ');
           const pair2 = pair2Names.join(' & ');
 
-          // Create properly aligned table row
-          const matchNum = `  ${index + 1}`;
-          const vs = 'vs';
-          const maxPair1Length = 12;
+          // Create properly aligned table row with more space
+          const matchNum = `  ${index + 1}  `;
+          const maxPair1Length = 15;
           const pair1Padded = pair1.length > maxPair1Length ?
             pair1.substring(0, maxPair1Length - 1) + '…' :
             pair1.padEnd(maxPair1Length);
 
-          message.push(`${matchNum}   | ${pair1Padded} ${vs} ${pair2}`);
+          message.push(`${matchNum} | ${pair1Padded} vs ${pair2}`);
 
           // Show sitting player on separate line if exists
           if (fixture.sitting_player) {
-            message.push(`      | (${fixture.sitting_player.name} sitting)`);
+            message.push(`       | (${fixture.sitting_player.name} sitting)`);
           }
         });
         message.push('```');
