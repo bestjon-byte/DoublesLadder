@@ -6,7 +6,7 @@ import LeagueMatchCard from './LeagueMatchCard';
 import EnhancedMatchResult from './EnhancedMatchResult';
 import SchedulingOptionsModal from '../Modals/SchedulingOptionsModal';
 import WhatsAppPostGenerator from '../WhatsApp/WhatsAppPostGenerator';
-import DraggableMatchList from './DraggableMatchList';
+import ReorderableMatchList from './ReorderableMatchList';
 
 const MatchesTab = ({ 
   currentUser, 
@@ -741,8 +741,8 @@ const MatchesTab = ({
                           </div>
                         )}
 
-                        {/* Draggable Court Fixtures */}
-                        <DraggableMatchList
+                        {/* Reorderable Court Fixtures */}
+                        <ReorderableMatchList
                           courtFixtures={courtFixtures}
                           getMatchScore={getMatchScore}
                           canUserEnterScores={canUserEnterScores}
