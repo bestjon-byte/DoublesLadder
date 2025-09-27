@@ -206,7 +206,7 @@ const CawoodTennisApp = () => {
               
               {/* Right: Guide and Sign Out */}
               <div className="flex items-center space-x-2">
-                {selectedSeason?.type === 'ladder' && (
+                {selectedSeason?.season_type === 'ladder' && (
                   <button
                     onClick={() => setShowPlayersGuide(true)}
                     className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-3 py-1.5 rounded transition-colors min-h-[44px] flex items-center text-sm"
