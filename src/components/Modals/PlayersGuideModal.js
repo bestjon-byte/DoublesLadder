@@ -23,155 +23,125 @@ const PlayersGuideModal = ({ showModal, setShowModal }) => {
 
             {/* Welcome Section */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">Welcome to the Tennis Ladder! 🎾</h3>
-              <p className="text-gray-700 mb-4">
-                This guide explains how our tennis ladder system works, including scheduling, rankings, and prizes.
+              <p className="text-gray-700 mb-4 text-lg">
+                Welcome to the Tennis Ladder! This guide covers everything you need to know about our ranking system, match scheduling, and how to compete for prizes.
               </p>
             </div>
 
-            {/* How the Ladder Works */}
+            {/* How Rankings Work */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">How the Ladder Works</h3>
+              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">How Rankings Work</h3>
 
-              <h4 className="text-lg font-medium text-gray-800 mb-3">Ranking System</h4>
-              <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-                <li><strong>Primary Ranking</strong>: Determined by <strong>win percentage</strong> (wins ÷ total matches played)</li>
-                <li><strong>ELO Rating</strong>: Used for fair match scheduling and skill assessment</li>
-                <li><strong>Minimum Matches</strong>: Players must complete a minimum number of matches to be eligible for prizes</li>
+              <h4 className="text-lg font-medium text-gray-800 mb-3">Your Position on the Ladder</h4>
+              <p className="text-gray-700 mb-4">
+                Your ladder position is based on your <strong>win percentage</strong> - simply the number of games you've won divided by your total games played.
+              </p>
+
+              <h4 className="text-lg font-medium text-gray-800 mb-3">ELO Rating</h4>
+              <p className="text-gray-700 mb-2">We also use an ELO rating system to:</p>
+              <ul className="list-disc list-inside text-gray-700 mb-4 space-y-1">
+                <li>Schedule fair matches between players of similar skill levels</li>
+                <li>Track your improvement over time</li>
+                <li>Ensure competitive, enjoyable games</li>
               </ul>
+              <p className="text-gray-700 mb-4 italic">
+                How ELO works: Beat a higher-rated player and your rating jumps up significantly. Beat a lower-rated player and it rises slightly. The reverse happens when you lose.
+              </p>
 
-              <h4 className="text-lg font-medium text-gray-800 mb-3">Champions & Prizes</h4>
-              <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-                <li><strong>Men's Champion</strong>: Player with highest win percentage at season end</li>
-                <li><strong>Ladies Champion</strong>: Player with highest win percentage at season end</li>
-                <li><strong>Most Improved Prize</strong>: Player with the greatest ELO rating improvement during the season</li>
+              <h4 className="text-lg font-medium text-gray-800 mb-3">Minimum Games Requirement</h4>
+              <p className="text-gray-700 mb-4">
+                You must play at least <strong>3 matches</strong> during the season to be eligible for prizes.
+              </p>
+            </div>
+
+            {/* Prizes */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">Prizes</h3>
+              <p className="text-gray-700 mb-2">At the end of each season, we award:</p>
+              <ul className="list-disc list-inside text-gray-700 mb-4 space-y-1">
+                <li><strong>Men's Champion</strong> - highest win percentage</li>
+                <li><strong>Ladies Champion</strong> - highest win percentage</li>
+                <li><strong>Most Improved Player</strong> - biggest ELO rating increase during the season</li>
               </ul>
             </div>
 
-            {/* Match Scheduling */}
+            {/* Match Schedule */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">Match Scheduling</h3>
-
-              <h4 className="text-lg font-medium text-gray-800 mb-3">How Matches Are Scheduled</h4>
-              <ol className="list-decimal list-inside text-gray-700 mb-4 space-y-2">
-                <li>Matches are scheduled based on <strong>ELO ratings</strong> to ensure fair competition</li>
-                <li>Players with similar skill levels (ELO ratings) are paired together</li>
-                <li>The system will automatically suggest match pairings each week</li>
-                <li>Players coordinate directly to arrange specific times within the scheduled week</li>
-              </ol>
-
-              <h4 className="text-lg font-medium text-gray-800 mb-3">Court Format & Game Rules</h4>
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <h5 className="font-semibold text-green-800 mb-2">5 Players on Court</h5>
-                <ul className="list-disc list-inside text-green-700 space-y-1">
-                  <li><strong>Format</strong>: 8 games total</li>
-                  <li><strong>Structure</strong>: Rotating doubles with one player sitting out each game</li>
-                  <li><strong>Rotation</strong>: Each player sits out approximately 1-2 games to ensure equal playing time</li>
-                </ul>
-              </div>
-
+              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">Match Schedule</h3>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h5 className="font-semibold text-blue-800 mb-2">4 Players on Court</h5>
-                <ul className="list-disc list-inside text-blue-700 space-y-1">
-                  <li><strong>Format</strong>: 10 games total</li>
-                  <li><strong>Structure</strong>: Straight doubles (2v2 throughout)</li>
-                  <li><strong>Teams</strong>: May rotate or stay consistent depending on player preference and fairness</li>
-                </ul>
+                <p className="text-blue-800 font-semibold">
+                  <strong>When:</strong> Sunday mornings at 10:00 AM sharp
+                </p>
+                <p className="text-blue-700 text-sm mt-1">
+                  <strong>Important:</strong> Arrive early to warm up - matches begin promptly at 10:00 AM!
+                </p>
               </div>
-
-              <h4 className="text-lg font-medium text-gray-800 mb-3">Match Results</h4>
-              <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-                <li><strong>Scoring</strong>: Each game won/lost counts toward your overall record</li>
-                <li><strong>Reporting</strong>: Results must be reported within 48 hours of match completion</li>
-                <li><strong>Verification</strong>: All players should confirm match results for accuracy</li>
-              </ul>
             </div>
 
-            {/* ELO Rating System */}
+            {/* Match Format */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">ELO Rating System</h3>
+              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">Match Format</h3>
 
-              <h4 className="text-lg font-medium text-gray-800 mb-3">What is ELO?</h4>
-              <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-                <li>A skill rating system that adjusts based on match outcomes</li>
-                <li>Beating higher-rated players increases your ELO more than beating lower-rated players</li>
-                <li>Losing to lower-rated players decreases your ELO more than losing to higher-rated players</li>
-              </ul>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-800 mb-2">5 Players on Court</h4>
+                  <ul className="list-disc list-inside text-green-700 space-y-1 text-sm">
+                    <li><strong>8 games total</strong></li>
+                    <li>Rotating doubles with one player sitting out each game</li>
+                    <li>Each player sits out exactly once to ensure equal playing time</li>
+                  </ul>
+                </div>
 
-              <h4 className="text-lg font-medium text-gray-800 mb-3">How ELO Affects You</h4>
-              <ul className="list-disc list-inside text-gray-700 mb-4 space-y-2">
-                <li><strong>Match Scheduling</strong>: Ensures you play against similarly skilled opponents</li>
-                <li><strong>Fair Competition</strong>: Prevents mismatched games that aren't fun for anyone</li>
-                <li><strong>Progress Tracking</strong>: Shows your improvement over time</li>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-800 mb-2">4 Players on Court</h4>
+                  <ul className="list-disc list-inside text-blue-700 space-y-1 text-sm">
+                    <li><strong>10 games total</strong></li>
+                    <li>Straight doubles throughout the entire match</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Season Details */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">Season Details</h3>
+              <ul className="list-disc list-inside text-gray-700 space-y-1">
+                <li>Each season runs 10-12 weeks</li>
+                <li>Rankings update weekly and are viewable online anytime</li>
+                <li>New seasons begin shortly after the previous season ends</li>
               </ul>
             </div>
 
             {/* Tips for Success */}
             <div className="mb-8">
               <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">Tips for Success</h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-yellow-800 mb-2">Improving Win Percentage</h4>
-                  <ul className="list-disc list-inside text-yellow-700 text-sm space-y-1">
-                    <li><strong>Consistency</strong>: Regular play helps maintain skill level</li>
-                    <li><strong>Strategy</strong>: Focus on doubles strategy and communication</li>
-                    <li><strong>Fitness</strong>: Stay in tennis shape throughout the season</li>
-                  </ul>
-                </div>
-
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-purple-800 mb-2">Moving Up the Ladder</h4>
-                  <ul className="list-disc list-inside text-purple-700 text-sm space-y-1">
-                    <li>Play regularly to increase total matches</li>
-                    <li>Focus on winning games rather than just matches</li>
-                    <li>Learn from stronger players in your matches</li>
-                  </ul>
-                </div>
-
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-green-800 mb-2">Most Improved Prize</h4>
-                  <ul className="list-disc list-inside text-green-700 text-sm space-y-1">
-                    <li>Focus on fundamental skill development</li>
-                    <li>Take lessons or practice outside ladder matches</li>
-                    <li>Play consistently throughout the season</li>
-                  </ul>
-                </div>
-              </div>
+              <ul className="list-disc list-inside text-gray-700 space-y-1">
+                <li><strong>Play regularly</strong> - More matches mean more opportunities to improve your win percentage</li>
+                <li><strong>Focus on individual games</strong> - Each game counts toward your ranking, not just overall match wins</li>
+                <li><strong>Practice good sportsmanship</strong> - Agree on scores before leaving the court</li>
+              </ul>
             </div>
 
-            {/* FAQ */}
+            {/* Common Questions */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">Frequently Asked Questions</h3>
+              <h3 className="text-xl font-semibold text-[#5D1F1F] mb-4">Common Questions</h3>
 
               <div className="space-y-4">
                 <div className="border-l-4 border-[#5D1F1F] pl-4">
-                  <h4 className="font-semibold text-gray-800 mb-2">What happens if I can't make my scheduled match?</h4>
-                  <p className="text-gray-700 text-sm">Contact the other players as soon as possible to reschedule within the same week, or arrange a make-up match.</p>
+                  <h4 className="font-semibold text-gray-800 mb-1">What happens if we disagree on a game result?</h4>
+                  <p className="text-gray-700 text-sm">All players should agree on the score before leaving the court. Contact the ladder administrator if you can't resolve a dispute.</p>
                 </div>
 
                 <div className="border-l-4 border-[#5D1F1F] pl-4">
-                  <h4 className="font-semibold text-gray-800 mb-2">How often will I play?</h4>
-                  <p className="text-gray-700 text-sm">Typically 1-2 matches per week, depending on the number of participants and court availability.</p>
-                </div>
-
-                <div className="border-l-4 border-[#5D1F1F] pl-4">
-                  <h4 className="font-semibold text-gray-800 mb-2">Can I play with the same partner every time?</h4>
-                  <p className="text-gray-700 text-sm">In the 4-player format, you may have consistency. In 5-player format, rotation ensures you play with different partners.</p>
-                </div>
-
-                <div className="border-l-4 border-[#5D1F1F] pl-4">
-                  <h4 className="font-semibold text-gray-800 mb-2">When are rankings updated?</h4>
-                  <p className="text-gray-700 text-sm">Rankings are updated after each match and can be viewed online at any time.</p>
+                  <h4 className="font-semibold text-gray-800 mb-1">When do rankings update?</h4>
+                  <p className="text-gray-700 text-sm">Rankings are updated weekly and can be viewed online at any time.</p>
                 </div>
               </div>
             </div>
 
             {/* Good Luck Message */}
             <div className="text-center bg-[#5D1F1F] text-white rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-2">Good luck and have fun!</h3>
-              <p className="text-lg">May the best players win! 🎾</p>
+              <h3 className="text-xl font-semibold mb-2">Good luck and have fun! 🎾</h3>
             </div>
 
           </div>
