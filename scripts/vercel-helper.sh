@@ -15,10 +15,13 @@ case "$1" in
     ;;
 
   "deploy")
-    echo "🚀 Deploying to Vercel..."
+    echo "🚀 Building app for deployment..."
     npm run build
-    vercel --prod --yes
-    echo "✅ Deployment complete!"
+    echo ""
+    echo "⚠️  Vercel CLI deployment disabled - using GitHub auto-deploy"
+    echo "💡 To deploy: Push to GitHub and auto-deploy will handle it"
+    echo "   ./deploy (recommended)"
+    echo "   git push (manual)"
     ;;
 
   "logs")

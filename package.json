@@ -1,6 +1,6 @@
 {
   "name": "tennis-ladder-app",
-  "version": "1.0.111",
+  "version": "1.0.112",
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

@@ -96,16 +96,7 @@ echo "✅ Deploy complete!"
 echo "📱 Version: $NEW_VERSION"
 echo "🔄 Users will receive automatic update notifications"
 
-# Optional: Deploy to Vercel if CLI is available
-if command -v vercel >/dev/null 2>&1; then
-    echo ""
-    echo "🚀 Deploying to Vercel..."
-    vercel --prod --yes
-    echo "✅ Vercel deployment complete!"
-else
-    echo ""
-    echo "💡 Install Vercel CLI for automatic deployments:"
-    echo "   npm i -g vercel"
-    echo "   vercel login"
-    echo "   vercel link"
-fi
+# GitHub auto-deploy configured - no Vercel CLI needed
+echo ""
+echo "🌐 GitHub auto-deploy will handle Vercel deployment"
+echo "⏱️  Your changes will be live in 1-2 minutes"
