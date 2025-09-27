@@ -78,8 +78,6 @@ const WhatsAppPostGenerator = ({
       });
 
       message.push(`⏰ **Please arrive 15 minutes early for warm-up**`);
-      message.push('');
-      message.push(`📊 **Don't forget to enter your scores in the app after playing!**`);
 
     } else {
       // Match not generated yet - availability check

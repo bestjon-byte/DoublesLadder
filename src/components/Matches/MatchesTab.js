@@ -6,6 +6,7 @@ import LeagueMatchCard from './LeagueMatchCard';
 import EnhancedMatchResult from './EnhancedMatchResult';
 import SchedulingOptionsModal from '../Modals/SchedulingOptionsModal';
 import WhatsAppPostGenerator from '../WhatsApp/WhatsAppPostGenerator';
+import DraggableMatchList from './DraggableMatchList';
 
 const MatchesTab = ({ 
   currentUser, 
@@ -20,7 +21,8 @@ const MatchesTab = ({
   getAvailabilityStats,
   getMatchScore,
   supabase,
-  refetch
+  refetch,
+  reorderMatchFixtures
 }) => {
   // State for managing which matches are expanded
   const [expandedMatches, setExpandedMatches] = useState({});
@@ -738,90 +740,19 @@ const MatchesTab = ({
                             </div>
                           </div>
                         )}
-                        
-                        {/* Court Fixtures */}
-                        {courtFixtures.map((court) => (
-                          <div key={court.court} className="border border-gray-200 rounded-lg p-4">
-                            <h4 className="font-semibold mb-2">Court {court.court}</h4>
-                            <p className="text-sm text-gray-600 mb-3">
-                              Players: {[...new Set([
-                                ...court.fixtures.map(f => f.player1?.name),
-                                ...court.fixtures.map(f => f.player2?.name),
-                                ...court.fixtures.map(f => f.player3?.name),
-                                ...court.fixtures.map(f => f.player4?.name)
-                              ].filter(Boolean))].join(', ')}
-                            </p>
-                            <div className="space-y-2">
-                              {court.fixtures.map((fixture) => {
-                                const existingScore = getMatchScore(fixture.id);
-                                const canEnterScore = canUserEnterScores(fixture);
-                                
-                                const pair1Names = [fixture.player1?.name, fixture.player2?.name].filter(Boolean);
-                                const pair2Names = [fixture.player3?.name, fixture.player4?.name].filter(Boolean);
-                                
-                                return (
-                                  <div key={fixture.id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                                    {/* Enhanced Match Result Display */}
-                                    {existingScore ? (
-                                      <EnhancedMatchResult 
-                                        fixture={fixture}
-                                        score={existingScore}
-                                        selectedSeason={selectedSeason}
-                                        currentUser={currentUser}
-                                        users={users}
-                                      />
-                                    ) : (
-                                      /* Placeholder for matches without scores */
-                                      <div className="p-4">
-                                        <div className="flex justify-between items-center">
-                                          <div className="flex-1">
-                                            <span className="text-sm font-medium text-gray-900">
-                                              {pair1Names.join(' & ')} vs {pair2Names.join(' & ')}
-                                              {fixture.sitting_player && ` (${fixture.sitting_player.name} sitting)`}
-                                            </span>
-                                          </div>
-                                          <div className="text-sm text-gray-500">No score yet</div>
-                                        </div>
-                                      </div>
-                                    )}
-                                    
-                                    {/* Integrated Challenge Button */}
-                                    {canEnterScore && matchStatus !== 'future-no-fixtures' && (
-                                      <div className="border-t border-gray-100">
-                                        <button 
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            haptics.click(); // Haptic feedback for score action
-                                            openScoreModal({
-                                              fixtureId: fixture.id,
-                                              pair1: pair1Names,
-                                              pair2: pair2Names
-                                            });
-                                          }}
-                                          className={`text-sm px-6 py-3 transition-colors min-h-[44px] w-full font-medium border-0 rounded-none rounded-b-xl ${
-                                            existingScore 
-                                              ? 'bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700' 
-                                              : 'bg-[#5D1F1F] text-white hover:bg-[#4A1818] focus:bg-[#4A1818]'
-                                          }`}
-                                          style={{ touchAction: 'manipulation' }}
-                                        >
-                                          {existingScore ? 'Challenge Score' : 'Enter Score'}
-                                        </button>
-                                      </div>
-                                    )}
 
-                                    {/* Score Status for non-players */}
-                                    {existingScore && !canEnterScore && (
-                                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                        Complete
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
+                        {/* Draggable Court Fixtures */}
+                        <DraggableMatchList
+                          courtFixtures={courtFixtures}
+                          getMatchScore={getMatchScore}
+                          canUserEnterScores={canUserEnterScores}
+                          openScoreModal={openScoreModal}
+                          selectedSeason={selectedSeason}
+                          currentUser={currentUser}
+                          users={users}
+                          onReorderMatches={reorderMatchFixtures}
+                          isSeasonCompleted={isSeasonCompleted}
+                        />
                       </div>
                     )}
                     

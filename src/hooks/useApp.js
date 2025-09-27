@@ -1373,6 +1373,40 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [supabase, fetchSeasons, fetchUsers, fetchAvailability, fetchMatchFixtures, fetchMatchResults]);
 
+  const reorderMatchFixtures = useCallback(async (courtIndex, updatedFixtures) => {
+    try {
+      // Update each fixture with new game_number
+      const updates = updatedFixtures.map((fixture, index) => ({
+        id: fixture.id,
+        game_number: index + 1
+      }));
+
+      // Update all fixtures in parallel
+      const updatePromises = updates.map(update =>
+        supabase
+          .from('match_fixtures')
+          .update({ game_number: update.game_number })
+          .eq('id', update.id)
+      );
+
+      const results = await Promise.all(updatePromises);
+
+      // Check for errors
+      const errors = results.filter(result => result.error);
+      if (errors.length > 0) {
+        throw new Error(`Failed to update ${errors.length} fixtures`);
+      }
+
+      // Refresh fixtures data
+      await fetchMatchFixtures();
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error reordering match fixtures:', error);
+      return { success: false, error };
+    }
+  }, [supabase, fetchMatchFixtures]);
+
   const deleteUser = useCallback(async (userId, userName, userEmail) => {
     try {
       // Deactivating user and anonymizing data while preserving match history
@@ -1601,6 +1635,7 @@ export const useApp = (userId, selectedSeasonId) => {
       clearOldMatches,
       deleteSeason,
       deleteUser,
+      reorderMatchFixtures,
     },
     helpers: {
       getPlayerAvailability,

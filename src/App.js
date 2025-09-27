@@ -265,6 +265,7 @@ const CawoodTennisApp = () => {
               getMatchScore={helpers?.getMatchScore || (() => null)}
               supabase={supabase} // NEW: Pass supabase for league match details
               refetch={refetch} // NEW: Pass refetch functions for data refresh
+              reorderMatchFixtures={actions?.reorderMatchFixtures || (() => alert('Reorder matches not available'))}
             />
           )}
 
