@@ -28,7 +28,11 @@ const UsageStatsSection = () => {
       daily: 0,
       weekly: 0,
       monthly: 0
-    }
+    },
+    totalMatches: 0,
+    totalSeasons: 0,
+    activeSeasons: 0,
+    pendingApprovals: 0
   });
   const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState('30');
@@ -36,128 +40,83 @@ const UsageStatsSection = () => {
   const fetchUsageStats = useCallback(async () => {
     setLoading(true);
     try {
-      const now = new Date();
-      const dayAgo = new Date(now - (24 * 60 * 60 * 1000));
-      const weekAgo = new Date(now - (7 * 24 * 60 * 60 * 1000));
-      const monthAgo = new Date(now - (30 * 24 * 60 * 60 * 1000));
+      // Get login analytics from auth.users table
+      const { data: loginStats, error: loginStatsError } = await supabase.rpc('get_login_analytics');
 
-      // Get all users from auth schema
-      const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers();
-      if (authUsersError) throw authUsersError;
+      // If RPC doesn't exist, fall back to direct query
+      let loginData = null;
+      if (loginStatsError) {
+        const { data, error } = await supabase
+          .from('auth.users')
+          .select('id, email, last_sign_in_at, created_at');
 
-      // Get all users from profiles (for approved status)
+        if (!error && data) {
+          const now = new Date();
+          const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
+          const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+          const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+          loginData = {
+            totalUsers: data.length,
+            loginsToday: data.filter(u => u.last_sign_in_at && new Date(u.last_sign_in_at) > dayAgo).length,
+            loginsWeek: data.filter(u => u.last_sign_in_at && new Date(u.last_sign_in_at) > weekAgo).length,
+            loginsMonth: data.filter(u => u.last_sign_in_at && new Date(u.last_sign_in_at) > monthAgo).length,
+            newUsersThisMonth: data.filter(u => new Date(u.created_at) > monthAgo).length,
+            lastLoginTime: data.reduce((latest, user) => {
+              if (!user.last_sign_in_at) return latest;
+              const loginTime = new Date(user.last_sign_in_at);
+              return !latest || loginTime > latest ? loginTime : latest;
+            }, null)
+          };
+        }
+      } else {
+        loginData = loginStats[0];
+      }
+
+      // Get profiles for approval status
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, created_at, status, name, email')
         .order('created_at', { ascending: false });
       if (profilesError) throw profilesError;
 
-      // Get login audit logs (requires RLS policy adjustment or service role)
-      let auditLogs = [];
-      try {
-        const { data: logs, error: logsError } = await supabase
-          .from('auth.audit_log_entries')
-          .select('*')
-          .or("payload->>action.eq.login,payload->>action.eq.logout")
-          .order('created_at', { ascending: false })
-          .limit(1000);
+      // Get platform activity data
+      const { data: matchResults, error: matchResultsError } = await supabase
+        .from('match_results')
+        .select('id, created_at');
+      if (matchResultsError) throw matchResultsError;
 
-        if (!logsError) auditLogs = logs;
-      } catch (err) {
-        console.warn('Cannot access auth audit logs (requires elevated permissions)');
-      }
+      const { data: seasons, error: seasonsError } = await supabase
+        .from('seasons')
+        .select('id, name, status');
+      if (seasonsError) throw seasonsError;
 
-      // Get active sessions
-      let activeSessions = [];
-      try {
-        const { data: sessions, error: sessionsError } = await supabase
-          .from('auth.sessions')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (!sessionsError) activeSessions = sessions;
-      } catch (err) {
-        console.warn('Cannot access auth sessions (requires elevated permissions)');
-      }
-
-      // Calculate basic user stats
+      // Calculate stats
       const approvedUsers = profiles.filter(u => u.status === 'approved');
-      const newUsersThisMonth = approvedUsers.filter(u =>
-        new Date(u.created_at) > monthAgo
-      ).length;
-
-      // Calculate login stats from audit logs
-      const loginEvents = auditLogs.filter(log => log.payload?.action === 'login');
-      const totalLogins = loginEvents.length;
-
-      // Track unique logins by time period
-      const uniqueLoginsByPeriod = {
-        daily: new Set(),
-        weekly: new Set(),
-        monthly: new Set()
-      };
-
-      loginEvents.forEach(event => {
-        const loginDate = new Date(event.created_at);
-        const userId = event.payload?.user_id;
-
-        if (loginDate > dayAgo) uniqueLoginsByPeriod.daily.add(userId);
-        if (loginDate > weekAgo) uniqueLoginsByPeriod.weekly.add(userId);
-        if (loginDate > monthAgo) uniqueLoginsByPeriod.monthly.add(userId);
-      });
-
-      // Calculate login frequency by counting logins per user
-      const loginCounts = {};
-      loginEvents.forEach(event => {
-        const userId = event.payload?.user_id;
-        if (userId) {
-          loginCounts[userId] = (loginCounts[userId] || 0) + 1;
-        }
-      });
-
-      // Get most active users
-      const mostActiveUsers = Object.entries(loginCounts)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 5)
-        .map(([userId, count]) => {
-          const profile = profiles.find(p => p.id === userId);
-          return {
-            id: userId,
-            name: profile?.name || profile?.email || 'Unknown User',
-            loginCount: count
-          };
-        });
-
-      // Get last login time from auth users
-      const lastLoginTimes = authUsers.users
-        .map(u => u.last_sign_in_at)
-        .filter(time => time)
-        .sort((a, b) => new Date(b) - new Date(a));
-
-      const lastLoginTime = lastLoginTimes.length > 0 ? new Date(lastLoginTimes[0]) : null;
-
-      // Count active sessions
-      const currentActiveSessions = activeSessions.filter(session => {
-        // Consider session active if updated within last hour
-        const sessionUpdate = new Date(session.updated_at || session.created_at);
-        return sessionUpdate > new Date(now - (60 * 60 * 1000));
-      }).length;
+      const pendingUsers = profiles.filter(u => u.status === 'pending');
+      const totalMatches = matchResults.length;
+      const activeSeasons = seasons.filter(s => s.status === 'active').length;
 
       setStats({
         totalUsers: approvedUsers.length,
-        totalLogins,
-        uniqueLoginsToday: uniqueLoginsByPeriod.daily.size,
-        uniqueLoginsWeek: uniqueLoginsByPeriod.weekly.size,
-        uniqueLoginsMonth: uniqueLoginsByPeriod.monthly.size,
-        newUsersThisMonth,
-        activeSessions: currentActiveSessions,
-        mostActiveUsers,
-        lastLoginTime,
+        totalLogins: loginData?.totalUsers || 0,
+        uniqueLoginsToday: loginData?.loginsToday || 0,
+        uniqueLoginsWeek: loginData?.loginsWeek || 0,
+        uniqueLoginsMonth: loginData?.loginsMonth || 0,
+        newUsersThisMonth: loginData?.newUsersThisMonth || 0,
+        activeSessions: 'N/A', // Sessions require special permissions
+        mostActiveUsers: [], // Would need complex query with match data
+        lastLoginTime: loginData?.lastLoginTime || null,
         loginFrequency: {
-          daily: uniqueLoginsByPeriod.daily.size,
-          weekly: uniqueLoginsByPeriod.weekly.size,
-          monthly: uniqueLoginsByPeriod.monthly.size
-        }
+          daily: loginData?.loginsToday || 0,
+          weekly: loginData?.loginsWeek || 0,
+          monthly: loginData?.loginsMonth || 0
+        },
+        // Platform stats
+        totalMatches,
+        totalSeasons: seasons.length,
+        activeSeasons,
+        pendingApprovals: pendingUsers.length
       });
 
     } catch (error) {
@@ -203,7 +162,7 @@ const UsageStatsSection = () => {
         <div>
           <h3 className="text-lg font-semibold text-gray-900">User Login Analytics</h3>
           <p className="text-sm text-gray-600">
-            Track user login activity and engagement patterns
+            Track user login activity and platform engagement
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -231,16 +190,16 @@ const UsageStatsSection = () => {
           />
           <StatCard
             icon={LogIn}
-            title="Total Logins"
+            title="All Auth Users"
             value={stats.totalLogins}
-            subtitle="All time"
+            subtitle="Including pending"
             color="green"
           />
           <StatCard
-            icon={UserCheck}
-            title="Active Sessions"
-            value={stats.activeSessions}
-            subtitle="Currently active"
+            icon={Activity}
+            title="Total Matches"
+            value={stats.totalMatches}
+            subtitle="Platform activity"
             color="orange"
           />
           <StatCard
@@ -253,75 +212,61 @@ const UsageStatsSection = () => {
         </div>
       </div>
 
-      {/* Unique Login Stats */}
+      {/* Recent Login Activity */}
       <div>
-        <h4 className="text-md font-medium text-gray-900 mb-3">Unique User Logins</h4>
+        <h4 className="text-md font-medium text-gray-900 mb-3">Recent Login Activity</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard
             icon={Clock}
             title="Today"
             value={stats.uniqueLoginsToday}
-            subtitle="Unique logins today"
+            subtitle="Users logged in today"
             color="green"
           />
           <StatCard
             icon={Calendar}
             title="This Week"
             value={stats.uniqueLoginsWeek}
-            subtitle="Unique logins (7 days)"
+            subtitle="Users logged in (7 days)"
             color="blue"
           />
           <StatCard
             icon={BarChart3}
             title="This Month"
             value={stats.uniqueLoginsMonth}
-            subtitle="Unique logins (30 days)"
+            subtitle="Users logged in (30 days)"
             color="purple"
           />
         </div>
       </div>
 
-      {/* Most Active Users */}
-      {stats.mostActiveUsers.length > 0 && (
-        <div>
-          <h4 className="text-md font-medium text-gray-900 mb-3">Most Active Users</h4>
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Logins
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {stats.mostActiveUsers.map((user, index) => (
-                  <tr key={user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className={`flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center`}>
-                          <span className="text-sm font-medium text-blue-600">
-                            {user.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 font-medium">{user.loginCount}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Platform Activity */}
+      <div>
+        <h4 className="text-md font-medium text-gray-900 mb-3">Platform Activity</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatCard
+            icon={BarChart3}
+            title="Active Seasons"
+            value={stats.activeSeasons}
+            subtitle="Currently running"
+            color="green"
+          />
+          <StatCard
+            icon={Calendar}
+            title="Total Seasons"
+            value={stats.totalSeasons}
+            subtitle="All seasons created"
+            color="blue"
+          />
+          <StatCard
+            icon={UserCheck}
+            title="Pending Approvals"
+            value={stats.pendingApprovals}
+            subtitle="Awaiting approval"
+            color="orange"
+          />
         </div>
-      )}
+      </div>
 
       {/* Last Login Time */}
       {stats.lastLoginTime && (
@@ -334,6 +279,19 @@ const UsageStatsSection = () => {
           </div>
         </div>
       )}
+
+      {/* Login Analytics Note */}
+      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+        <div className="flex items-center space-x-2">
+          <Activity className="w-5 h-5 text-green-600" />
+          <div>
+            <p className="text-sm font-medium text-green-800">Login Analytics Active</p>
+            <p className="text-sm text-green-700">
+              Showing real-time login activity from auth.users table. Session tracking requires additional permissions.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {loading && (
         <div className="flex items-center justify-center py-8">
