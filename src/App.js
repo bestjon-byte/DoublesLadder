@@ -16,6 +16,7 @@ import AvailabilityTab from './components/Availability/AvailabilityTab';
 import AdminTab from './components/Admin/AdminTab';
 import ScheduleModal from './components/Modals/ScheduleModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
+import PlayersGuideModal from './components/Modals/PlayersGuideModal';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 import UpdateNotification from './components/shared/UpdateNotification';
@@ -65,6 +66,7 @@ const CawoodTennisApp = () => {
   const [activeTab, setActiveTab] = useState('ladder');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
+  const [showPlayersGuide, setShowPlayersGuide] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
   const [selectedPlayerId, setSelectedPlayerId] = useState(null); // For viewing other players' profiles
@@ -202,8 +204,20 @@ const CawoodTennisApp = () => {
                 />
               </div>
               
-              {/* Right: Sign Out Only */}
-              <div className="flex items-center">
+              {/* Right: Guide and Sign Out */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowPlayersGuide(true)}
+                  className="bg-[#4A1818] hover:bg-[#6B2424] text-white px-3 py-1.5 rounded transition-colors min-h-[44px] flex items-center text-sm"
+                  style={{ touchAction: 'manipulation' }}
+                  title="Players Guide"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="hidden sm:inline">Guide</span>
+                  <span className="sm:hidden">?</span>
+                </button>
                 <button
                   onClick={async () => {
                     if (authActions?.signOut) {
@@ -353,7 +367,7 @@ const CawoodTennisApp = () => {
           addMatchToSeason={handleAddMatch}
         />
 
-        <EnhancedScoreModal 
+        <EnhancedScoreModal
           showModal={showScoreModal}
           setShowModal={setShowScoreModal}
           selectedMatch={selectedMatch}
@@ -362,6 +376,11 @@ const CawoodTennisApp = () => {
           currentUser={user}
           getMatchScore={helpers?.getMatchScore || (() => null)}
           onChallengeScore={handleScoreChallenge}
+        />
+
+        <PlayersGuideModal
+          showModal={showPlayersGuide}
+          setShowModal={setShowPlayersGuide}
         />
         </div>
       </ErrorBoundary>
