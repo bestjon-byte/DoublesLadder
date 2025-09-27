@@ -644,8 +644,8 @@ const MatchesTab = ({
                     </div>
                     
                     <div className="flex items-center space-x-2">
-                      {/* WhatsApp button - Available for all ladder matches */}
-                      {selectedSeason?.season_type === 'ladder' && (
+                      {/* WhatsApp button - Admin only */}
+                      {selectedSeason?.season_type === 'ladder' && isAdmin && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

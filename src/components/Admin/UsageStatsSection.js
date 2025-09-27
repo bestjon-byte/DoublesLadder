@@ -24,6 +24,9 @@ const UsageStatsSection = () => {
     activeSessions: 0,
     mostActiveUsers: [],
     lastLoginTime: null,
+    usersLoggedInToday: [],
+    usersLoggedInWeek: [],
+    usersLoggedInMonth: [],
     loginFrequency: {
       daily: 0,
       weekly: 0,
@@ -56,17 +59,57 @@ const UsageStatsSection = () => {
           const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
           const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
+          // Get profiles for name mapping
+          const { data: profilesForNames, error: profilesNamesError } = await supabase
+            .from('profiles')
+            .select('id, name, email');
+
+          const profilesMap = profilesForNames?.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {}) || {};
+
+          const usersLoggedInToday = data
+            .filter(u => u.last_sign_in_at && new Date(u.last_sign_in_at) > dayAgo)
+            .map(u => ({
+              ...u,
+              name: profilesMap[u.id]?.name || u.email,
+              last_sign_in_formatted: new Date(u.last_sign_in_at).toLocaleString()
+            }))
+            .sort((a, b) => new Date(b.last_sign_in_at) - new Date(a.last_sign_in_at));
+
+          const usersLoggedInWeek = data
+            .filter(u => u.last_sign_in_at && new Date(u.last_sign_in_at) > weekAgo)
+            .map(u => ({
+              ...u,
+              name: profilesMap[u.id]?.name || u.email,
+              last_sign_in_formatted: new Date(u.last_sign_in_at).toLocaleString()
+            }))
+            .sort((a, b) => new Date(b.last_sign_in_at) - new Date(a.last_sign_in_at));
+
+          const usersLoggedInMonth = data
+            .filter(u => u.last_sign_in_at && new Date(u.last_sign_in_at) > monthAgo)
+            .map(u => ({
+              ...u,
+              name: profilesMap[u.id]?.name || u.email,
+              last_sign_in_formatted: new Date(u.last_sign_in_at).toLocaleString()
+            }))
+            .sort((a, b) => new Date(b.last_sign_in_at) - new Date(a.last_sign_in_at));
+
           loginData = {
             totalUsers: data.length,
-            loginsToday: data.filter(u => u.last_sign_in_at && new Date(u.last_sign_in_at) > dayAgo).length,
-            loginsWeek: data.filter(u => u.last_sign_in_at && new Date(u.last_sign_in_at) > weekAgo).length,
-            loginsMonth: data.filter(u => u.last_sign_in_at && new Date(u.last_sign_in_at) > monthAgo).length,
+            loginsToday: usersLoggedInToday.length,
+            loginsWeek: usersLoggedInWeek.length,
+            loginsMonth: usersLoggedInMonth.length,
             newUsersThisMonth: data.filter(u => new Date(u.created_at) > monthAgo).length,
             lastLoginTime: data.reduce((latest, user) => {
               if (!user.last_sign_in_at) return latest;
               const loginTime = new Date(user.last_sign_in_at);
               return !latest || loginTime > latest ? loginTime : latest;
-            }, null)
+            }, null),
+            usersLoggedInToday,
+            usersLoggedInWeek,
+            usersLoggedInMonth
           };
         }
       } else {
@@ -107,6 +150,9 @@ const UsageStatsSection = () => {
         activeSessions: 'N/A', // Sessions require special permissions
         mostActiveUsers: [], // Would need complex query with match data
         lastLoginTime: loginData?.lastLoginTime || null,
+        usersLoggedInToday: loginData?.usersLoggedInToday || [],
+        usersLoggedInWeek: loginData?.usersLoggedInWeek || [],
+        usersLoggedInMonth: loginData?.usersLoggedInMonth || [],
         loginFrequency: {
           daily: loginData?.loginsToday || 0,
           weekly: loginData?.loginsWeek || 0,
@@ -267,6 +313,49 @@ const UsageStatsSection = () => {
           />
         </div>
       </div>
+
+      {/* Users Who Logged In This Week */}
+      {stats.usersLoggedInWeek.length > 0 && (
+        <div>
+          <h4 className="text-md font-medium text-gray-900 mb-3">Users Logged In This Week</h4>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Login
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {stats.usersLoggedInWeek.map((user, index) => (
+                  <tr key={user.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                          <span className="text-sm font-medium text-blue-600">
+                            {user.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{user.last_sign_in_formatted}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Last Login Time */}
       {stats.lastLoginTime && (
