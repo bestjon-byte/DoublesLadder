@@ -87,38 +87,25 @@ const WhatsAppPostGenerator = ({
       message.push('');
       message.push(`We need to know who's available for Week ${match.week_number}!`);
       message.push('');
-
-      if (availabilityStats) {
-        message.push(`Current status:`);
-        message.push(`✅ Available: ${availabilityStats.available}`);
-        message.push(`⏳ Pending: ${availabilityStats.pending}`);
-        message.push(`❌ Unavailable: ${availabilityStats.unavailable}`);
-        message.push('');
-      }
-
-      message.push(`⚠️ **We need at least 4 players to generate matches**`);
-      message.push('');
     }
 
     // Add availability poll if requested
     if (includeAvailabilityPoll && (!fixtures || fixtures.length === 0)) {
-      message.push(`📊 **POLL: Are you available for ${formatMatchDate(match.match_date)}?**`);
-      message.push('');
-      message.push(`Please react with:`);
-      message.push(`✅ Yes, I'm available`);
-      message.push(`❌ No, I can't make it`);
-      message.push(`❓ Maybe/not sure yet`);
+      message.push(`💬 **After posting this message, create a poll with these options:**`);
+      message.push(`• Available ✅`);
+      message.push(`• Not available ❌`);
+      message.push(`• Maybe/unsure ❓`);
       message.push('');
     }
 
     // Add ladder link if requested
     if (includeLadderLink) {
-      message.push(`🔗 **Update your availability in the app:**`);
-      message.push(appUrl);
+      message.push(`🔗 **Update your availability in the app**`);
+      message.push(`(Link: ${appUrl})`);
       message.push('');
     }
 
-    message.push(`Questions? Contact the committee 👋`);
+    message.push(`Questions? Contact Jon / Charlie 👋`);
 
     return message.join('\n');
   };
@@ -153,9 +140,9 @@ const WhatsAppPostGenerator = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900">
               📱 WhatsApp Post Generator
@@ -172,50 +159,53 @@ const WhatsAppPostGenerator = ({
           </p>
         </div>
 
-        {/* Options */}
-        <div className="p-6 border-b border-gray-200">
-          <h4 className="font-medium text-gray-900 mb-3">Message Options</h4>
-          <div className="space-y-3">
-            {(!fixtures || fixtures.length === 0) && (
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Options */}
+          <div className="p-6 border-b border-gray-200">
+            <h4 className="font-medium text-gray-900 mb-3">Message Options</h4>
+            <div className="space-y-3">
+              {(!fixtures || fixtures.length === 0) && (
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={includeAvailabilityPoll}
+                    onChange={(e) => setIncludeAvailabilityPoll(e.target.checked)}
+                    className="rounded border-gray-300 text-[#5D1F1F] focus:ring-[#5D1F1F]"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    Include availability poll instructions
+                  </span>
+                </label>
+              )}
+
               <label className="flex items-center">
                 <input
                   type="checkbox"
-                  checked={includeAvailabilityPoll}
-                  onChange={(e) => setIncludeAvailabilityPoll(e.target.checked)}
+                  checked={includeLadderLink}
+                  onChange={(e) => setIncludeLadderLink(e.target.checked)}
                   className="rounded border-gray-300 text-[#5D1F1F] focus:ring-[#5D1F1F]"
                 />
                 <span className="ml-2 text-sm text-gray-700">
-                  Include availability poll instructions
+                  Include link to ladder app
                 </span>
               </label>
-            )}
-
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={includeLadderLink}
-                onChange={(e) => setIncludeLadderLink(e.target.checked)}
-                className="rounded border-gray-300 text-[#5D1F1F] focus:ring-[#5D1F1F]"
-              />
-              <span className="ml-2 text-sm text-gray-700">
-                Include link to ladder app
-              </span>
-            </label>
+            </div>
           </div>
-        </div>
 
-        {/* Preview */}
-        <div className="p-6 flex-1 overflow-y-auto">
-          <h4 className="font-medium text-gray-900 mb-3">Message Preview</h4>
-          <div className="bg-gray-50 rounded-lg p-4 border">
-            <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono leading-relaxed">
-              {generatedMessage}
-            </pre>
+          {/* Preview */}
+          <div className="p-6">
+            <h4 className="font-medium text-gray-900 mb-3">Message Preview</h4>
+            <div className="bg-gray-50 rounded-lg p-4 border">
+              <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono leading-relaxed">
+                {generatedMessage}
+              </pre>
+            </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="p-6 border-t border-gray-200">
+        <div className="p-6 border-t border-gray-200 flex-shrink-0">
           <div className="flex space-x-3">
             <button
               onClick={copyToClipboard}
