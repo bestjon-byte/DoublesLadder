@@ -27,18 +27,26 @@ const WhatsAppPostGenerator = ({
   const generateWhatsAppPost = () => {
     let message = [];
 
-    // Header
+    // Header with cleaner formatting
     message.push(`🎾 CAWOOD TENNIS LADDER 🎾`);
+    message.push('═'.repeat(28));
     message.push('');
 
-    // Match details
-    message.push(`📅 **Week ${match.week_number} - ${formatMatchDate(match.match_date)}**`);
+    // Match details with better date formatting
+    const dayName = new Date(match.match_date).toLocaleDateString('en-GB', { weekday: 'long' });
+    const dateFormatted = new Date(match.match_date).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short'
+    });
+
+    message.push(`📅 Week ${match.week_number} - ${dayName} ${dateFormatted}`);
     message.push('');
 
     // Check if fixtures exist (match has been generated)
     if (fixtures && fixtures.length > 0) {
-      // Match has been generated - show fixtures
-      message.push(`🏆 **MATCH FIXTURES**`);
+      // Match has been generated - show fixtures with beautiful table formatting
+      message.push(`🏆 MATCH FIXTURES`);
+      message.push('─'.repeat(20));
       message.push('');
 
       // Group by courts
@@ -50,60 +58,97 @@ const WhatsAppPostGenerator = ({
         courtGroups[fixture.court_number].push(fixture);
       });
 
-      // Display each court
-      Object.entries(courtGroups).forEach(([courtNumber, courtFixtures]) => {
-        message.push(`**Court ${courtNumber}:**`);
+      // Display each court with proper table formatting
+      Object.entries(courtGroups).forEach(([courtNumber, courtFixtures], courtIndex) => {
+        if (courtIndex > 0) message.push('');
+
+        message.push(`🏟️ Court ${courtNumber}`);
+        message.push('');
+
+        // Create a beautiful table for matches
+        message.push('```');
+        message.push('Match | Pair 1      vs  Pair 2');
+        message.push('------|------------------------');
+
+        courtFixtures.forEach((fixture, index) => {
+          const pair1Names = [fixture.player1?.name, fixture.player2?.name].filter(Boolean);
+          const pair2Names = [fixture.player3?.name, fixture.player4?.name].filter(Boolean);
+
+          // Format names to fit nicely
+          const pair1 = pair1Names.join(' & ');
+          const pair2 = pair2Names.join(' & ');
+
+          // Create properly aligned table row
+          const matchNum = `  ${index + 1}`;
+          const vs = 'vs';
+          const maxPair1Length = 12;
+          const pair1Padded = pair1.length > maxPair1Length ?
+            pair1.substring(0, maxPair1Length - 1) + '…' :
+            pair1.padEnd(maxPair1Length);
+
+          message.push(`${matchNum}   | ${pair1Padded} ${vs} ${pair2}`);
+
+          // Show sitting player on separate line if exists
+          if (fixture.sitting_player) {
+            message.push(`      | (${fixture.sitting_player.name} sitting)`);
+          }
+        });
+        message.push('```');
 
         // Get unique players for this court
-        const players = [...new Set([
+        const allPlayers = [...new Set([
           ...courtFixtures.map(f => f.player1?.name),
           ...courtFixtures.map(f => f.player2?.name),
           ...courtFixtures.map(f => f.player3?.name),
           ...courtFixtures.map(f => f.player4?.name)
         ].filter(Boolean))];
 
-        message.push(`Players: ${players.join(', ')}`);
-
-        // Show individual matches
-        courtFixtures.forEach((fixture, index) => {
-          const pair1 = [fixture.player1?.name, fixture.player2?.name].filter(Boolean);
-          const pair2 = [fixture.player3?.name, fixture.player4?.name].filter(Boolean);
-
-          message.push(`  ${index + 1}. ${pair1.join(' & ')} vs ${pair2.join(' & ')}`);
-          if (fixture.sitting_player) {
-            message.push(`     (${fixture.sitting_player.name} sitting)`);
-          }
-        });
-        message.push('');
+        message.push(`👥 Players: ${allPlayers.join(', ')}`);
       });
 
-      message.push(`⏰ **Please arrive 15 minutes early for warm-up**`);
+      message.push('');
+      message.push('⏰ Please arrive 15 minutes early for warm-up');
 
     } else {
       // Match not generated yet - availability check
-      message.push(`🤔 **AVAILABILITY CHECK**`);
+      message.push(`🤔 AVAILABILITY CHECK`);
+      message.push('─'.repeat(18));
       message.push('');
       message.push(`We need to know who's available for Week ${match.week_number}!`);
       message.push('');
+
+      // Show current availability stats if available
+      if (availabilityStats) {
+        message.push('📊 Current responses:');
+        message.push('```');
+        message.push(`Available:     ${availabilityStats.available || 0}`);
+        message.push(`Not available: ${availabilityStats.unavailable || 0}`);
+        message.push(`No response:   ${availabilityStats.pending || 0}`);
+        message.push('```');
+        message.push('');
+      }
     }
 
     // Add availability poll if requested
     if (includeAvailabilityPoll && (!fixtures || fixtures.length === 0)) {
-      message.push(`💬 **After posting this message, create a poll with these options:**`);
-      message.push(`• Available ✅`);
-      message.push(`• Not available ❌`);
-      message.push(`• Maybe/unsure ❓`);
+      message.push('💬 PLEASE RESPOND TO POLL:');
+      message.push('• ✅ Available');
+      message.push('• ❌ Not available');
+      message.push('• ❓ Maybe/unsure');
+      message.push('');
+      message.push('(Create a WhatsApp poll with these options)');
       message.push('');
     }
 
     // Add ladder link if requested
     if (includeLadderLink) {
-      message.push(`🔗 **Update your availability in the app**`);
-      message.push(`(Link: ${appUrl})`);
+      message.push('📱 Update availability in the app:');
+      message.push(`${appUrl}`);
       message.push('');
     }
 
-    message.push(`Questions? Contact Jon / Charlie 👋`);
+    message.push('─'.repeat(25));
+    message.push('Questions? Contact Jon or Charlie 👋');
 
     return message.join('\n');
   };
