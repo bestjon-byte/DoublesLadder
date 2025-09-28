@@ -2,16 +2,29 @@
 import React, { useState } from 'react';
 import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo } from '../../utils/helpers';
 import { getEloRankColor } from '../../utils/eloCalculator';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronUp, ChevronDown, MessageCircle } from 'lucide-react';
+import WhatsAppLeagueExporter from '../WhatsApp/WhatsAppLeagueExporter';
 
 const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlayerSelect, supabase, matchFixtures }) => {
   // State for team filter and ELO sorting
   const [teamFilter, setTeamFilter] = useState('all'); // 'all', '1sts', '2nds'
   const [sortBy, setSortBy] = useState('rank'); // 'rank', 'elo'
-  
+
   // State for column sorting
   const [sortColumn, setSortColumn] = useState('rank');
   const [sortDirection, setSortDirection] = useState('asc'); // 'asc', 'desc'
+
+  // State for WhatsApp export modal
+  const [showWhatsAppExport, setShowWhatsAppExport] = useState(false);
+
+  // Helper function to prepare data for WhatsApp export
+  const prepareWhatsAppData = () => {
+    const filteredData = getFilteredRankingData();
+    return {
+      season: selectedSeason,
+      players: filteredData
+    };
+  };
 
   // NEW: Use unified ranking data for both ladder and league seasons
   const rankingData = getUnifiedRankingData(users, selectedSeason);
@@ -289,9 +302,18 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
             </div>
           )}
           
+          {/* WhatsApp Export Button */}
+          <button
+            onClick={() => setShowWhatsAppExport(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm sm:text-base flex items-center space-x-2"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Share</span>
+          </button>
+
           {/* Admin Controls */}
           {currentUser?.role === 'admin' && !isSeasonCompleted && (
-            <button 
+            <button
               onClick={updateRankings}
               className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors text-sm sm:text-base"
             >
@@ -466,6 +488,14 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
         </>
         );
       })()}
+
+      {/* WhatsApp Export Modal */}
+      {showWhatsAppExport && (
+        <WhatsAppLeagueExporter
+          seasonData={prepareWhatsAppData()}
+          onClose={() => setShowWhatsAppExport(false)}
+        />
+      )}
     </div>
   );
 };
