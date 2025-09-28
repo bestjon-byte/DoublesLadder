@@ -11,6 +11,17 @@ const WhatsAppLeagueExporter = ({
   const [includeOnlyPlayersWithMatches, setIncludeOnlyPlayersWithMatches] = useState(true);
   const [includeLadderLink, setIncludeLadderLink] = useState(true);
 
+  // Helper function to format ELO change with arrows
+  const formatEloChange = (eloChange) => {
+    if (!eloChange || eloChange === 0) return '';
+
+    if (eloChange > 0) {
+      return ` 🟢↗${eloChange}`;
+    } else {
+      return ` 🔴↘${Math.abs(eloChange)}`;
+    }
+  };
+
   // Smart name shortening function - reused from match exporter
   const createShortNames = (allPlayerNames) => {
     const nameMap = {};
@@ -103,9 +114,17 @@ const WhatsAppLeagueExporter = ({
 
     if (formatStyle === 'table') {
       // Table format with emojis
-      message.push('┌─────┬──────────────────┬────────┐');
-      message.push('│ Pos │      Player      │  Win%  │');
-      message.push('├─────┼──────────────────┼────────┤');
+      const showElo = seasonData.season?.elo_enabled;
+
+      if (showElo) {
+        message.push('┌─────┬──────────────────┬────────┬─────────┐');
+        message.push('│ Pos │      Player      │  Win%  │   ELO   │');
+        message.push('├─────┼──────────────────┼────────┼─────────┤');
+      } else {
+        message.push('┌─────┬──────────────────┬────────┐');
+        message.push('│ Pos │      Player      │  Win%  │');
+        message.push('├─────┼──────────────────┼────────┤');
+      }
 
       playersToShow.forEach((player, index) => {
         const shortName = shortNameMap[player.name] || player.name;
@@ -120,13 +139,25 @@ const WhatsAppLeagueExporter = ({
         else if (player.rank === 3) position = '🥉';
 
         // Pad the name to fit nicely in WhatsApp
-        const paddedName = shortName.length > 16 ? shortName.substring(0, 13) + '...' : shortName.padEnd(16);
+        const nameLimit = showElo ? 14 : 16;
+        const paddedName = shortName.length > nameLimit ? shortName.substring(0, nameLimit - 3) + '...' : shortName.padEnd(nameLimit);
         const paddedPercent = `${winPercent}%`.padStart(6);
 
-        message.push(`│ ${position.padStart(3)} │ ${paddedName} │ ${paddedPercent} │`);
+        if (showElo) {
+          const eloChange = formatEloChange(player.last_elo_change);
+          const eloDisplay = `${player.elo_rating || '1200'}${eloChange}`;
+          const paddedElo = eloDisplay.padStart(7);
+          message.push(`│ ${position.padStart(3)} │ ${paddedName} │ ${paddedPercent} │ ${paddedElo} │`);
+        } else {
+          message.push(`│ ${position.padStart(3)} │ ${paddedName} │ ${paddedPercent} │`);
+        }
       });
 
-      message.push('└─────┴──────────────────┴────────┘');
+      if (showElo) {
+        message.push('└─────┴──────────────────┴────────┴─────────┘');
+      } else {
+        message.push('└─────┴──────────────────┴────────┘');
+      }
 
     } else if (formatStyle === 'list') {
       // Simple list format
@@ -144,7 +175,8 @@ const WhatsAppLeagueExporter = ({
         else if (player.rank === 2) rankIcon = '🥈';
         else if (player.rank === 3) rankIcon = '🥉';
 
-        message.push(`${rankIcon} ${shortName} - ${winPercent}%`);
+        const eloChange = seasonData.season?.elo_enabled ? formatEloChange(player.last_elo_change) : '';
+        message.push(`${rankIcon} ${shortName} - ${winPercent}%${eloChange}`);
       });
 
     } else if (formatStyle === 'podium') {
@@ -160,13 +192,15 @@ const WhatsAppLeagueExporter = ({
           ? Math.round((player.games_won / player.games_played) * 100)
           : 0;
 
+        const eloChange = seasonData.season?.elo_enabled ? formatEloChange(player.last_elo_change) : '';
+
         if (index === 0) {
           message.push(`    🥇 ${shortName}`);
-          message.push(`    👑 ${winPercent}% wins`);
+          message.push(`    👑 ${winPercent}% wins${eloChange}`);
         } else if (index === 1) {
-          message.push(`🥈 ${shortName} - ${winPercent}%`);
+          message.push(`🥈 ${shortName} - ${winPercent}%${eloChange}`);
         } else if (index === 2) {
-          message.push(`🥉 ${shortName} - ${winPercent}%`);
+          message.push(`🥉 ${shortName} - ${winPercent}%${eloChange}`);
         }
         if (index === 0) message.push('');
       });
@@ -177,10 +211,11 @@ const WhatsAppLeagueExporter = ({
         message.push('📊 Other positions:');
         playersToShow.slice(3).forEach((player, index) => {
           const shortName = shortNameMap[player.name] || player.name;
-          const winPercent = player.matches_played > 0
-            ? Math.round((player.matches_won / player.matches_played) * 100)
+          const winPercent = player.games_played > 0
+            ? Math.round((player.games_won / player.games_played) * 100)
             : 0;
-          message.push(`${index + 4}. ${shortName} - ${winPercent}%`);
+          const eloChange = seasonData.season?.elo_enabled ? formatEloChange(player.last_elo_change) : '';
+          message.push(`${index + 4}. ${shortName} - ${winPercent}%${eloChange}`);
         });
       }
 
@@ -194,8 +229,9 @@ const WhatsAppLeagueExporter = ({
         const winPercent = player.games_played > 0
           ? Math.round((player.games_won / player.games_played) * 100)
           : 0;
+        const eloChange = seasonData.season?.elo_enabled ? formatEloChange(player.last_elo_change) : '';
 
-        message.push(`${player.rank || index + 1}. ${shortName} ${winPercent}%`);
+        message.push(`${player.rank || index + 1}. ${shortName} ${winPercent}%${eloChange}`);
       });
     }
 

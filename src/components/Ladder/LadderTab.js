@@ -16,13 +16,51 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
 
   // State for WhatsApp export modal
   const [showWhatsAppExport, setShowWhatsAppExport] = useState(false);
+  const [whatsAppData, setWhatsAppData] = useState(null);
 
   // Helper function to prepare data for WhatsApp export
-  const prepareWhatsAppData = () => {
+  const prepareWhatsAppData = async () => {
     const filteredData = getFilteredRankingData();
+
+    // Fetch latest ELO changes for each player
+    let playersWithEloChanges = filteredData;
+
+    if (selectedSeason?.elo_enabled && supabase) {
+      try {
+        const { data: eloChanges } = await supabase
+          .from('elo_history')
+          .select(`
+            rating_change,
+            season_player_id,
+            season_players!inner(player_id)
+          `)
+          .eq('season_players.season_id', selectedSeason.id)
+          .order('created_at', { ascending: false });
+
+        if (eloChanges) {
+          // Get latest ELO change for each player
+          const latestChanges = {};
+          eloChanges.forEach(change => {
+            const playerId = change.season_players.player_id;
+            if (!latestChanges[playerId]) {
+              latestChanges[playerId] = change.rating_change;
+            }
+          });
+
+          // Add ELO changes to player data
+          playersWithEloChanges = filteredData.map(player => ({
+            ...player,
+            last_elo_change: latestChanges[player.id] || null
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching ELO changes:', error);
+      }
+    }
+
     return {
       season: selectedSeason,
-      players: filteredData
+      players: playersWithEloChanges
     };
   };
 
@@ -305,7 +343,11 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
           {/* WhatsApp Export Button - Admin Only */}
           {currentUser?.role === 'admin' && (
             <button
-              onClick={() => setShowWhatsAppExport(true)}
+              onClick={async () => {
+                const data = await prepareWhatsAppData();
+                setWhatsAppData(data);
+                setShowWhatsAppExport(true);
+              }}
               className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm sm:text-base flex items-center space-x-2"
             >
               <MessageCircle className="w-4 h-4" />
@@ -492,10 +534,13 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
       })()}
 
       {/* WhatsApp Export Modal */}
-      {showWhatsAppExport && (
+      {showWhatsAppExport && whatsAppData && (
         <WhatsAppLeagueExporter
-          seasonData={prepareWhatsAppData()}
-          onClose={() => setShowWhatsAppExport(false)}
+          seasonData={whatsAppData}
+          onClose={() => {
+            setShowWhatsAppExport(false);
+            setWhatsAppData(null);
+          }}
         />
       )}
     </div>
