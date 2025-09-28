@@ -12,6 +12,7 @@ const WhatsAppPostGenerator = ({
   const [copied, setCopied] = useState(false);
   const [includeAvailabilityPoll, setIncludeAvailabilityPoll] = useState(true);
   const [includeLadderLink, setIncludeLadderLink] = useState(true);
+  const [formatStyle, setFormatStyle] = useState('card'); // card, list, brackets, tournament, clean
 
   const formatMatchDate = (dateStr) => {
     const date = new Date(dateStr);
@@ -65,34 +66,56 @@ const WhatsAppPostGenerator = ({
         message.push(`🏟️ Court ${courtNumber}`);
         message.push('');
 
-        // Create a beautiful table for matches
-        message.push('```');
-        message.push('Match | Pair 1           vs  Pair 2');
-        message.push('------|----------------------------------');
-
+        // Multiple WhatsApp-friendly formatting options
         courtFixtures.forEach((fixture, index) => {
           const pair1Names = [fixture.player1?.name, fixture.player2?.name].filter(Boolean);
           const pair2Names = [fixture.player3?.name, fixture.player4?.name].filter(Boolean);
 
-          // Format names to fit nicely
           const pair1 = pair1Names.join(' & ');
           const pair2 = pair2Names.join(' & ');
 
-          // Create properly aligned table row with more space
-          const matchNum = `  ${index + 1}  `;
-          const maxPair1Length = 15;
-          const pair1Padded = pair1.length > maxPair1Length ?
-            pair1.substring(0, maxPair1Length - 1) + '…' :
-            pair1.padEnd(maxPair1Length);
+          if (formatStyle === 'card') {
+            // Card Style - Clean and visual
+            message.push(`🎾 Match ${index + 1}`);
+            message.push(`${pair1} 🆚 ${pair2}`);
+            if (fixture.sitting_player) {
+              message.push(`💺 ${fixture.sitting_player.name} sitting`);
+            }
+            message.push('');
 
-          message.push(`${matchNum} | ${pair1Padded} vs ${pair2}`);
+          } else if (formatStyle === 'list') {
+            // Simple List - Clean and readable
+            message.push(`${index + 1}. ${pair1} vs ${pair2}`);
+            if (fixture.sitting_player) {
+              message.push(`   (${fixture.sitting_player.name} sitting)`);
+            }
 
-          // Show sitting player on separate line if exists
-          if (fixture.sitting_player) {
-            message.push(`       | (${fixture.sitting_player.name} sitting)`);
+          } else if (formatStyle === 'brackets') {
+            // Emoji Brackets - Fun and visual
+            message.push(`【${index + 1}】${pair1} ⚡ ${pair2}`);
+            if (fixture.sitting_player) {
+              message.push(`    💤 ${fixture.sitting_player.name} sitting`);
+            }
+
+          } else if (formatStyle === 'tournament') {
+            // Tournament Style - Professional
+            message.push(`▶️ ${pair1}`);
+            message.push(`     🆚`);
+            message.push(`▶️ ${pair2}`);
+            if (fixture.sitting_player) {
+              message.push(`💺 ${fixture.sitting_player.name}`);
+            }
+            message.push('─'.repeat(20));
+
+          } else if (formatStyle === 'clean') {
+            // Ultra Clean - Minimal
+            message.push(`${pair1} v ${pair2}`);
+            if (fixture.sitting_player) {
+              message.push(`(${fixture.sitting_player.name} sits)`);
+            }
+            message.push('');
           }
         });
-        message.push('```');
 
         // Get unique players for this court
         const allPlayers = [...new Set([
@@ -206,7 +229,30 @@ const WhatsAppPostGenerator = ({
           {/* Options */}
           <div className="p-6 border-b border-gray-200">
             <h4 className="font-medium text-gray-900 mb-3">Message Options</h4>
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Formatting Style Selector */}
+              {fixtures && fixtures.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    📱 WhatsApp Format Style
+                  </label>
+                  <select
+                    value={formatStyle}
+                    onChange={(e) => setFormatStyle(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#5D1F1F] focus:border-[#5D1F1F]"
+                  >
+                    <option value="card">🎾 Card Style (Clean & Visual)</option>
+                    <option value="list">📝 Simple List (Clean & Readable)</option>
+                    <option value="brackets">【】Emoji Brackets (Fun & Visual)</option>
+                    <option value="tournament">🏆 Tournament Style (Professional)</option>
+                    <option value="clean">✨ Ultra Clean (Minimal)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Try different styles to see what looks best in WhatsApp!
+                  </p>
+                </div>
+              )}
+
               {(!fixtures || fixtures.length === 0) && (
                 <label className="flex items-center">
                   <input
