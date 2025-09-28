@@ -1,10 +1,11 @@
 name: Deploy to Vercel
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+# Disabled - using Vercel MCP integration instead
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
 
 jobs:
   deploy:
