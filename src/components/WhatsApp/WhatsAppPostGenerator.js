@@ -12,6 +12,7 @@ const WhatsAppPostGenerator = ({
   const [copied, setCopied] = useState(false);
   const [includeAvailabilityPoll, setIncludeAvailabilityPoll] = useState(true);
   const [includeLadderLink, setIncludeLadderLink] = useState(true);
+  const [includeSitting, setIncludeSitting] = useState(false);
   const [formatStyle, setFormatStyle] = useState('card'); // card, list, brackets, tournament, clean
 
   const formatMatchDate = (dateStr) => {
@@ -23,6 +24,74 @@ const WhatsAppPostGenerator = ({
       day: 'numeric'
     };
     return date.toLocaleDateString('en-GB', options);
+  };
+
+  // Smart name shortening function
+  const createShortNames = (allPlayerNames) => {
+    const nameMap = {};
+
+    // Create map of first names to full names
+    const firstNameGroups = {};
+    allPlayerNames.forEach(fullName => {
+      if (!fullName) return;
+
+      const parts = fullName.trim().split(/\s+/);
+      const firstName = parts[0];
+      const lastName = parts.length > 1 ? parts[parts.length - 1] : '';
+
+      if (!firstNameGroups[firstName]) {
+        firstNameGroups[firstName] = [];
+      }
+      firstNameGroups[firstName].push({ fullName, firstName, lastName });
+    });
+
+    // Create short names
+    Object.values(firstNameGroups).forEach(group => {
+      if (group.length === 1) {
+        // Only one person with this first name - use first name only
+        nameMap[group[0].fullName] = group[0].firstName;
+      } else {
+        // Multiple people with same first name - add minimal last name chars
+        group.forEach(person => {
+          if (person.lastName) {
+            // Find minimum characters needed to make unique
+            let shortName = person.firstName;
+            let suffixLength = 1;
+            let isUnique = false;
+
+            while (!isUnique && suffixLength <= person.lastName.length) {
+              const testName = `${person.firstName} ${person.lastName.substring(0, suffixLength)}`;
+
+              // Check if this combination is unique among the group
+              const conflicts = group.filter(other =>
+                other !== person &&
+                other.lastName &&
+                other.lastName.substring(0, suffixLength) === person.lastName.substring(0, suffixLength)
+              );
+
+              if (conflicts.length === 0) {
+                shortName = testName;
+                isUnique = true;
+              } else {
+                suffixLength++;
+              }
+            }
+
+            // If still not unique, use full last name
+            if (!isUnique) {
+              shortName = `${person.firstName} ${person.lastName}`;
+            }
+
+            nameMap[person.fullName] = shortName;
+          } else {
+            // No last name available, just use first name with a number if needed
+            nameMap[person.fullName] = person.firstName;
+          }
+        });
+      }
+    });
+
+    return nameMap;
   };
 
   const generateWhatsAppPost = () => {
@@ -50,6 +119,19 @@ const WhatsAppPostGenerator = ({
       message.push('─'.repeat(20));
       message.push('');
 
+      // Collect all player names for smart shortening
+      const allPlayerNames = [];
+      fixtures.forEach(fixture => {
+        if (fixture.player1?.name) allPlayerNames.push(fixture.player1.name);
+        if (fixture.player2?.name) allPlayerNames.push(fixture.player2.name);
+        if (fixture.player3?.name) allPlayerNames.push(fixture.player3.name);
+        if (fixture.player4?.name) allPlayerNames.push(fixture.player4.name);
+        if (includeSitting && fixture.sitting_player?.name) allPlayerNames.push(fixture.sitting_player.name);
+      });
+
+      // Create smart short names
+      const shortNameMap = createShortNames(allPlayerNames);
+
       // Group by courts
       const courtGroups = {};
       fixtures.forEach(fixture => {
@@ -68,8 +150,15 @@ const WhatsAppPostGenerator = ({
 
         // Multiple WhatsApp-friendly formatting options
         courtFixtures.forEach((fixture, index) => {
-          const pair1Names = [fixture.player1?.name, fixture.player2?.name].filter(Boolean);
-          const pair2Names = [fixture.player3?.name, fixture.player4?.name].filter(Boolean);
+          // Use short names
+          const pair1Names = [
+            fixture.player1?.name ? shortNameMap[fixture.player1.name] : null,
+            fixture.player2?.name ? shortNameMap[fixture.player2.name] : null
+          ].filter(Boolean);
+          const pair2Names = [
+            fixture.player3?.name ? shortNameMap[fixture.player3.name] : null,
+            fixture.player4?.name ? shortNameMap[fixture.player4.name] : null
+          ].filter(Boolean);
 
           const pair1 = pair1Names.join(' & ');
           const pair2 = pair2Names.join(' & ');
@@ -78,23 +167,26 @@ const WhatsAppPostGenerator = ({
             // Card Style - Clean and visual
             message.push(`🎾 Match ${index + 1}`);
             message.push(`${pair1} 🆚 ${pair2}`);
-            if (fixture.sitting_player) {
-              message.push(`💺 ${fixture.sitting_player.name} sitting`);
+            if (includeSitting && fixture.sitting_player) {
+              const sittingName = shortNameMap[fixture.sitting_player.name] || fixture.sitting_player.name;
+              message.push(`💺 ${sittingName} sitting`);
             }
             message.push('');
 
           } else if (formatStyle === 'list') {
             // Simple List - Clean and readable
             message.push(`${index + 1}. ${pair1} vs ${pair2}`);
-            if (fixture.sitting_player) {
-              message.push(`   (${fixture.sitting_player.name} sitting)`);
+            if (includeSitting && fixture.sitting_player) {
+              const sittingName = shortNameMap[fixture.sitting_player.name] || fixture.sitting_player.name;
+              message.push(`   (${sittingName} sitting)`);
             }
 
           } else if (formatStyle === 'brackets') {
             // Emoji Brackets - Fun and visual
             message.push(`【${index + 1}】${pair1} ⚡ ${pair2}`);
-            if (fixture.sitting_player) {
-              message.push(`    💤 ${fixture.sitting_player.name} sitting`);
+            if (includeSitting && fixture.sitting_player) {
+              const sittingName = shortNameMap[fixture.sitting_player.name] || fixture.sitting_player.name;
+              message.push(`    💤 ${sittingName} sitting`);
             }
 
           } else if (formatStyle === 'tournament') {
@@ -102,30 +194,22 @@ const WhatsAppPostGenerator = ({
             message.push(`▶️ ${pair1}`);
             message.push(`     🆚`);
             message.push(`▶️ ${pair2}`);
-            if (fixture.sitting_player) {
-              message.push(`💺 ${fixture.sitting_player.name}`);
+            if (includeSitting && fixture.sitting_player) {
+              const sittingName = shortNameMap[fixture.sitting_player.name] || fixture.sitting_player.name;
+              message.push(`💺 ${sittingName}`);
             }
             message.push('─'.repeat(20));
 
           } else if (formatStyle === 'clean') {
             // Ultra Clean - Minimal
             message.push(`${pair1} v ${pair2}`);
-            if (fixture.sitting_player) {
-              message.push(`(${fixture.sitting_player.name} sits)`);
+            if (includeSitting && fixture.sitting_player) {
+              const sittingName = shortNameMap[fixture.sitting_player.name] || fixture.sitting_player.name;
+              message.push(`(${sittingName} sits)`);
             }
             message.push('');
           }
         });
-
-        // Get unique players for this court
-        const allPlayers = [...new Set([
-          ...courtFixtures.map(f => f.player1?.name),
-          ...courtFixtures.map(f => f.player2?.name),
-          ...courtFixtures.map(f => f.player3?.name),
-          ...courtFixtures.map(f => f.player4?.name)
-        ].filter(Boolean))];
-
-        message.push(`👥 Players: ${allPlayers.join(', ')}`);
       });
 
       message.push('');
@@ -251,6 +335,21 @@ const WhatsAppPostGenerator = ({
                     Try different styles to see what looks best in WhatsApp!
                   </p>
                 </div>
+              )}
+
+              {/* Include Sitting Players Option */}
+              {fixtures && fixtures.length > 0 && (
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={includeSitting}
+                    onChange={(e) => setIncludeSitting(e.target.checked)}
+                    className="rounded border-gray-300 text-[#5D1F1F] focus:ring-[#5D1F1F]"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    💺 Include sitting players
+                  </span>
+                </label>
               )}
 
               {(!fixtures || fixtures.length === 0) && (
