@@ -4,7 +4,7 @@ import { Copy, Check, MessageCircle } from 'lucide-react';
 const WhatsAppLeagueExporter = ({
   seasonData,
   onClose,
-  appUrl = "https://tennis-ladder-app.vercel.app"
+  appUrl = "https://cawood-tennis.vercel.app"
 }) => {
   const [copied, setCopied] = useState(false);
   const [formatStyle, setFormatStyle] = useState('table'); // table, list, podium, minimal
@@ -73,9 +73,9 @@ const WhatsAppLeagueExporter = ({
   const generateLeagueTablePost = () => {
     let message = [];
 
-    // Filter players with matches if requested
+    // Filter players with games if requested
     const playersToShow = includeOnlyPlayersWithMatches
-      ? seasonData.players.filter(player => player.matches_played > 0)
+      ? seasonData.players.filter(player => player.games_played > 0)
       : seasonData.players;
 
     if (playersToShow.length === 0) {
@@ -109,8 +109,8 @@ const WhatsAppLeagueExporter = ({
 
       playersToShow.forEach((player, index) => {
         const shortName = shortNameMap[player.name] || player.name;
-        const winPercent = player.matches_played > 0
-          ? Math.round((player.matches_won / player.matches_played) * 100)
+        const winPercent = player.games_played > 0
+          ? Math.round((player.games_won / player.games_played) * 100)
           : 0;
 
         // Add rank emoji for top 3
@@ -135,8 +135,8 @@ const WhatsAppLeagueExporter = ({
 
       playersToShow.forEach((player, index) => {
         const shortName = shortNameMap[player.name] || player.name;
-        const winPercent = player.matches_played > 0
-          ? Math.round((player.matches_won / player.matches_played) * 100)
+        const winPercent = player.games_played > 0
+          ? Math.round((player.games_won / player.games_played) * 100)
           : 0;
 
         let rankIcon = `${player.rank || index + 1}.`;
@@ -156,8 +156,8 @@ const WhatsAppLeagueExporter = ({
       const topThree = playersToShow.slice(0, 3);
       topThree.forEach((player, index) => {
         const shortName = shortNameMap[player.name] || player.name;
-        const winPercent = player.matches_played > 0
-          ? Math.round((player.matches_won / player.matches_played) * 100)
+        const winPercent = player.games_played > 0
+          ? Math.round((player.games_won / player.games_played) * 100)
           : 0;
 
         if (index === 0) {
@@ -191,8 +191,8 @@ const WhatsAppLeagueExporter = ({
 
       playersToShow.forEach((player, index) => {
         const shortName = shortNameMap[player.name] || player.name;
-        const winPercent = player.matches_played > 0
-          ? Math.round((player.matches_won / player.matches_played) * 100)
+        const winPercent = player.games_played > 0
+          ? Math.round((player.games_won / player.games_played) * 100)
           : 0;
 
         message.push(`${player.rank || index + 1}. ${shortName} ${winPercent}%`);
@@ -203,7 +203,7 @@ const WhatsAppLeagueExporter = ({
 
     // Add summary stats
     const totalPlayers = playersToShow.length;
-    const activePlayers = playersToShow.filter(p => p.matches_played > 0).length;
+    const activePlayers = playersToShow.filter(p => p.games_played > 0).length;
 
     if (includeOnlyPlayersWithMatches) {
       message.push(`📈 ${activePlayers} active players`);
@@ -306,7 +306,7 @@ const WhatsAppLeagueExporter = ({
                   className="rounded border-gray-300 text-[#5D1F1F] focus:ring-[#5D1F1F]"
                 />
                 <span className="ml-2 text-sm text-gray-700">
-                  🎾 Only show players who have played matches
+                  🎾 Only show players who have played games
                 </span>
               </label>
 

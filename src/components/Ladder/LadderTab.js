@@ -302,14 +302,16 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
             </div>
           )}
           
-          {/* WhatsApp Export Button */}
-          <button
-            onClick={() => setShowWhatsAppExport(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm sm:text-base flex items-center space-x-2"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>Share</span>
-          </button>
+          {/* WhatsApp Export Button - Admin Only */}
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={() => setShowWhatsAppExport(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm sm:text-base flex items-center space-x-2"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Share</span>
+            </button>
+          )}
 
           {/* Admin Controls */}
           {currentUser?.role === 'admin' && !isSeasonCompleted && (
