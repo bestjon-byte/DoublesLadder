@@ -30,11 +30,12 @@ const WhatsAppPostGenerator = ({
   const createShortNames = (allPlayerNames) => {
     const nameMap = {};
 
+    // Remove duplicates from input
+    const uniqueNames = [...new Set(allPlayerNames.filter(name => name))];
+
     // Create map of first names to full names
     const firstNameGroups = {};
-    allPlayerNames.forEach(fullName => {
-      if (!fullName) return;
-
+    uniqueNames.forEach(fullName => {
       const parts = fullName.trim().split(/\s+/);
       const firstName = parts[0];
       const lastName = parts.length > 1 ? parts[parts.length - 1] : '';
@@ -84,7 +85,7 @@ const WhatsAppPostGenerator = ({
 
             nameMap[person.fullName] = shortName;
           } else {
-            // No last name available, just use first name with a number if needed
+            // No last name available, just use first name
             nameMap[person.fullName] = person.firstName;
           }
         });
@@ -150,14 +151,14 @@ const WhatsAppPostGenerator = ({
 
         // Multiple WhatsApp-friendly formatting options
         courtFixtures.forEach((fixture, index) => {
-          // Use short names
+          // Use short names - fallback to original name if not in map
           const pair1Names = [
-            fixture.player1?.name ? shortNameMap[fixture.player1.name] : null,
-            fixture.player2?.name ? shortNameMap[fixture.player2.name] : null
+            fixture.player1?.name ? (shortNameMap[fixture.player1.name] || fixture.player1.name) : null,
+            fixture.player2?.name ? (shortNameMap[fixture.player2.name] || fixture.player2.name) : null
           ].filter(Boolean);
           const pair2Names = [
-            fixture.player3?.name ? shortNameMap[fixture.player3.name] : null,
-            fixture.player4?.name ? shortNameMap[fixture.player4.name] : null
+            fixture.player3?.name ? (shortNameMap[fixture.player3.name] || fixture.player3.name) : null,
+            fixture.player4?.name ? (shortNameMap[fixture.player4.name] || fixture.player4.name) : null
           ].filter(Boolean);
 
           const pair1 = pair1Names.join(' & ');
