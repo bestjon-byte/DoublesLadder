@@ -1,4 +1,4 @@
-const APP_VERSION = '1.0.127'; // Increment this for each deployment
+const APP_VERSION = '1.0.128'; // Increment this for each deployment
 const CACHE_NAME = `tennis-ladder-v${APP_VERSION}`;
 const urlsToCache = [
   '/',

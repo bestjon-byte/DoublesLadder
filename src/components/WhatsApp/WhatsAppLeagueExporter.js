@@ -7,7 +7,7 @@ const WhatsAppLeagueExporter = ({
   appUrl = "https://cawood-tennis.vercel.app"
 }) => {
   const [copied, setCopied] = useState(false);
-  const [formatStyle, setFormatStyle] = useState('table'); // table, list, podium, minimal
+  const [formatStyle] = useState('list'); // Only using list format now
   const [includeOnlyPlayersWithMatches, setIncludeOnlyPlayersWithMatches] = useState(true);
   const [includeLadderLink, setIncludeLadderLink] = useState(true);
 
@@ -16,9 +16,9 @@ const WhatsAppLeagueExporter = ({
     if (!eloChange || eloChange === 0) return '';
 
     if (eloChange > 0) {
-      return ` 🟢↗${eloChange}`;
+      return ` ⬆️+${eloChange}`;
     } else {
-      return ` 🔴↘${Math.abs(eloChange)}`;
+      return ` ⬇️${eloChange}`;
     }
   };
 
@@ -112,128 +112,33 @@ const WhatsAppLeagueExporter = ({
     const allPlayerNames = playersToShow.map(player => player.name);
     const shortNameMap = createShortNames(allPlayerNames);
 
-    if (formatStyle === 'table') {
-      // Table format with emojis
+    // Simple list format
+    message.push('📋 League Table:');
+    message.push('');
+
+    playersToShow.forEach((player, index) => {
+      const shortName = shortNameMap[player.name] || player.name;
+      const winPercent = player.games_played > 0
+        ? Math.round((player.games_won / player.games_played) * 100)
+        : 0;
+
+      let rankIcon = `${player.rank || index + 1}.`;
+      if (player.rank === 1) rankIcon = '🥇';
+      else if (player.rank === 2) rankIcon = '🥈';
+      else if (player.rank === 3) rankIcon = '🥉';
+
+      // Enhanced format: Name - Win% (ELO: score change)
       const showElo = seasonData.season?.elo_enabled;
+      let displayLine = `${rankIcon} ${shortName} - ${winPercent}%`;
 
       if (showElo) {
-        message.push('┌─────┬──────────────────┬────────┬─────────┐');
-        message.push('│ Pos │      Player      │  Win%  │   ELO   │');
-        message.push('├─────┼──────────────────┼────────┼─────────┤');
-      } else {
-        message.push('┌─────┬──────────────────┬────────┐');
-        message.push('│ Pos │      Player      │  Win%  │');
-        message.push('├─────┼──────────────────┼────────┤');
+        const eloScore = player.elo_rating || '1200';
+        const eloChange = formatEloChange(player.last_elo_change);
+        displayLine += ` (ELO: ${eloScore}${eloChange})`;
       }
 
-      playersToShow.forEach((player, index) => {
-        const shortName = shortNameMap[player.name] || player.name;
-        const winPercent = player.games_played > 0
-          ? Math.round((player.games_won / player.games_played) * 100)
-          : 0;
-
-        // Add rank emoji for top 3
-        let position = `${player.rank || index + 1}`;
-        if (player.rank === 1) position = '🥇';
-        else if (player.rank === 2) position = '🥈';
-        else if (player.rank === 3) position = '🥉';
-
-        // Pad the name to fit nicely in WhatsApp
-        const nameLimit = showElo ? 14 : 16;
-        const paddedName = shortName.length > nameLimit ? shortName.substring(0, nameLimit - 3) + '...' : shortName.padEnd(nameLimit);
-        const paddedPercent = `${winPercent}%`.padStart(6);
-
-        if (showElo) {
-          const eloChange = formatEloChange(player.last_elo_change);
-          const eloDisplay = `${player.elo_rating || '1200'}${eloChange}`;
-          const paddedElo = eloDisplay.padStart(7);
-          message.push(`│ ${position.padStart(3)} │ ${paddedName} │ ${paddedPercent} │ ${paddedElo} │`);
-        } else {
-          message.push(`│ ${position.padStart(3)} │ ${paddedName} │ ${paddedPercent} │`);
-        }
-      });
-
-      if (showElo) {
-        message.push('└─────┴──────────────────┴────────┴─────────┘');
-      } else {
-        message.push('└─────┴──────────────────┴────────┘');
-      }
-
-    } else if (formatStyle === 'list') {
-      // Simple list format
-      message.push('📋 League Table:');
-      message.push('');
-
-      playersToShow.forEach((player, index) => {
-        const shortName = shortNameMap[player.name] || player.name;
-        const winPercent = player.games_played > 0
-          ? Math.round((player.games_won / player.games_played) * 100)
-          : 0;
-
-        let rankIcon = `${player.rank || index + 1}.`;
-        if (player.rank === 1) rankIcon = '🥇';
-        else if (player.rank === 2) rankIcon = '🥈';
-        else if (player.rank === 3) rankIcon = '🥉';
-
-        const eloChange = seasonData.season?.elo_enabled ? formatEloChange(player.last_elo_change) : '';
-        message.push(`${rankIcon} ${shortName} - ${winPercent}%${eloChange}`);
-      });
-
-    } else if (formatStyle === 'podium') {
-      // Podium format - show top 3 prominently, then list others
-      message.push('🏆 PODIUM FINISHERS 🏆');
-      message.push('');
-
-      // Show top 3
-      const topThree = playersToShow.slice(0, 3);
-      topThree.forEach((player, index) => {
-        const shortName = shortNameMap[player.name] || player.name;
-        const winPercent = player.games_played > 0
-          ? Math.round((player.games_won / player.games_played) * 100)
-          : 0;
-
-        const eloChange = seasonData.season?.elo_enabled ? formatEloChange(player.last_elo_change) : '';
-
-        if (index === 0) {
-          message.push(`    🥇 ${shortName}`);
-          message.push(`    👑 ${winPercent}% wins${eloChange}`);
-        } else if (index === 1) {
-          message.push(`🥈 ${shortName} - ${winPercent}%${eloChange}`);
-        } else if (index === 2) {
-          message.push(`🥉 ${shortName} - ${winPercent}%${eloChange}`);
-        }
-        if (index === 0) message.push('');
-      });
-
-      // Show rest if there are more than 3
-      if (playersToShow.length > 3) {
-        message.push('');
-        message.push('📊 Other positions:');
-        playersToShow.slice(3).forEach((player, index) => {
-          const shortName = shortNameMap[player.name] || player.name;
-          const winPercent = player.games_played > 0
-            ? Math.round((player.games_won / player.games_played) * 100)
-            : 0;
-          const eloChange = seasonData.season?.elo_enabled ? formatEloChange(player.last_elo_change) : '';
-          message.push(`${index + 4}. ${shortName} - ${winPercent}%${eloChange}`);
-        });
-      }
-
-    } else if (formatStyle === 'minimal') {
-      // Ultra minimal - just positions and win percentages
-      message.push('Current standings:');
-      message.push('');
-
-      playersToShow.forEach((player, index) => {
-        const shortName = shortNameMap[player.name] || player.name;
-        const winPercent = player.games_played > 0
-          ? Math.round((player.games_won / player.games_played) * 100)
-          : 0;
-        const eloChange = seasonData.season?.elo_enabled ? formatEloChange(player.last_elo_change) : '';
-
-        message.push(`${player.rank || index + 1}. ${shortName} ${winPercent}%${eloChange}`);
-      });
-    }
+      message.push(displayLine);
+    });
 
     message.push('');
 
@@ -316,22 +221,6 @@ const WhatsAppLeagueExporter = ({
           <div className="p-6 border-b border-gray-200">
             <h4 className="font-medium text-gray-900 mb-3">Export Options</h4>
             <div className="space-y-4">
-              {/* Format Style Selector */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  📱 Format Style
-                </label>
-                <select
-                  value={formatStyle}
-                  onChange={(e) => setFormatStyle(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#5D1F1F] focus:border-[#5D1F1F]"
-                >
-                  <option value="table">📊 Table Format (Clean & Professional)</option>
-                  <option value="list">📋 Simple List (Quick & Readable)</option>
-                  <option value="podium">🏆 Podium Style (Highlight Top 3)</option>
-                  <option value="minimal">✨ Minimal (Ultra Clean)</option>
-                </select>
-              </div>
 
               {/* Include only players with matches */}
               <label className="flex items-center">
