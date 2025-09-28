@@ -100,7 +100,7 @@ const WhatsAppPostGenerator = ({
 
     // Header with cleaner formatting
     message.push(`🎾 CAWOOD TENNIS LADDER 🎾`);
-    message.push('═'.repeat(28));
+    message.push('═'.repeat(12));
     message.push('');
 
     // Match details with better date formatting
@@ -117,7 +117,7 @@ const WhatsAppPostGenerator = ({
     if (fixtures && fixtures.length > 0) {
       // Match has been generated - show fixtures with beautiful table formatting
       message.push(`🏆 MATCH FIXTURES`);
-      message.push('─'.repeat(20));
+      message.push('─'.repeat(8));
       message.push('');
 
       // Collect all player names for smart shortening
@@ -199,7 +199,7 @@ const WhatsAppPostGenerator = ({
               const sittingName = shortNameMap[fixture.sitting_player.name] || fixture.sitting_player.name;
               message.push(`💺 ${sittingName}`);
             }
-            message.push('─'.repeat(20));
+            message.push('─'.repeat(6));
 
           } else if (formatStyle === 'clean') {
             // Ultra Clean - Minimal
@@ -219,7 +219,7 @@ const WhatsAppPostGenerator = ({
     } else {
       // Match not generated yet - availability check
       message.push(`🤔 AVAILABILITY CHECK`);
-      message.push('─'.repeat(18));
+      message.push('─'.repeat(8));
       message.push('');
       message.push(`We need to know who's available for Week ${match.week_number}!`);
       message.push('');
@@ -254,7 +254,7 @@ const WhatsAppPostGenerator = ({
       message.push('');
     }
 
-    message.push('─'.repeat(25));
+    message.push('─'.repeat(10));
     message.push('Questions? Contact Jon or Charlie 👋');
 
     return message.join('\n');
