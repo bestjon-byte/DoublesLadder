@@ -7,7 +7,7 @@ const WhatsAppPostGenerator = ({
   users,
   availabilityStats,
   onClose,
-  appUrl = "https://tennis-ladder-llw0ervod-jons-projects-9634d9db.vercel.app"
+  appUrl = "https://cawood-tennis.vercel.app"
 }) => {
   const [copied, setCopied] = useState(false);
   const [includeAvailabilityPoll, setIncludeAvailabilityPoll] = useState(true);
