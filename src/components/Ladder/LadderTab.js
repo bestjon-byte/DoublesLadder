@@ -27,34 +27,69 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
 
     if (selectedSeason?.elo_enabled && supabase) {
       try {
-        const { data: eloChanges } = await supabase
+        // Get the most recent date with ELO changes (representing the current week)
+        const { data: recentDate } = await supabase
           .from('elo_history')
-          .select(`
-            rating_change,
-            season_player_id,
-            season_players!inner(player_id)
-          `)
+          .select('created_at')
           .eq('season_players.season_id', selectedSeason.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-        if (eloChanges) {
-          // Get latest ELO change for each player
-          const latestChanges = {};
-          eloChanges.forEach(change => {
-            const playerId = change.season_players.player_id;
-            if (!latestChanges[playerId]) {
-              latestChanges[playerId] = change.rating_change;
-            }
+        if (recentDate && recentDate.length > 0) {
+          const mostRecentDate = new Date(recentDate[0].created_at).toISOString().split('T')[0];
+
+          // Get weekly ELO changes (sum of all changes from the most recent play date)
+          const { data: weeklyChanges } = await supabase.rpc('get_weekly_elo_changes', {
+            p_season_id: selectedSeason.id,
+            p_date: mostRecentDate
           });
 
-          // Add ELO changes to player data
-          playersWithEloChanges = filteredData.map(player => ({
-            ...player,
-            last_elo_change: latestChanges[player.id] || null
-          }));
+          if (weeklyChanges) {
+            const weeklyChangeMap = {};
+            weeklyChanges.forEach(change => {
+              weeklyChangeMap[change.player_id] = change.total_week_change;
+            });
+
+            // Add weekly ELO changes to player data
+            playersWithEloChanges = filteredData.map(player => ({
+              ...player,
+              last_elo_change: weeklyChangeMap[player.id] || null
+            }));
+          } else {
+            // Fallback to individual query if RPC doesn't exist
+            const { data: eloChanges } = await supabase
+              .from('elo_history')
+              .select(`
+                rating_change,
+                created_at,
+                season_player_id,
+                season_players!inner(player_id)
+              `)
+              .eq('season_players.season_id', selectedSeason.id)
+              .gte('created_at', mostRecentDate)
+              .lt('created_at', new Date(new Date(mostRecentDate).getTime() + 24*60*60*1000).toISOString());
+
+            if (eloChanges) {
+              // Sum up weekly changes for each player
+              const weeklyTotals = {};
+              eloChanges.forEach(change => {
+                const playerId = change.season_players.player_id;
+                if (!weeklyTotals[playerId]) {
+                  weeklyTotals[playerId] = 0;
+                }
+                weeklyTotals[playerId] += change.rating_change;
+              });
+
+              // Add weekly ELO changes to player data
+              playersWithEloChanges = filteredData.map(player => ({
+                ...player,
+                last_elo_change: weeklyTotals[player.id] || null
+              }));
+            }
+          }
         }
       } catch (error) {
-        console.error('Error fetching ELO changes:', error);
+        console.error('Error fetching weekly ELO changes:', error);
       }
     }
 

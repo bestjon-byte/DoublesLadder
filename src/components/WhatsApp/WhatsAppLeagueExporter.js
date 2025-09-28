@@ -16,9 +16,9 @@ const WhatsAppLeagueExporter = ({
     if (!eloChange || eloChange === 0) return '';
 
     if (eloChange > 0) {
-      return ` ⬆️+${eloChange}`;
+      return ` ↗️+${eloChange}`;
     } else {
-      return ` ⬇️${eloChange}`;
+      return ` ↘️${eloChange}`;
     }
   };
 
