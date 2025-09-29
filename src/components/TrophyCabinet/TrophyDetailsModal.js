@@ -195,25 +195,6 @@ const TrophyDetailsModal = ({ isOpen, onClose, trophy, currentUser, onEdit, onDe
                 </div>
               </div>
 
-              {/* Trophy Type */}
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Star className="w-5 h-5 text-orange-600" />
-                  <h3 className="font-semibold text-orange-900">Trophy Type</h3>
-                </div>
-                <div className="text-orange-800">
-                  {trophy.trophy_type?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Custom Trophy'}
-                </div>
-              </div>
-
-              {/* Display Order */}
-              {trophy.display_order !== null && trophy.display_order !== undefined && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="text-gray-700">
-                    <span className="font-medium">Display Order:</span> {trophy.display_order}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
