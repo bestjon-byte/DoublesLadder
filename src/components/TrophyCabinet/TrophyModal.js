@@ -270,26 +270,6 @@ const TrophyModal = ({
               )}
             </div>
 
-            {/* Trophy Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Trophy Type
-              </label>
-              <select
-                value={formData.trophy_type}
-                onChange={(e) => handleInputChange('trophy_type', e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
-              >
-                {trophyTypes.map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.icon} {type.label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-gray-500 text-xs mt-1">
-                {selectedTrophyType?.description}
-              </p>
-            </div>
 
             {/* Image Upload for Custom Image Type */}
             {formData.trophy_type === 'custom_image' && (
@@ -486,22 +466,6 @@ const TrophyModal = ({
               />
             </div>
 
-            {/* Display Order */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Display Order
-              </label>
-              <input
-                type="number"
-                value={formData.display_order}
-                onChange={(e) => handleInputChange('display_order', parseInt(e.target.value) || 0)}
-                min="0"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
-              />
-              <p className="text-gray-500 text-xs mt-1">
-                Lower numbers appear first
-              </p>
-            </div>
           </div>
 
           {/* Featured Toggle */}
