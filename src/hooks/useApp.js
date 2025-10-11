@@ -1407,6 +1407,96 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [supabase, fetchMatchFixtures]);
 
+  const undoGenerateMatches = useCallback(async (matchId) => {
+    try {
+      // Look in selected season data first, fallback to currentSeason
+      const match = state.selectedSeason?.matches?.find(m => m.id === matchId) ||
+                    state.currentSeason?.matches?.find(m => m.id === matchId);
+      if (!match) {
+        alert('Match not found');
+        return { success: false };
+      }
+
+      // Get all fixtures for this match
+      const { data: fixtures, error: fixturesError } = await supabase
+        .from('match_fixtures')
+        .select('id')
+        .eq('match_id', matchId);
+
+      if (fixturesError) throw fixturesError;
+
+      if (!fixtures || fixtures.length === 0) {
+        alert('No generated matches to undo');
+        return { success: false };
+      }
+
+      const fixtureIds = fixtures.map(f => f.id);
+
+      // Check if any results have been entered
+      const { data: results, error: resultsError } = await supabase
+        .from('match_results')
+        .select('id')
+        .in('fixture_id', fixtureIds)
+        .limit(1);
+
+      if (resultsError) throw resultsError;
+
+      if (results && results.length > 0) {
+        const confirmDelete = window.confirm(
+          'Warning: Scores have been entered for some matches. ' +
+          'Undoing will DELETE all scores for this match. ' +
+          'Are you sure you want to continue?'
+        );
+
+        if (!confirmDelete) {
+          return { success: false, cancelled: true };
+        }
+
+        // Delete all match results for these fixtures
+        const { error: deleteResultsError } = await supabase
+          .from('match_results')
+          .delete()
+          .in('fixture_id', fixtureIds);
+
+        if (deleteResultsError) throw deleteResultsError;
+
+        // Also delete any score challenges and conflicts
+        await supabase
+          .from('score_challenges')
+          .delete()
+          .in('fixture_id', fixtureIds);
+
+        await supabase
+          .from('score_conflicts')
+          .delete()
+          .in('fixture_id', fixtureIds);
+      }
+
+      // Delete all match fixtures for this match
+      const { error: deleteFixturesError } = await supabase
+        .from('match_fixtures')
+        .delete()
+        .eq('match_id', matchId);
+
+      if (deleteFixturesError) throw deleteFixturesError;
+
+      // Refresh data
+      await Promise.all([
+        fetchMatchFixtures(),
+        fetchMatchResults(),
+        fetchSeasons(),
+        fetchSelectedSeasonData(selectedSeasonId)
+      ]);
+
+      alert('Match generation undone successfully! Player availability has been restored.');
+      return { success: true };
+    } catch (error) {
+      console.error('Error undoing match generation:', error);
+      alert('Error: ' + error.message);
+      return { success: false, error };
+    }
+  }, [state.selectedSeason, state.currentSeason, selectedSeasonId, fetchMatchFixtures, fetchMatchResults, fetchSeasons, fetchSelectedSeasonData]);
+
   const deleteUser = useCallback(async (userId, userName, userEmail) => {
     try {
       // Deactivating user and anonymizing data while preserving match history
@@ -1631,6 +1721,7 @@ export const useApp = (userId, selectedSeasonId) => {
       setPlayerAvailability,
       addMatchToSeason,
       generateMatches,
+      undoGenerateMatches,
       updateRankings,
       clearOldMatches,
       deleteSeason,

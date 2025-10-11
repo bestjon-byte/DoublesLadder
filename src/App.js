@@ -267,7 +267,7 @@ const CawoodTennisApp = () => {
           )}
 
           {activeTab === 'matches' && (
-            <MatchesTab 
+            <MatchesTab
               currentUser={user}
               currentSeason={selectedSeasonData || selectedSeason} // CHANGED: Use selected season data with matches
               selectedSeason={selectedSeason} // NEW: Pass selected season for read-only checks
@@ -276,6 +276,7 @@ const CawoodTennisApp = () => {
               availability={availability}
               users={ladderPlayers} // CHANGED: Use ladderPlayers for match generation (season-specific players)
               generateMatches={actions?.generateMatches || (() => alert('Generate matches not available'))}
+              undoGenerateMatches={actions?.undoGenerateMatches || (() => alert('Undo matches not available'))}
               openScoreModal={openScoreModal}
               getAvailabilityStats={helpers?.getAvailabilityStats || (() => ({ total: 0, available: 0, responded: 0, pending: 0 }))}
               getMatchScore={helpers?.getMatchScore || (() => null)}

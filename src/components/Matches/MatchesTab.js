@@ -8,15 +8,16 @@ import SchedulingOptionsModal from '../Modals/SchedulingOptionsModal';
 import WhatsAppPostGenerator from '../WhatsApp/WhatsAppPostGenerator';
 import ReorderableMatchList from './ReorderableMatchList';
 
-const MatchesTab = ({ 
-  currentUser, 
-  currentSeason, 
+const MatchesTab = ({
+  currentUser,
+  currentSeason,
   selectedSeason,
   matchFixtures,
   matchResults,
   availability,
   users,
   generateMatches,
+  undoGenerateMatches,
   openScoreModal,
   getAvailabilityStats,
   getMatchScore,
@@ -667,7 +668,7 @@ const MatchesTab = ({
                         </button>
                       )}
 
-                      {/* Admin Controls - Always visible - FIXED: Allow today's matches */}
+                      {/* Admin Controls - Generate button */}
                       {isAdmin && !isSeasonCompleted && matchStatus === 'future-no-fixtures' && stats.available >= 4 && (
                         <button
                           onClick={(e) => {
@@ -680,6 +681,29 @@ const MatchesTab = ({
                           className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors text-sm"
                         >
                           Generate ({stats.available})
+                        </button>
+                      )}
+
+                      {/* Undo button - Show when matches have been generated */}
+                      {isAdmin && !isSeasonCompleted && courtFixtures.length > 0 && matchStatus !== 'completed' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            haptics.click();
+                            const confirmUndo = window.confirm(
+                              'Are you sure you want to undo the generated matches?\n\n' +
+                              'This will delete all match fixtures and restore the availability state.\n' +
+                              (matchStatus === 'partially-complete' || matchStatus === 'past-in-progress'
+                                ? 'Warning: This will also delete any scores that have been entered!'
+                                : '')
+                            );
+                            if (confirmUndo) {
+                              undoGenerateMatches(match.id);
+                            }
+                          }}
+                          className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors text-sm"
+                        >
+                          Undo
                         </button>
                       )}
                       
