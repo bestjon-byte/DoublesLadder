@@ -1,19 +1,17 @@
 import React from 'react';
 import { Trophy, Target, Users } from 'lucide-react';
 
-const SchedulingOptionsModal = ({ 
-  showModal, 
-  setShowModal, 
+const SchedulingOptionsModal = ({
+  showModal,
+  setShowModal,
   availablePlayersCount,
   seasonEloEnabled,
-  onConfirm,
+  onMethodSelect,  // Changed from onConfirm to onMethodSelect
   // New props for preview
   winPercentPreview,
   eloPreview,
   isLoadingPreviews
 }) => {
-  // Removed selectedMethod state - previews now show automatically
-  
   if (!showModal) return null;
 
   // Debug logging
@@ -26,8 +24,8 @@ const SchedulingOptionsModal = ({
   });
 
   const handleOptionSelect = (option) => {
-    onConfirm(option);
-    setShowModal(false);
+    onMethodSelect(option);  // Trigger next modal instead of confirming
+    // Don't close this modal yet - parent will handle transition
   };
 
   // Removed handlePreview - previews now show automatically

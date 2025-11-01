@@ -1,6 +1,7 @@
 // src/hooks/useApp.js - ENHANCED FOR MULTI-SEASON
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
+import { applyCourtLayout, generateCourtLayoutPermutations } from '../utils/courtLayoutUtils';
 
 export const useApp = (userId, selectedSeasonId) => {
   const [state, setState] = useState({
@@ -475,7 +476,7 @@ export const useApp = (userId, selectedSeasonId) => {
     }
   }, [selectedSeasonId, fetchSeasons, fetchSelectedSeasonData]);
 
-  const generateMatches = useCallback(async (matchId, schedulingMethod = 'winPercent') => {
+  const generateMatches = useCallback(async (matchId, schedulingMethod = 'winPercent', courtLayout = null) => {
     // Look in selected season data first, fallback to currentSeason
     const match = state.selectedSeason?.matches?.find(m => m.id === matchId) || 
                   state.currentSeason?.matches?.find(m => m.id === matchId);
@@ -553,25 +554,39 @@ export const useApp = (userId, selectedSeasonId) => {
 
     const courts = [];
 
-    if (numPlayers % 4 === 0) {
-      for (let i = 0; i < numPlayers; i += 4) {
-        courts.push(sortedPlayers.slice(i, i + 4));
+    // If a custom court layout is provided, use it
+    if (courtLayout && Array.isArray(courtLayout)) {
+      // Validate that the layout sums to numPlayers
+      const layoutSum = courtLayout.reduce((sum, size) => sum + size, 0);
+      if (layoutSum !== numPlayers) {
+        alert(`Court layout error: Layout sums to ${layoutSum} but have ${numPlayers} players.`);
+        return { success: false };
       }
-    } else if (numPlayers === 5) {
-      courts.push(sortedPlayers);
-    } else if (numPlayers === 9) {
-      courts.push(sortedPlayers.slice(0, 4));
-      courts.push(sortedPlayers.slice(4, 9));
-    } else if (numPlayers === 10) {
-      courts.push(sortedPlayers.slice(0, 5));
-      courts.push(sortedPlayers.slice(5, 10));
+
+      // Apply the custom layout
+      courts.push(...applyCourtLayout(sortedPlayers, courtLayout));
     } else {
-      const groups = Math.floor(numPlayers / 4);
-      for (let i = 0; i < groups; i++) {
-        courts.push(sortedPlayers.slice(i * 4, (i + 1) * 4));
-      }
-      if (numPlayers % 4 > 0) {
-        courts.push(sortedPlayers.slice(groups * 4));
+      // Default behavior: use existing logic
+      if (numPlayers % 4 === 0) {
+        for (let i = 0; i < numPlayers; i += 4) {
+          courts.push(sortedPlayers.slice(i, i + 4));
+        }
+      } else if (numPlayers === 5) {
+        courts.push(sortedPlayers);
+      } else if (numPlayers === 9) {
+        courts.push(sortedPlayers.slice(0, 4));
+        courts.push(sortedPlayers.slice(4, 9));
+      } else if (numPlayers === 10) {
+        courts.push(sortedPlayers.slice(0, 5));
+        courts.push(sortedPlayers.slice(5, 10));
+      } else {
+        const groups = Math.floor(numPlayers / 4);
+        for (let i = 0; i < groups; i++) {
+          courts.push(sortedPlayers.slice(i * 4, (i + 1) * 4));
+        }
+        if (numPlayers % 4 > 0) {
+          courts.push(sortedPlayers.slice(groups * 4));
+        }
       }
     }
 

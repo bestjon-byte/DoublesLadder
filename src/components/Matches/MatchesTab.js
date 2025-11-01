@@ -5,8 +5,10 @@ import { haptics } from '../../utils/haptics';
 import LeagueMatchCard from './LeagueMatchCard';
 import EnhancedMatchResult from './EnhancedMatchResult';
 import SchedulingOptionsModal from '../Modals/SchedulingOptionsModal';
+import CourtLayoutModal from '../Modals/CourtLayoutModal';
 import WhatsAppPostGenerator from '../WhatsApp/WhatsAppPostGenerator';
 import ReorderableMatchList from './ReorderableMatchList';
+import { generateCourtLayoutPermutations } from '../../utils/courtLayoutUtils';
 
 const MatchesTab = ({
   currentUser,
@@ -29,13 +31,18 @@ const MatchesTab = ({
   const [expandedMatches, setExpandedMatches] = useState({});
   // State for team filter
   const [teamFilter, setTeamFilter] = useState('all'); // 'all', '1sts', '2nds'
-  // State for scheduling options modal
+  // State for scheduling options modal (Step 1: Choose Win% or ELO)
   const [showSchedulingModal, setShowSchedulingModal] = useState(false);
   const [pendingMatchId, setPendingMatchId] = useState(null);
   const [pendingAvailableCount, setPendingAvailableCount] = useState(0);
   const [winPercentPreview, setWinPercentPreview] = useState([]);
   const [eloPreview, setEloPreview] = useState([]);
   const [isLoadingPreviews, setIsLoadingPreviews] = useState(false);
+  // State for court layout modal (Step 2: Choose court layout)
+  const [showCourtLayoutModal, setShowCourtLayoutModal] = useState(false);
+  const [selectedSchedulingMethod, setSelectedSchedulingMethod] = useState(null);
+  const [courtLayoutOptions, setCourtLayoutOptions] = useState([]);
+  const [sortedPlayersForLayout, setSortedPlayersForLayout] = useState([]);
   // State for WhatsApp post generator
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsAppMatchData, setWhatsAppMatchData] = useState(null);
@@ -65,15 +72,60 @@ const MatchesTab = ({
     }));
   };
 
-  // Handle scheduling method selection
+  // Handle scheduling method selection (Step 1)
   const handleSchedulingMethodSelect = (schedulingMethod) => {
-    if (pendingMatchId) {
-      generateMatches(pendingMatchId, schedulingMethod);
+    if (!pendingMatchId) return;
+
+    // Determine which preview to use based on selected method
+    const selectedPreview = schedulingMethod === 'elo' ? eloPreview : winPercentPreview;
+
+    if (selectedPreview.length === 0) {
+      console.error('No preview available for selected method');
+      return;
+    }
+
+    // Flatten the preview to get sorted players
+    const sortedPlayers = selectedPreview.flat();
+
+    // Generate court layout options for this player count
+    const numPlayers = sortedPlayers.length;
+    const layoutOptions = generateCourtLayoutPermutations(numPlayers);
+
+    console.log('Court layout options for', numPlayers, 'players:', layoutOptions);
+
+    // Store the selected method and layout options
+    setSelectedSchedulingMethod(schedulingMethod);
+    setCourtLayoutOptions(layoutOptions);
+    setSortedPlayersForLayout(sortedPlayers);
+
+    // Transition to court layout modal
+    setShowSchedulingModal(false);
+    setShowCourtLayoutModal(true);
+  };
+
+  // Handle court layout selection (Step 2 - Final)
+  const handleCourtLayoutSelect = (courtLayout) => {
+    if (pendingMatchId && selectedSchedulingMethod) {
+      // Call generateMatches with the selected method and layout
+      generateMatches(pendingMatchId, selectedSchedulingMethod, courtLayout);
+
+      // Reset all state
       setPendingMatchId(null);
       setPendingAvailableCount(0);
       setWinPercentPreview([]);
       setEloPreview([]);
+      setSelectedSchedulingMethod(null);
+      setCourtLayoutOptions([]);
+      setSortedPlayersForLayout([]);
+      setShowCourtLayoutModal(false);
     }
+  };
+
+  // Handle back from court layout modal
+  const handleBackToMethodSelection = () => {
+    setShowCourtLayoutModal(false);
+    setShowSchedulingModal(true);
+    // Keep preview data so user can see it again
   };
 
   // Generate court groupings for preview (mirrors useApp.js logic)
@@ -811,16 +863,28 @@ const MatchesTab = ({
         />
       )}
 
-      {/* Scheduling Options Modal */}
+      {/* Scheduling Options Modal (Step 1: Choose Win% or ELO) */}
       <SchedulingOptionsModal
         showModal={showSchedulingModal}
         setShowModal={setShowSchedulingModal}
         availablePlayersCount={pendingAvailableCount}
         seasonEloEnabled={selectedSeason?.elo_enabled || false}
-        onConfirm={handleSchedulingMethodSelect}
+        onMethodSelect={handleSchedulingMethodSelect}
         winPercentPreview={winPercentPreview}
         eloPreview={eloPreview}
         isLoadingPreviews={isLoadingPreviews}
+      />
+
+      {/* Court Layout Modal (Step 2: Choose court layout) */}
+      <CourtLayoutModal
+        showModal={showCourtLayoutModal}
+        setShowModal={setShowCourtLayoutModal}
+        layoutOptions={courtLayoutOptions}
+        sortedPlayers={sortedPlayersForLayout}
+        schedulingMethod={selectedSchedulingMethod}
+        onConfirm={handleCourtLayoutSelect}
+        onBack={handleBackToMethodSelection}
+        seasonEloEnabled={selectedSeason?.elo_enabled || false}
       />
     </div>
   );
