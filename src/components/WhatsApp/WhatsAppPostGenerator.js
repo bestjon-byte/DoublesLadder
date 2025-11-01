@@ -249,7 +249,12 @@ const WhatsAppPostGenerator = ({
 
     // Add ladder link if requested
     if (includeLadderLink) {
-      message.push('📱 Update availability in the app:');
+      // Different message based on whether fixtures exist
+      if (fixtures && fixtures.length > 0) {
+        message.push('📱 Update scores in the app:');
+      } else {
+        message.push('📱 Update availability in the app:');
+      }
       message.push(`${appUrl}`);
       message.push('');
     }
