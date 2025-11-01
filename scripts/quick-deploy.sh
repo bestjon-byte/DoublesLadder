@@ -29,8 +29,9 @@ else
 fi
 
 # Run version update
-echo "🔄 Updating version..."
-./scripts/deploy.sh > /dev/null 2>&1 || echo "⚠️  Version update skipped"
+echo "🔄 Checking version..."
+# Disabled automatic version bump - update manually in sw.js and versionManager.js
+# ./scripts/deploy.sh > /dev/null 2>&1 || echo "⚠️  Version update skipped"
 
 # Get version
 NEW_VERSION=$(grep "const APP_VERSION = " public/sw.js | sed "s/.*'\([^']*\)'.*/\1/" 2>/dev/null || echo "latest")
