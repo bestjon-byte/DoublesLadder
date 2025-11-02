@@ -185,29 +185,62 @@ const PlayerMergeModal = ({
     try {
       // Starting merge process for CSV player to real user account
 
-      // Step 1: Find which seasons the CSV player is in, then update ALL of them
-      const { data: seasonsToUpdate } = await supabase
+      // Step 1: Find which seasons the CSV player and real user are in
+      const { data: csvSeasons } = await supabase
         .from('season_players')
-        .select('season_id, rank, games_played, games_won')
+        .select('season_id, rank, games_played, games_won, matches_played, matches_won')
         .eq('player_id', selectedCsvPlayer.id);
 
-      // Update ALL season_players records to point to real user (not just selected season)
-      const { error: seasonError } = await supabase
+      const { data: realUserSeasons } = await supabase
         .from('season_players')
-        .update({
-          player_id: selectedRealUser.id,
-          updated_at: new Date().toISOString()
-        })
-        .eq('player_id', selectedCsvPlayer.id);
+        .select('season_id, rank, games_played, games_won, matches_played, matches_won')
+        .eq('player_id', selectedRealUser.id);
 
-      if (seasonError) throw seasonError;
-      
-      // Log which seasons were updated
-      if (seasonsToUpdate && seasonsToUpdate.length > 0) {
-        toast.info(`Updated ${seasonsToUpdate.length} season(s) for ${selectedCsvPlayer.name}`);
+      // Step 2: Handle each CSV player's season record intelligently
+      if (csvSeasons && csvSeasons.length > 0) {
+        for (const csvSeason of csvSeasons) {
+          const existingRealUserSeason = realUserSeasons?.find(rs => rs.season_id === csvSeason.season_id);
+
+          if (existingRealUserSeason) {
+            // Both players are in the same season - combine their stats
+            const { error: updateError } = await supabase
+              .from('season_players')
+              .update({
+                games_played: (existingRealUserSeason.games_played || 0) + (csvSeason.games_played || 0),
+                games_won: (existingRealUserSeason.games_won || 0) + (csvSeason.games_won || 0),
+                matches_played: (existingRealUserSeason.matches_played || 0) + (csvSeason.matches_played || 0),
+                matches_won: (existingRealUserSeason.matches_won || 0) + (csvSeason.matches_won || 0),
+                updated_at: new Date().toISOString()
+              })
+              .eq('player_id', selectedRealUser.id)
+              .eq('season_id', csvSeason.season_id);
+
+            if (updateError) throw updateError;
+
+            // Delete the CSV player's season record since we've merged the stats
+            await supabase
+              .from('season_players')
+              .delete()
+              .eq('player_id', selectedCsvPlayer.id)
+              .eq('season_id', csvSeason.season_id);
+          } else {
+            // Only CSV player is in this season - transfer the record directly
+            const { error: transferError } = await supabase
+              .from('season_players')
+              .update({
+                player_id: selectedRealUser.id,
+                updated_at: new Date().toISOString()
+              })
+              .eq('player_id', selectedCsvPlayer.id)
+              .eq('season_id', csvSeason.season_id);
+
+            if (transferError) throw transferError;
+          }
+        }
+        toast.info(`Merged ${csvSeasons.length} season record(s) for ${selectedCsvPlayer.name}`);
       }
 
-      // Step 2: Update match fixtures to use real user ID (be more thorough)
+      // Step 3: Update match fixtures to use real user ID (be more thorough)
       // Updating match fixtures to use real user ID
       const fixtureUpdates = [
         { field: 'player1_id', desc: 'individual player 1' },
@@ -233,7 +266,7 @@ const PlayerMergeModal = ({
         // Fixtures updated for this player position
       }
 
-      // Step 3: Update match results submitted_by
+      // Step 4: Update match results submitted_by
       const { error: resultsError } = await supabase
         .from('match_results')
         .update({ submitted_by: selectedRealUser.id })
@@ -241,7 +274,7 @@ const PlayerMergeModal = ({
 
       if (resultsError) console.warn('Warning updating results:', resultsError);
 
-      // Step 4: Update availability records
+      // Step 5: Update availability records
       // Updating availability records for merged player
       const { error: availError } = await supabase
         .from('availability')
@@ -253,7 +286,7 @@ const PlayerMergeModal = ({
       }
       // Availability records updated for merged player
 
-      // Step 5: Update any score challenges
+      // Step 6: Update any score challenges
       // Updating score challenges for merged player
       const { error: challengesError } = await supabase
         .from('score_challenges')
@@ -265,7 +298,7 @@ const PlayerMergeModal = ({
       }
       // Score challenges updated for merged player
 
-      // Step 6: Update any score conflicts
+      // Step 7: Update any score conflicts
       // Updating score conflicts for merged player
       const { error: conflictsError } = await supabase
         .from('score_conflicts')
@@ -277,7 +310,7 @@ const PlayerMergeModal = ({
       }
       // Score conflicts updated for merged player
 
-      // Step 7: Verify all references are updated before attempting delete
+      // Step 8: Verify all references are updated before attempting delete
       // Checking for any remaining references to old player
       
       // Check match_fixtures
@@ -290,7 +323,7 @@ const PlayerMergeModal = ({
         console.warn(`Warning: ${remainingFixtures.length} match fixtures still reference the old player`);
       }
 
-      // Step 8: Try to delete the old CSV profile
+      // Step 9: Try to delete the old CSV profile
       // Attempting to delete old CSV profile
       const { error: deleteError } = await supabase
         .from('profiles')
