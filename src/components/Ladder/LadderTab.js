@@ -1,5 +1,5 @@
 // src/components/Ladder/LadderTab.js - RENAMED to support League expansion
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getUnifiedRankingData, getRankMovementDisplay, getSeasonDisplayInfo } from '../../utils/helpers';
 import { getEloRankColor } from '../../utils/eloCalculator';
 import { ChevronUp, ChevronDown, MessageCircle } from 'lucide-react';
@@ -17,6 +17,87 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
   // State for WhatsApp export modal
   const [showWhatsAppExport, setShowWhatsAppExport] = useState(false);
   const [whatsAppData, setWhatsAppData] = useState(null);
+
+  // State for Most Improved Player
+  const [mostImprovedPlayerId, setMostImprovedPlayerId] = useState(null);
+  const [mostImprovedValue, setMostImprovedValue] = useState(0);
+
+  // Calculate Most Improved Player on component load/update
+  useEffect(() => {
+    const calculateMostImproved = async () => {
+      if (!selectedSeason?.elo_enabled || !supabase || !users || users.length === 0) {
+        setMostImprovedPlayerId(null);
+        setMostImprovedValue(0);
+        return;
+      }
+
+      try {
+        // Get season_player IDs
+        const { data: seasonPlayerIds } = await supabase
+          .from('season_players')
+          .select('id, player_id')
+          .eq('season_id', selectedSeason.id);
+
+        if (seasonPlayerIds && seasonPlayerIds.length > 0) {
+          const seasonPlayerMap = {};
+          seasonPlayerIds.forEach(sp => {
+            seasonPlayerMap[sp.player_id] = sp.id;
+          });
+
+          // Get first ELO entry for each season_player
+          const { data: firstEloEntries } = await supabase
+            .from('elo_history')
+            .select('season_player_id, old_rating')
+            .in('season_player_id', seasonPlayerIds.map(sp => sp.id))
+            .order('created_at', { ascending: true });
+
+          if (firstEloEntries) {
+            // Get the earliest entry for each player
+            const startingEloMap = {};
+            firstEloEntries.forEach(entry => {
+              if (!startingEloMap[entry.season_player_id]) {
+                startingEloMap[entry.season_player_id] = entry.old_rating;
+              }
+            });
+
+            // Get unified ranking data to access current ELO ratings
+            const rankingData = getUnifiedRankingData(users, selectedSeason);
+
+            // Calculate improvement for each player
+            let maxImprovement = 0;
+            let improvedPlayerId = null;
+
+            rankingData.forEach(player => {
+              const seasonPlayerId = seasonPlayerMap[player.id];
+              const startingElo = startingEloMap[seasonPlayerId] || selectedSeason.elo_initial_rating || 1200;
+              const currentElo = player.elo_rating || startingElo;
+              const improvement = currentElo - startingElo;
+
+              if (improvement > maxImprovement && player.games_played > 0) {
+                maxImprovement = improvement;
+                improvedPlayerId = player.id;
+              }
+            });
+
+            // Set state
+            if (improvedPlayerId && maxImprovement > 0) {
+              setMostImprovedPlayerId(improvedPlayerId);
+              setMostImprovedValue(Math.round(maxImprovement));
+            } else {
+              setMostImprovedPlayerId(null);
+              setMostImprovedValue(0);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error calculating Most Improved Player:', error);
+        setMostImprovedPlayerId(null);
+        setMostImprovedValue(0);
+      }
+    };
+
+    calculateMostImproved();
+  }, [selectedSeason, users, supabase]);
 
   // Helper function to prepare data for WhatsApp export
   const prepareWhatsAppData = async () => {
@@ -501,12 +582,17 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                       <div>
                         <button
                           onClick={() => onPlayerSelect && onPlayerSelect(player.id)}
-                          className={`font-semibold text-left hover:underline transition-colors py-2 px-1 min-h-[44px] flex items-center ${
+                          className={`font-semibold text-left hover:underline transition-colors py-2 px-1 min-h-[44px] flex items-center gap-2 ${
                             isCurrentUser ? 'text-[#5D1F1F] hover:text-red-800' : 'text-gray-900 hover:text-[#5D1F1F]'
                           }`}
                           style={{ touchAction: 'manipulation' }}
                         >
-                          {player.name}
+                          <span>{player.name}</span>
+                          {mostImprovedPlayerId === player.id && mostImprovedValue > 0 && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                              🌟 +{mostImprovedValue}
+                            </span>
+                          )}
                         </button>
                         {isCurrentUser && (
                           <div className="text-xs text-[#5D1F1F] font-medium">You</div>
@@ -589,12 +675,17 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => onPlayerSelect && onPlayerSelect(player.id)}
-                            className={`text-sm font-medium hover:underline transition-colors text-left py-2 px-1 min-h-[44px] flex items-center ${
+                            className={`text-sm font-medium hover:underline transition-colors text-left py-2 px-1 min-h-[44px] flex items-center gap-2 ${
                               isCurrentUser ? 'text-[#5D1F1F] hover:text-red-800' : 'text-gray-900 hover:text-[#5D1F1F]'
                             }`}
                             style={{ touchAction: 'manipulation' }}
                           >
-                            {player.name} {isCurrentUser && <span className="text-xs">(You)</span>}
+                            <span>{player.name} {isCurrentUser && <span className="text-xs">(You)</span>}</span>
+                            {mostImprovedPlayerId === player.id && mostImprovedValue > 0 && (
+                              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                                🌟 +{mostImprovedValue}
+                              </span>
+                            )}
                           </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
