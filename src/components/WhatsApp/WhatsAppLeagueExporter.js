@@ -142,6 +142,13 @@ const WhatsAppLeagueExporter = ({
 
     message.push('');
 
+    // Add Most Improved Player (if ELO enabled and data available)
+    if (seasonData.season?.elo_enabled && seasonData.mostImprovedPlayer) {
+      message.push('🌟 Most Improved Player:');
+      message.push(`   ${seasonData.mostImprovedPlayer.name} (+${seasonData.mostImprovedPlayer.improvement} ELO)`);
+      message.push('');
+    }
+
     // Add summary stats
     const totalPlayers = playersToShow.length;
     const activePlayers = playersToShow.filter(p => p.games_played > 0).length;
