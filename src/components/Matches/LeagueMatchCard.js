@@ -142,53 +142,61 @@ const LeagueMatchCard = ({ match, fixture, supabase }) => {
 
   const totalRubbers = rubberDetails.length;
   const summary = calculateMatchSummary();
-  const matchResult = summary.cawoodPoints > summary.opponentPoints ? 'WIN' : 
+  const matchResult = summary.cawoodPoints > summary.opponentPoints ? 'WIN' :
                      summary.cawoodPoints < summary.opponentPoints ? 'LOSS' : 'DRAW';
 
+  // Get timeline border color based on match result
+  const getBorderColor = () => {
+    if (totalRubbers === 0) return 'border-l-blue-400'; // No rubbers yet
+    if (matchResult === 'WIN') return 'border-l-green-500';
+    if (matchResult === 'LOSS') return 'border-l-red-500';
+    return 'border-l-yellow-500'; // Draw
+  };
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className={`bg-white border border-gray-200 rounded-lg shadow-sm border-l-4 ${getBorderColor()}`}>
       {/* Main Match Header */}
-      <div 
-        className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+      <div
+        className="p-4 sm:p-5 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <Trophy className="w-5 h-5 text-blue-600" />
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            {/* Title Row */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-blue-600 flex-shrink-0" />
                 <h3 className="font-semibold text-gray-900">
                   {fixture?.opponent_club} vs Cawood {fixture?.team}
                 </h3>
               </div>
-              
+
               {totalRubbers > 0 && (
-                <div className={`px-3 py-1 rounded-full text-sm font-medium ${getResultColor(matchResult)}`}>
-                  {matchResult === 'WIN' ? 'Cawood Win' : matchResult === 'LOSS' ? `${fixture?.opponent_club} Win` : 'Draw'} {summary.cawoodPoints}-{summary.opponentPoints}
-                </div>
+                <span className={`px-2.5 py-1 rounded-full text-sm font-medium ${getResultColor(matchResult)}`}>
+                  {summary.cawoodPoints}-{summary.opponentPoints}
+                </span>
               )}
             </div>
-            
-            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
+
+            {/* Info Row */}
+            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+              <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
                 <span>{formatMatchDate(match.match_date)}</span>
               </div>
-              
+
               {totalRubbers > 0 && (
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center gap-1.5">
                   <Users className="w-4 h-4" />
-                  <span>{totalRubbers} rubbers played</span>
+                  <span className="hidden sm:inline">{totalRubbers} rubbers</span>
+                  <span className="sm:hidden">{totalRubbers} games</span>
                 </div>
               )}
             </div>
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-gray-500 hidden sm:inline">
-              {expanded ? 'Collapse' : 'View Details'}
-            </span>
-            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+
+          <div className="text-gray-400 p-1.5 rounded-full bg-gray-100 transition-all duration-200 hover:bg-gray-200 cursor-pointer flex-shrink-0">
+            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${
               expanded ? 'rotate-180' : 'rotate-0'
             }`} />
           </div>

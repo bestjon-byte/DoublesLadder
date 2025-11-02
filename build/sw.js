@@ -1,30 +1,36 @@
-const APP_VERSION = '1.0.128'; // Increment this for each deployment
+// 1.0.133 will be replaced at build time with package.json version
+const APP_VERSION = '1.0.133';
 const CACHE_NAME = `tennis-ladder-v${APP_VERSION}`;
-const urlsToCache = [
-  '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
+
+// Static assets that can be cached long-term
+const STATIC_CACHE_URLS = [
   '/manifest.json',
   '/favicon.ico',
   '/icon-192.png',
   '/icon-512.png',
-  '/apple-touch-icon.png',
+  '/apple-touch-icon.png'
+];
+
+// External resources
+const EXTERNAL_CACHE_URLS = [
   'https://cdn.tailwindcss.com'
 ];
 
-// Install event - cache resources
+// Install event - cache static resources only
 self.addEventListener('install', (event) => {
   console.log(`[SW] Installing service worker, version: ${APP_VERSION}`);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log(`[SW] Opened cache: ${CACHE_NAME}`);
-        return cache.addAll(urlsToCache.map(url => 
+        // Cache static assets and external resources
+        const allCacheUrls = [...STATIC_CACHE_URLS, ...EXTERNAL_CACHE_URLS];
+        return cache.addAll(allCacheUrls.map(url =>
           url.startsWith('http') ? url : new Request(url, {cache: 'reload'})
         ));
       })
       .catch((error) => {
-        console.error('Failed to cache resources:', error);
+        console.error('[SW] Failed to cache resources:', error);
       })
   );
   self.skipWaiting(); // Force immediate activation
@@ -50,45 +56,83 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - network-first for app files, cache-first for static assets
 self.addEventListener('fetch', (event) => {
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin) && 
-      !event.request.url.startsWith('https://cdn.tailwindcss.com')) {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip cross-origin requests (except whitelisted external resources)
+  if (url.origin !== self.location.origin &&
+      !EXTERNAL_CACHE_URLS.includes(request.url)) {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        if (response) {
-          return response;
-        }
-        
-        return fetch(event.request).then((response) => {
-          // Don't cache if not a valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
+  // Determine if this is an app file (HTML, JS, CSS) or static asset
+  const isAppFile =
+    request.mode === 'navigate' ||
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname === '/';
 
-          // Clone the response
-          const responseToCache = response.clone();
-
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
+  if (isAppFile) {
+    // NETWORK-FIRST strategy for app files (HTML, JS, CSS)
+    // Always try to get fresh version from network
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Clone and cache the fresh response
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
             });
-
-          return response;
-        }).catch(() => {
-          // Return offline fallback for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
           }
-        });
-      })
-  );
+          return response;
+        })
+        .catch(() => {
+          // Network failed, fall back to cache
+          console.log(`[SW] Network failed for ${url.pathname}, using cache`);
+          return caches.match(request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // If navigation request and no cache, return index
+            if (request.mode === 'navigate') {
+              return caches.match('/');
+            }
+            // Otherwise return error
+            return new Response('Offline - resource not cached', {
+              status: 503,
+              statusText: 'Service Unavailable'
+            });
+          });
+        })
+    );
+  } else {
+    // CACHE-FIRST strategy for static assets (images, icons, fonts)
+    event.respondWith(
+      caches.match(request)
+        .then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Not in cache, fetch from network
+          return fetch(request).then((response) => {
+            // Cache valid responses
+            if (response && response.status === 200) {
+              const responseToCache = response.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseToCache);
+              });
+            }
+            return response;
+          });
+        })
+    );
+  }
 });
 
 // Background sync for when connectivity is restored

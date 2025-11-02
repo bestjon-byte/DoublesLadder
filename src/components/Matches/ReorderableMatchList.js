@@ -21,32 +21,34 @@ const ReorderableMatchItem = ({
   const pair2Names = [fixture.player3?.name, fixture.player4?.name].filter(Boolean);
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="flex">
         {/* Reorder Controls - Only show for admins */}
         {isAdmin && (canMoveUp || canMoveDown) && (
-          <div className="flex flex-col bg-gray-50 border-r border-gray-200">
+          <div className="flex flex-col bg-gray-100 border-r border-gray-200">
             <button
               onClick={onMoveUp}
               disabled={!canMoveUp}
-              className={`flex items-center justify-center w-10 h-6 transition-colors ${
+              className={`flex items-center justify-center w-9 flex-1 transition-colors border-b border-gray-200 ${
                 canMoveUp
-                  ? 'text-gray-600 hover:bg-gray-100 hover:text-gray-800 active:bg-gray-200'
+                  ? 'text-gray-600 hover:bg-gray-200 hover:text-gray-800 active:bg-gray-300'
                   : 'text-gray-300 cursor-not-allowed'
               }`}
               title="Move up"
+              aria-label="Move fixture up"
             >
               <ChevronUp className="w-4 h-4" />
             </button>
             <button
               onClick={onMoveDown}
               disabled={!canMoveDown}
-              className={`flex items-center justify-center w-10 h-6 transition-colors ${
+              className={`flex items-center justify-center w-9 flex-1 transition-colors ${
                 canMoveDown
-                  ? 'text-gray-600 hover:bg-gray-100 hover:text-gray-800 active:bg-gray-200'
+                  ? 'text-gray-600 hover:bg-gray-200 hover:text-gray-800 active:bg-gray-300'
                   : 'text-gray-300 cursor-not-allowed'
               }`}
               title="Move down"
+              aria-label="Move fixture down"
             >
               <ChevronDown className="w-4 h-4" />
             </button>
@@ -156,20 +158,30 @@ const ReorderableMatchList = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {courtFixtures.map((court, courtIndex) => (
-        <div key={court.court} className="border border-gray-200 rounded-lg p-4">
-          <h4 className="font-semibold mb-2">Court {court.court}</h4>
-          <p className="text-sm text-gray-600 mb-3">
-            Players: {[...new Set([
+        <div key={court.court} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          {/* Court Header */}
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+            <h4 className="font-semibold text-gray-900">Court {court.court}</h4>
+            <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
+              {court.fixtures.length} {court.fixtures.length === 1 ? 'game' : 'games'}
+            </span>
+          </div>
+
+          {/* Players List - More compact */}
+          <div className="mb-3 text-sm text-gray-600">
+            <span className="font-medium">Players: </span>
+            <span>{[...new Set([
               ...court.fixtures.map(f => f.player1?.name),
               ...court.fixtures.map(f => f.player2?.name),
               ...court.fixtures.map(f => f.player3?.name),
               ...court.fixtures.map(f => f.player4?.name)
-            ].filter(Boolean))].join(', ')}
-          </p>
+            ].filter(Boolean))].join(', ')}</span>
+          </div>
 
-          <div className="space-y-2">
+          {/* Fixtures */}
+          <div className="space-y-3">
             {court.fixtures.map((fixture, fixtureIndex) => {
               const existingScore = getMatchScore(fixture.id);
               const canEnterScore = canUserEnterScores(fixture);

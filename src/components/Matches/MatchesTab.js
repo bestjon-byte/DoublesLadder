@@ -1,6 +1,6 @@
 // src/components/Matches/MatchesTab.js - FIXED for today's dates
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, MessageCircle } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 import LeagueMatchCard from './LeagueMatchCard';
 import EnhancedMatchResult from './EnhancedMatchResult';
@@ -8,6 +8,7 @@ import SchedulingOptionsModal from '../Modals/SchedulingOptionsModal';
 import CourtLayoutModal from '../Modals/CourtLayoutModal';
 import WhatsAppPostGenerator from '../WhatsApp/WhatsAppPostGenerator';
 import ReorderableMatchList from './ReorderableMatchList';
+import AdminActionMenu from './AdminActionMenu';
 import { generateCourtLayoutPermutations } from '../../utils/courtLayoutUtils';
 
 const MatchesTab = ({
@@ -241,31 +242,104 @@ const MatchesTab = ({
   const getMatchStatus = (match) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
-    
+
     const matchDate = new Date(match.match_date);
     matchDate.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
-    
+
     const hasFixtures = matchFixtures.some(f => f.match_id === match.id);
-    
+
     if (!hasFixtures) {
       if (matchDate < today) {
         return 'past-no-fixtures';
       }
       return 'future-no-fixtures';
     }
-    
+
     // Count total games and completed games for this match
     const matchGameFixtures = matchFixtures.filter(f => f.match_id === match.id);
-    const completedGames = matchGameFixtures.filter(fixture => 
+    const completedGames = matchGameFixtures.filter(fixture =>
       matchResults.some(result => result.fixture_id === fixture.id)
     ).length;
-    
+
     if (completedGames === 0) {
       return matchDate < today ? 'past-in-progress' : 'future-in-progress';
     } else if (completedGames < matchGameFixtures.length) {
       return 'partially-complete';
     } else {
       return 'completed';
+    }
+  };
+
+  // Helper function to get unified status badge info
+  const getUnifiedStatusBadge = (matchStatus, matchDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isToday = matchDate.getTime() === today.getTime();
+
+    // Priority: Show most important status with Today suffix if applicable
+    switch (matchStatus) {
+      case 'completed':
+        return {
+          text: isToday ? 'Completed Today' : 'Completed',
+          emoji: '✅',
+          color: 'bg-green-100 text-green-800'
+        };
+      case 'partially-complete':
+        return {
+          text: isToday ? 'In Progress • Today' : 'In Progress',
+          emoji: '🔄',
+          color: 'bg-yellow-100 text-yellow-800'
+        };
+      case 'past-in-progress':
+        return {
+          text: isToday ? 'Enter Scores • Today' : 'Enter Scores',
+          emoji: '⏰',
+          color: 'bg-orange-100 text-orange-800'
+        };
+      case 'future-in-progress':
+        return {
+          text: isToday ? 'Scheduled • Today' : 'Scheduled',
+          emoji: '📋',
+          color: 'bg-blue-100 text-blue-800'
+        };
+      case 'future-no-fixtures':
+        return {
+          text: isToday ? 'Availability Check • Today' : 'Availability Check',
+          emoji: '📅',
+          color: 'bg-blue-100 text-blue-800'
+        };
+      case 'past-no-fixtures':
+        return {
+          text: 'No Fixtures',
+          emoji: '⚠️',
+          color: 'bg-gray-100 text-gray-600'
+        };
+      default:
+        return {
+          text: 'Unknown',
+          emoji: '',
+          color: 'bg-gray-100 text-gray-600'
+        };
+    }
+  };
+
+  // Helper function to get timeline border color based on status
+  const getTimelineBorderColor = (matchStatus) => {
+    switch (matchStatus) {
+      case 'completed':
+        return 'border-l-green-500';
+      case 'partially-complete':
+        return 'border-l-yellow-500';
+      case 'past-in-progress':
+        return 'border-l-orange-500';
+      case 'future-in-progress':
+        return 'border-l-blue-500';
+      case 'future-no-fixtures':
+        return 'border-l-blue-400';
+      case 'past-no-fixtures':
+        return 'border-l-gray-300';
+      default:
+        return 'border-l-gray-300';
     }
   };
 
@@ -355,8 +429,8 @@ const MatchesTab = ({
   const filteredMatches = isSinglesChampionship ? [] : getFilteredMatches();
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-5">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
             {selectedSeason?.name || 'Current'} Match Schedule
@@ -426,9 +500,14 @@ const MatchesTab = ({
               groupDate.setHours(0, 0, 0, 0);
               
               const actuallyExpanded = expandedMatches[`group-${groupIndex}`] ?? true; // Default to expanded for singles
-              
+
+              // Get border color based on group status
+              const borderColor = groupStatus === 'completed' ? 'border-l-green-500' :
+                                 groupStatus === 'partially-complete' ? 'border-l-yellow-500' :
+                                 'border-l-blue-400';
+
               return (
-                <div key={`group-${groupIndex}`} className="bg-white rounded-lg shadow">
+                <div key={`group-${groupIndex}`} className={`bg-white rounded-lg shadow border-l-4 ${borderColor}`}>
                   {/* Group Header */}
                   <div 
                     className="p-4 sm:p-6 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
@@ -484,23 +563,15 @@ const MatchesTab = ({
                         )}
                       </div>
                       
-                      <div className="flex items-center space-x-2">
-                        {/* Expand/Collapse Indicator */}
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs text-gray-500 hidden sm:inline">
-                            {actuallyExpanded ? 'Collapse' : 'Expand'}
-                          </span>
-                          <div className="text-gray-400 p-1 rounded-full bg-gray-100 transition-all duration-200 hover:bg-gray-200">
-                            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${actuallyExpanded ? 'rotate-180' : 'rotate-0'}`} />
-                          </div>
-                        </div>
+                      <div className="text-gray-400 p-1.5 rounded-full bg-gray-100 transition-all duration-200 hover:bg-gray-200 cursor-pointer">
+                        <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${actuallyExpanded ? 'rotate-180' : 'rotate-0'}`} />
                       </div>
                     </div>
                   </div>
 
                   {/* Expandable Content - All Singles Matches for this Date */}
                   {actuallyExpanded && (
-                    <div className="border-t border-gray-200 p-6 pt-4">
+                    <div className="border-t border-gray-200 p-4 sm:p-5">
                       <div className="space-y-3">
                         {group.matches.map((match) => {
                           const matchFixturesForThisMatch = matchFixtures.filter(f => f.match_id === match.id);
@@ -629,7 +700,7 @@ const MatchesTab = ({
             }
 
             return (
-              <div key={match.id} className="bg-white rounded-lg shadow">
+              <div key={match.id} className={`bg-white rounded-lg shadow border-l-4 ${getTimelineBorderColor(matchStatus)}`}>
                 {/* Enhanced Progressive Disclosure Header */}
                 <div 
                   className={`p-4 sm:p-6 ${courtFixtures.length > 0 || matchStatus === 'future-no-fixtures' ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100' : ''} transition-colors`}
@@ -642,38 +713,20 @@ const MatchesTab = ({
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-3 flex-wrap gap-y-2">
                         <h3 className="text-lg font-semibold">Week {match.week_number}</h3>
                         <p className="text-gray-600">{matchDate.toLocaleDateString('en-GB')}</p>
-                        
-                        {/* Updated status indicators to show "Today" specially */}
-                        {matchDate.getTime() === today.getTime() && (
-                          <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                            📅 Today
-                          </span>
-                        )}
-                        
-                        {/* Match Status Indicator */}
-                        {matchStatus === 'completed' && (
-                          <span className="inline-flex px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                            ✅ Completed
-                          </span>
-                        )}
-                        {matchStatus === 'partially-complete' && (
-                          <span className="inline-flex px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
-                            🔄 In Progress
-                          </span>
-                        )}
-                        {matchStatus === 'future-in-progress' && (
-                          <span className="inline-flex px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                            📋 Scheduled
-                          </span>
-                        )}
-                        {matchStatus === 'past-in-progress' && (
-                          <span className="inline-flex px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded">
-                            ⏰ Enter Scores
-                          </span>
-                        )}
+
+                        {/* Unified Status Badge */}
+                        {(() => {
+                          const statusBadge = getUnifiedStatusBadge(matchStatus, matchDate);
+                          return (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded ${statusBadge.color}`}>
+                              <span>{statusBadge.emoji}</span>
+                              <span>{statusBadge.text}</span>
+                            </span>
+                          );
+                        })()}
                       </div>
                       
                       {/* Smart Summary - Show key info when collapsed */}
@@ -696,51 +749,23 @@ const MatchesTab = ({
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-2 flex-wrap justify-end">
-                      {/* WhatsApp button - Admin only */}
-                      {selectedSeason?.season_type === 'ladder' && isAdmin && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const matchFixtures = courtFixtures.length > 0 ?
-                              courtFixtures.flatMap(court => court.fixtures) :
-                              null;
-                            setWhatsAppMatchData({
-                              match,
-                              fixtures: matchFixtures,
-                              users,
-                              availabilityStats: stats
-                            });
-                            setShowWhatsAppModal(true);
-                          }}
-                          className="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center space-x-1 flex-shrink-0"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          <span className="hidden xs:inline">WhatsApp</span>
-                        </button>
-                      )}
-
-                      {/* Admin Controls - Generate button */}
-                      {isAdmin && !isSeasonCompleted && matchStatus === 'future-no-fixtures' && stats.available >= 4 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
+                    <div className="flex items-center gap-3 ml-4">
+                      {/* Admin Action Menu */}
+                      {isAdmin && (
+                        <AdminActionMenu
+                          match={match}
+                          matchStatus={matchStatus}
+                          stats={stats}
+                          courtFixtures={courtFixtures}
+                          isSeasonCompleted={isSeasonCompleted}
+                          seasonType={selectedSeason?.season_type}
+                          onGenerateClick={() => {
                             setPendingMatchId(match.id);
                             setPendingAvailableCount(stats.available);
                             setShowSchedulingModal(true);
                             generatePreviews(match.id);
                           }}
-                          className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors text-sm flex-shrink-0"
-                        >
-                          Generate ({stats.available})
-                        </button>
-                      )}
-
-                      {/* Undo button - Show when matches have been generated */}
-                      {isAdmin && !isSeasonCompleted && courtFixtures.length > 0 && matchStatus !== 'completed' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onUndoClick={() => {
                             haptics.click();
                             const confirmUndo = window.confirm(
                               'Are you sure you want to undo the generated matches?\n\n' +
@@ -753,21 +778,25 @@ const MatchesTab = ({
                               undoGenerateMatches(match.id);
                             }
                           }}
-                          className="bg-orange-600 text-white px-3 py-2 rounded-md hover:bg-orange-700 transition-colors text-sm flex-shrink-0"
-                        >
-                          Undo
-                        </button>
+                          onWhatsAppClick={() => {
+                            const matchFixtures = courtFixtures.length > 0 ?
+                              courtFixtures.flatMap(court => court.fixtures) :
+                              null;
+                            setWhatsAppMatchData({
+                              match,
+                              fixtures: matchFixtures,
+                              users,
+                              availabilityStats: stats
+                            });
+                            setShowWhatsAppModal(true);
+                          }}
+                        />
                       )}
-                      
-                      {/* Enhanced Expand/Collapse Indicator */}
+
+                      {/* Expand/Collapse Indicator */}
                       {(courtFixtures.length > 0 || matchStatus === 'future-no-fixtures') && (
-                        <div className="flex items-center space-x-2">
-                          <span className="text-xs text-gray-500 hidden sm:inline">
-                            {actuallyExpanded ? 'Collapse' : 'Expand'}
-                          </span>
-                          <div className="text-gray-400 p-1 rounded-full bg-gray-100 transition-all duration-200 hover:bg-gray-200">
-                            <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${actuallyExpanded ? 'rotate-180' : 'rotate-0'}`} />
-                          </div>
+                        <div className="text-gray-400 p-1.5 rounded-full bg-gray-100 transition-all duration-200 hover:bg-gray-200 cursor-pointer">
+                          <ChevronDown className={`w-5 h-5 transition-transform duration-200 ${actuallyExpanded ? 'rotate-180' : 'rotate-0'}`} />
                         </div>
                       )}
                     </div>
@@ -776,7 +805,7 @@ const MatchesTab = ({
 
                 {/* Expandable Content */}
                 {actuallyExpanded && (
-                  <div className="border-t border-gray-200 p-6 pt-4">
+                  <div className="border-t border-gray-200 p-4 sm:p-5">
                     {/* Availability info for matches without fixtures */}
                     {matchStatus === 'future-no-fixtures' && (
                       <div className="mb-4">
@@ -797,26 +826,6 @@ const MatchesTab = ({
                     {/* Match Fixtures Display */}
                     {courtFixtures.length > 0 && (
                       <div className="space-y-4">
-                        {/* Available Players Info (Admin Debug) */}
-                        {isAdmin && matchStatus !== 'completed' && (
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                            <h5 className="font-medium text-green-800 mb-2">📋 Match Details</h5>
-                            <div className="text-sm text-green-700">
-                              <div><strong>Available Players:</strong> {
-                                users.filter(user => {
-                                  if (!user.in_ladder || user.status !== 'approved') return false;
-                                  const userAvailability = availability.find(a => a.player_id === user.id && a.match_date === match.match_date);
-                                  return userAvailability?.is_available === true;
-                                })
-                                .sort((a, b) => (a.rank || 999) - (b.rank || 999))
-                                .map(p => `${p.name} (Rank ${p.rank})`)
-                                .join(', ') || 'None'
-                              }</div>
-                              <div><strong>Courts Created:</strong> {courtFixtures.length}</div>
-                            </div>
-                          </div>
-                        )}
-
                         {/* Reorderable Court Fixtures */}
                         <ReorderableMatchList
                           courtFixtures={courtFixtures}
