@@ -1,5 +1,6 @@
 // Version Manager - Handles automatic updates and cache busting
-export const APP_VERSION = '1.0.132'; // Should match the version in sw.js
+// Version is auto-injected from package.json during build
+export const APP_VERSION = '1.0.133'; // Auto-updated by build script
 
 class VersionManager {
   constructor() {

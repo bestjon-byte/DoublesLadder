@@ -28,13 +28,22 @@ else
     CUSTOM_MESSAGE=""
 fi
 
-# Run version update
-echo "🔄 Checking version..."
-# Disabled automatic version bump - update manually in sw.js and versionManager.js
-# ./scripts/deploy.sh > /dev/null 2>&1 || echo "⚠️  Version update skipped"
+# Auto-increment version
+echo "🔄 Auto-incrementing version..."
+NEW_VERSION=$(bash scripts/bump-version.sh)
+echo "✅ Version bumped to: $NEW_VERSION"
 
-# Get version
-NEW_VERSION=$(grep "const APP_VERSION = " public/sw.js | sed "s/.*'\([^']*\)'.*/\1/" 2>/dev/null || echo "latest")
+# Inject new version into service worker and versionManager
+echo "📝 Injecting version into service worker..."
+# Use simple sed replacement instead of node since node might not be in PATH
+sed -i.bak "s/VERSION_PLACEHOLDER/$NEW_VERSION/g" public/sw.js
+rm -f public/sw.js.bak
+
+# Update versionManager.js
+sed -i.bak "s/export const APP_VERSION = '[^']*'/export const APP_VERSION = '$NEW_VERSION'/" src/utils/versionManager.js
+rm -f src/utils/versionManager.js.bak
+
+echo "✅ Version injected successfully"
 
 # Quick commit message if not provided
 if [ -z "$CUSTOM_MESSAGE" ]; then
