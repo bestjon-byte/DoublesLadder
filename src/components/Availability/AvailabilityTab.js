@@ -202,40 +202,6 @@ const AvailabilityTab = ({
       {/* Admin Player Availability Management */}
       {isAdmin && adminMode && currentSeason?.season_type !== 'league' && (
         <div className="space-y-5">
-          {/* Summary Statistics */}
-          {futureMatches.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">📊 Availability Overview</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <div className="text-gray-600">Upcoming Matches</div>
-                  <div className="text-xl font-bold text-gray-900">{futureMatches.length}</div>
-                </div>
-                <div>
-                  <div className="text-gray-600">Total Players</div>
-                  <div className="text-xl font-bold text-gray-900">{ladderPlayers?.length || 0}</div>
-                </div>
-                <div>
-                  <div className="text-gray-600">Avg Response Rate</div>
-                  <div className="text-xl font-bold text-gray-900">
-                    {futureMatches.length > 0
-                      ? Math.round(
-                          futureMatches.reduce((sum, m) => sum + getMatchResponseStats(m.id).responseRate, 0) /
-                            futureMatches.length
-                        )
-                      : 0}%
-                  </div>
-                </div>
-                {pastMatches.length > 0 && (
-                  <div>
-                    <div className="text-gray-600">Past Matches</div>
-                    <div className="text-xl font-bold text-gray-900">{pastMatches.length}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Future Matches Section */}
           {futureMatches.length > 0 ? (
             <div>
