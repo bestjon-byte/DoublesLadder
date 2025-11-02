@@ -189,7 +189,7 @@ const CawoodTennisApp = () => {
       {/* Authenticated app */}
       {user && (
       <ErrorBoundary>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50" style={{ minHeight: '100dvh' }}>
         {/* Ultra Compact Header - Logo embedded in season selector */}
         <header className="bg-[#5D1F1F] text-white shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="max-w-7xl mx-auto px-3 py-3 pb-4">

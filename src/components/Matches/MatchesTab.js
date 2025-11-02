@@ -696,7 +696,7 @@ const MatchesTab = ({
                       )}
                     </div>
                     
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
                       {/* WhatsApp button - Admin only */}
                       {selectedSeason?.season_type === 'ladder' && isAdmin && (
                         <button
@@ -713,10 +713,10 @@ const MatchesTab = ({
                             });
                             setShowWhatsAppModal(true);
                           }}
-                          className="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center space-x-1"
+                          className="bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm flex items-center space-x-1 flex-shrink-0"
                         >
                           <MessageCircle className="w-4 h-4" />
-                          <span>WhatsApp</span>
+                          <span className="hidden xs:inline">WhatsApp</span>
                         </button>
                       )}
 
@@ -730,7 +730,7 @@ const MatchesTab = ({
                             setShowSchedulingModal(true);
                             generatePreviews(match.id);
                           }}
-                          className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors text-sm"
+                          className="bg-[#5D1F1F] text-white px-4 py-2 rounded-md hover:bg-[#4A1818] transition-colors text-sm flex-shrink-0"
                         >
                           Generate ({stats.available})
                         </button>
@@ -753,7 +753,7 @@ const MatchesTab = ({
                               undoGenerateMatches(match.id);
                             }
                           }}
-                          className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors text-sm"
+                          className="bg-orange-600 text-white px-3 py-2 rounded-md hover:bg-orange-700 transition-colors text-sm flex-shrink-0"
                         >
                           Undo
                         </button>

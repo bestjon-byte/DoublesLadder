@@ -18,6 +18,18 @@ code {
   box-sizing: border-box;
 }
 
+/* PWA viewport height fix for iOS */
+/* Support for dynamic viewport height (dvh) with fallback */
+:root {
+  --app-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-height: 100dvh;
+  }
+}
+
 /* PWA and mobile optimizations */
 .scrollbar-hide {
   -ms-overflow-style: none;
@@ -39,6 +51,19 @@ button, a {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+/* Fix iOS PWA overflow scrolling */
+html, body, #root {
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Prevent content from going under fixed bottom nav on mobile */
+@media (max-width: 640px) {
+  main {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
+  }
 }
 
 /* Safe areas for devices with notches */

@@ -30,20 +30,15 @@ fi
 
 # Auto-increment version
 echo "🔄 Auto-incrementing version..."
-NEW_VERSION=$(bash scripts/bump-version.sh)
-echo "✅ Version bumped to: $NEW_VERSION"
+npm version patch --no-git-tag-version
 
 # Inject new version into service worker and versionManager
 echo "📝 Injecting version into service worker..."
-# Use simple sed replacement instead of node since node might not be in PATH
-sed -i.bak "s/VERSION_PLACEHOLDER/$NEW_VERSION/g" public/sw.js
-rm -f public/sw.js.bak
+node scripts/inject-version.js
 
-# Update versionManager.js
-sed -i.bak "s/export const APP_VERSION = '[^']*'/export const APP_VERSION = '$NEW_VERSION'/" src/utils/versionManager.js
-rm -f src/utils/versionManager.js.bak
-
-echo "✅ Version injected successfully"
+# Get the new version
+NEW_VERSION=$(node -p "require('./package.json').version")
+echo "✅ Version updated to: $NEW_VERSION"
 
 # Quick commit message if not provided
 if [ -z "$CUSTOM_MESSAGE" ]; then
