@@ -138,19 +138,28 @@ const AvailabilityTab = ({
 
   // Helper to get player's scores for a match
   const getPlayerScoresForMatch = (matchId) => {
-    const playerFixtures = matchFixtures.filter(fixture => 
-      fixture.match_id === matchId && 
-      (fixture.player1_id === currentUser.id || fixture.player2_id === currentUser.id || 
+    const playerFixtures = matchFixtures.filter(fixture =>
+      fixture.match_id === matchId &&
+      (fixture.player1_id === currentUser.id || fixture.player2_id === currentUser.id ||
        fixture.player3_id === currentUser.id || fixture.player4_id === currentUser.id)
     );
-    
+
     const playerScores = [];
     playerFixtures.forEach(fixture => {
       const score = getMatchScore(fixture.id);
       if (score) {
         const isInPair1 = (fixture.pair1_player1_id === currentUser.id || fixture.pair1_player2_id === currentUser.id);
-        const won = isInPair1 ? score.pair1_score > score.pair2_score : score.pair2_score > score.pair1_score;
-        
+
+        // Determine result: 'won', 'lost', or 'draw'
+        let result;
+        if (score.pair1_score === score.pair2_score) {
+          result = 'draw';
+        } else if (isInPair1) {
+          result = score.pair1_score > score.pair2_score ? 'won' : 'lost';
+        } else {
+          result = score.pair2_score > score.pair1_score ? 'won' : 'lost';
+        }
+
         let partner, opponent;
         if (isInPair1) {
           partner = fixture.pair1_player1_id === currentUser.id ? fixture.player2?.name : fixture.player1?.name;
@@ -159,12 +168,12 @@ const AvailabilityTab = ({
           partner = fixture.pair2_player1_id === currentUser.id ? fixture.player4?.name : fixture.player3?.name;
           opponent = `${fixture.player1?.name} & ${fixture.player2?.name}`;
         }
-        
+
         playerScores.push({
           opponent: opponent,
           partner: partner,
           score: `${score.pair1_score} - ${score.pair2_score}`,
-          won: won
+          result: result
         });
       }
     });
@@ -520,16 +529,28 @@ const AvailabilityTab = ({
                       <div>
                         <h5 className="font-medium mb-2 text-sm text-gray-700">Your Results:</h5>
                         <div className="space-y-2">
-                          {playerScores.map((game, index) => (
-                            <div key={index} className={`p-3 rounded-lg text-sm ${game.won ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                                <span className="text-gray-700">With {game.partner} vs {game.opponent}</span>
-                                <span className={`font-semibold ${game.won ? 'text-green-700' : 'text-red-700'}`}>
-                                  {game.score} {game.won ? '✓ Won' : '✗ Lost'}
-                                </span>
+                          {playerScores.map((game, index) => {
+                            const bgColor = game.result === 'won' ? 'bg-green-50 border border-green-200' :
+                                          game.result === 'draw' ? 'bg-yellow-50 border border-yellow-200' :
+                                          'bg-red-50 border border-red-200';
+                            const textColor = game.result === 'won' ? 'text-green-700' :
+                                            game.result === 'draw' ? 'text-yellow-700' :
+                                            'text-red-700';
+                            const resultText = game.result === 'won' ? '✓ Won' :
+                                             game.result === 'draw' ? '= Draw' :
+                                             '✗ Lost';
+
+                            return (
+                              <div key={index} className={`p-3 rounded-lg text-sm ${bgColor}`}>
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                                  <span className="text-gray-700">With {game.partner} vs {game.opponent}</span>
+                                  <span className={`font-semibold ${textColor}`}>
+                                    {game.score} {resultText}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     ) : (
