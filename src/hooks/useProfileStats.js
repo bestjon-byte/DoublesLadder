@@ -113,6 +113,8 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       // Fetch ELO data for the player
       let eloData = {
         currentRating: null,
+        startingRating: null,
+        seasonEloChange: null,
         recentChanges: [],
         rankingPosition: null,
         seasonPlayerId: null
@@ -130,7 +132,7 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
 
         if (!seasonPlayerError && seasonPlayerData) {
           eloData.currentRating = seasonPlayerData.elo_rating;
-          
+
           // Get recent ELO changes from elo_history table using season_player_id (last 12 entries)
           const { data: eloHistoryData, error: eloHistoryError } = await supabase
             .from('elo_history')
@@ -164,12 +166,38 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
               change: entry.rating_change,
               date: entry.created_at,
               matchDate: entry.match_fixtures?.matches?.match_date,
-              score: entry.match_fixtures?.match_results?.[0] ? 
-                `${entry.match_fixtures.match_results[0].pair1_score}-${entry.match_fixtures.match_results[0].pair2_score}` : 
+              score: entry.match_fixtures?.match_results?.[0] ?
+                `${entry.match_fixtures.match_results[0].pair1_score}-${entry.match_fixtures.match_results[0].pair2_score}` :
                 null
             }));
           }
-          
+
+          // Get the starting ELO (first old_rating from elo_history, or default to 1200)
+          const { data: firstEloEntry, error: firstEloError } = await supabase
+            .from('elo_history')
+            .select('old_rating')
+            .eq('season_player_id', seasonPlayerData.id)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (!firstEloError && firstEloEntry) {
+            eloData.startingRating = firstEloEntry.old_rating;
+          } else {
+            // Fallback: Get the season's default initial rating
+            const { data: seasonData } = await supabase
+              .from('seasons')
+              .select('elo_initial_rating')
+              .eq('id', seasonId)
+              .single();
+            eloData.startingRating = seasonData?.elo_initial_rating || 1200;
+          }
+
+          // Calculate season ELO change
+          if (eloData.startingRating && eloData.currentRating) {
+            eloData.seasonEloChange = eloData.currentRating - eloData.startingRating;
+          }
+
           // Store season player ID for later use in ELO matching
           eloData.seasonPlayerId = seasonPlayerData.id;
         }

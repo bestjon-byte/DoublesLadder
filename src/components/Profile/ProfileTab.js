@@ -291,12 +291,13 @@ const CombinedEloCard = ({ eloData, onClick }) => {
   const recentChange = eloData.recentChanges[0];
   const currentRating = Math.round(eloData.currentRating || 0);
   const change = recentChange ? recentChange.change : 0;
-  
+  const seasonChange = eloData.seasonEloChange || 0;
+
   // Simple line chart data for recent ELO changes (last 12 changes)
   const chartData = eloData.recentChanges.slice(0, 12).reverse();
-  
+
   return (
-    <div 
+    <div
       className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 p-6 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer"
       onClick={onClick}
     >
@@ -325,6 +326,14 @@ const CombinedEloCard = ({ eloData, onClick }) => {
                 </span>
               )}
             </div>
+            {/* Season Change */}
+            {seasonChange !== 0 && eloData.startingRating && (
+              <div className="text-xs text-gray-600 mt-1">
+                Season: <span className={`font-semibold ${seasonChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {seasonChange > 0 ? '+' : ''}{Math.round(seasonChange)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
         <div className="text-xs text-gray-400 flex items-center">
@@ -350,7 +359,13 @@ const CombinedEloCard = ({ eloData, onClick }) => {
               {/* ELO line */}
               {(() => {
                 const maxRating = Math.max(...chartData.map(c => c.newRating));
-                const minRating = Math.min(...chartData.map(c => c.newRating));
+                let minRating = Math.min(...chartData.map(c => c.newRating));
+
+                // Include starting rating in range if available
+                if (eloData.startingRating) {
+                  minRating = Math.min(minRating, eloData.startingRating);
+                }
+
                 const range = Math.max(maxRating - minRating, 10); // Ensure minimum range
                 const points = chartData.map((change, index) => {
                   const x = (index / (chartData.length - 1)) * 100;
