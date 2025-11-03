@@ -22,7 +22,7 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
   const [mostImprovedPlayerId, setMostImprovedPlayerId] = useState(null);
   const [mostImprovedValue, setMostImprovedValue] = useState(0);
 
-  // Calculate Most Improved Player on component load/update
+  // Calculate Most Improved Player on component load/update (based on max ELO recovery from lowest point)
   useEffect(() => {
     const calculateMostImproved = async () => {
       if (!selectedSeason?.elo_enabled || !supabase || !users || users.length === 0) {
@@ -35,7 +35,7 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
         // Get season_player IDs
         const { data: seasonPlayerIds } = await supabase
           .from('season_players')
-          .select('id, player_id')
+          .select('id, player_id, elo_rating')
           .eq('season_id', selectedSeason.id);
 
         if (seasonPlayerIds && seasonPlayerIds.length > 0) {
@@ -44,38 +44,45 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
             seasonPlayerMap[sp.player_id] = sp.id;
           });
 
-          // Get first ELO entry for each season_player
-          const { data: firstEloEntries } = await supabase
+          // Get ALL ELO history for all players to find min ratings
+          const { data: allEloHistory } = await supabase
             .from('elo_history')
-            .select('season_player_id, old_rating')
+            .select('season_player_id, old_rating, new_rating')
             .in('season_player_id', seasonPlayerIds.map(sp => sp.id))
             .order('created_at', { ascending: true });
 
-          if (firstEloEntries) {
-            // Get the earliest entry for each player
-            const startingEloMap = {};
-            firstEloEntries.forEach(entry => {
-              if (!startingEloMap[entry.season_player_id]) {
-                startingEloMap[entry.season_player_id] = entry.old_rating;
+          if (allEloHistory) {
+            // Calculate min ELO for each player
+            const minEloMap = {};
+            allEloHistory.forEach(entry => {
+              if (!minEloMap[entry.season_player_id]) {
+                minEloMap[entry.season_player_id] = entry.old_rating;
               }
+              minEloMap[entry.season_player_id] = Math.min(
+                minEloMap[entry.season_player_id],
+                entry.old_rating,
+                entry.new_rating
+              );
             });
 
             // Get unified ranking data to access current ELO ratings
             const rankingData = getUnifiedRankingData(users, selectedSeason);
 
-            // Calculate improvement for each player
+            // Calculate max improvement (current - min) for each player
             let maxImprovement = 0;
             let improvedPlayerId = null;
 
             rankingData.forEach(player => {
               const seasonPlayerId = seasonPlayerMap[player.id];
-              const startingElo = startingEloMap[seasonPlayerId] || selectedSeason.elo_initial_rating || 1200;
-              const currentElo = player.elo_rating || startingElo;
-              const improvement = currentElo - startingElo;
+              const minElo = minEloMap[seasonPlayerId];
+              const currentElo = player.elo_rating;
 
-              if (improvement > maxImprovement && player.games_played > 0) {
-                maxImprovement = improvement;
-                improvedPlayerId = player.id;
+              if (minElo && currentElo && player.games_played > 0) {
+                const improvement = currentElo - minElo;
+                if (improvement > maxImprovement) {
+                  maxImprovement = improvement;
+                  improvedPlayerId = player.id;
+                }
               }
             });
 
@@ -171,8 +178,7 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
           }
         }
 
-        // Calculate Most Improved Player (seasonal ELO increase)
-        // Get first ELO entry for each player in this season
+        // Calculate Most Improved Player (max ELO recovery from lowest point)
         const { data: seasonPlayerIds } = await supabase
           .from('season_players')
           .select('id, player_id')
@@ -184,35 +190,42 @@ const LadderTab = ({ currentUser, users, updateRankings, selectedSeason, onPlaye
             seasonPlayerMap[sp.player_id] = sp.id;
           });
 
-          // Get first ELO entry for each season_player
-          const { data: firstEloEntries } = await supabase
+          // Get ALL ELO history for all players to find min ratings
+          const { data: allEloHistory } = await supabase
             .from('elo_history')
-            .select('season_player_id, old_rating')
+            .select('season_player_id, old_rating, new_rating')
             .in('season_player_id', seasonPlayerIds.map(sp => sp.id))
             .order('created_at', { ascending: true });
 
-          if (firstEloEntries) {
-            // Get the earliest entry for each player
-            const startingEloMap = {};
-            firstEloEntries.forEach(entry => {
-              if (!startingEloMap[entry.season_player_id]) {
-                startingEloMap[entry.season_player_id] = entry.old_rating;
+          if (allEloHistory) {
+            // Calculate min ELO for each player
+            const minEloMap = {};
+            allEloHistory.forEach(entry => {
+              if (!minEloMap[entry.season_player_id]) {
+                minEloMap[entry.season_player_id] = entry.old_rating;
               }
+              minEloMap[entry.season_player_id] = Math.min(
+                minEloMap[entry.season_player_id],
+                entry.old_rating,
+                entry.new_rating
+              );
             });
 
-            // Calculate improvement for each player
+            // Calculate max improvement (current - min) for each player
             let maxImprovement = 0;
             let improvedPlayerId = null;
 
             playersWithEloChanges.forEach(player => {
               const seasonPlayerId = seasonPlayerMap[player.id];
-              const startingElo = startingEloMap[seasonPlayerId] || selectedSeason.elo_initial_rating || 1200;
-              const currentElo = player.elo_rating || startingElo;
-              const improvement = currentElo - startingElo;
+              const minElo = minEloMap[seasonPlayerId];
+              const currentElo = player.elo_rating;
 
-              if (improvement > maxImprovement && player.games_played > 0) {
-                maxImprovement = improvement;
-                improvedPlayerId = player.id;
+              if (minElo && currentElo && player.games_played > 0) {
+                const improvement = currentElo - minElo;
+                if (improvement > maxImprovement) {
+                  maxImprovement = improvement;
+                  improvedPlayerId = player.id;
+                }
               }
             });
 

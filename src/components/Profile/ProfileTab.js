@@ -326,11 +326,11 @@ const CombinedEloCard = ({ eloData, onClick }) => {
                 </span>
               )}
             </div>
-            {/* Season Change */}
-            {seasonChange !== 0 && eloData.startingRating && (
+            {/* Max ELO Change (from lowest point) */}
+            {eloData.maxEloChange !== null && eloData.maxEloChange > 0 && (
               <div className="text-xs text-gray-600 mt-1">
-                Season: <span className={`font-semibold ${seasonChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {seasonChange > 0 ? '+' : ''}{Math.round(seasonChange)}
+                Max Change: <span className="font-semibold text-green-600">
+                  +{Math.round(eloData.maxEloChange)}
                 </span>
               </div>
             )}

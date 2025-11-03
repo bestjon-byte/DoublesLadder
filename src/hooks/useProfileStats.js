@@ -114,7 +114,9 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
       let eloData = {
         currentRating: null,
         startingRating: null,
+        minRating: null,
         seasonEloChange: null,
+        maxEloChange: null,
         recentChanges: [],
         rankingPosition: null,
         seasonPlayerId: null
@@ -172,17 +174,33 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
             }));
           }
 
-          // Get the starting ELO (first old_rating from elo_history, or default to 1200)
-          const { data: firstEloEntry, error: firstEloError } = await supabase
+          // Get ALL ELO history for this season to find min and calculate max change
+          const { data: allEloHistory, error: allEloError } = await supabase
             .from('elo_history')
-            .select('old_rating')
+            .select('old_rating, new_rating, created_at')
             .eq('season_player_id', seasonPlayerData.id)
-            .order('created_at', { ascending: true })
-            .limit(1)
-            .maybeSingle();
+            .order('created_at', { ascending: true });
 
-          if (!firstEloError && firstEloEntry) {
-            eloData.startingRating = firstEloEntry.old_rating;
+          if (!allEloError && allEloHistory && allEloHistory.length > 0) {
+            // Get starting ELO (first old_rating)
+            eloData.startingRating = allEloHistory[0].old_rating;
+
+            // Find minimum ELO throughout the season (check both old and new ratings)
+            let minRating = allEloHistory[0].old_rating;
+            allEloHistory.forEach(entry => {
+              minRating = Math.min(minRating, entry.old_rating, entry.new_rating);
+            });
+            eloData.minRating = minRating;
+
+            // Calculate max ELO change (Current - Min)
+            if (eloData.currentRating && eloData.minRating) {
+              eloData.maxEloChange = eloData.currentRating - eloData.minRating;
+            }
+
+            // Calculate season ELO change (Current - Starting)
+            if (eloData.startingRating && eloData.currentRating) {
+              eloData.seasonEloChange = eloData.currentRating - eloData.startingRating;
+            }
           } else {
             // Fallback: Get the season's default initial rating
             const { data: seasonData } = await supabase
@@ -191,11 +209,9 @@ export const useProfileStats = (playerId, seasonId = null, allTime = false, allU
               .eq('id', seasonId)
               .single();
             eloData.startingRating = seasonData?.elo_initial_rating || 1200;
-          }
-
-          // Calculate season ELO change
-          if (eloData.startingRating && eloData.currentRating) {
-            eloData.seasonEloChange = eloData.currentRating - eloData.startingRating;
+            eloData.minRating = eloData.currentRating || eloData.startingRating;
+            eloData.maxEloChange = 0;
+            eloData.seasonEloChange = 0;
           }
 
           // Store season player ID for later use in ELO matching
