@@ -37,6 +37,7 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
             schedules={coaching.schedules}
             loading={coaching.loading.sessions}
             actions={coaching.actions}
+            allUsers={allUsers}
             currentUser={currentUser}
           />
         );

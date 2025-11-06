@@ -5,7 +5,7 @@ import SessionModal from '../Modals/SessionModal';
 import SessionDetailsModal from '../Modals/SessionDetailsModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 
-const SessionManagement = ({ sessions, schedules, loading, actions, currentUser }) => {
+const SessionManagement = ({ sessions, schedules, loading, actions, allUsers, currentUser }) => {
   const { success, error } = useAppToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewingSession, setViewingSession] = useState(null);
@@ -223,6 +223,7 @@ const SessionManagement = ({ sessions, schedules, loading, actions, currentUser 
           onClose={() => setViewingSession(null)}
           session={viewingSession}
           actions={actions}
+          allUsers={allUsers}
         />
       )}
     </div>
