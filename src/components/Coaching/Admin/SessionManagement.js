@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Plus, Edit, X, Check, Eye } from 'lucide-react';
+import { Calendar, Plus, Edit, X, Check, Eye, Trash2 } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import SessionModal from '../Modals/SessionModal';
 import SessionDetailsModal from '../Modals/SessionDetailsModal';
@@ -31,6 +31,22 @@ const SessionManagement = ({ sessions, schedules, loading, actions, currentUser 
       error('Failed to complete session');
     } else {
       success('Session marked as completed');
+    }
+  };
+
+  const handleDelete = async (session) => {
+    const attendanceCount = session.attendance?.[0]?.count || 0;
+    const confirmMsg = attendanceCount > 0
+      ? `This session has ${attendanceCount} attendee(s). Are you sure you want to permanently delete it?`
+      : 'Are you sure you want to permanently delete this session?';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    const result = await actions.deleteSession(session.id);
+    if (result.error) {
+      error('Failed to delete session');
+    } else {
+      success('Session deleted successfully');
     }
   };
 
@@ -166,13 +182,20 @@ const SessionManagement = ({ sessions, schedules, loading, actions, currentUser 
                         </button>
                         <button
                           onClick={() => handleCancel(session)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          className="p-2 text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
                           title="Cancel session"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </>
                     )}
+                    <button
+                      onClick={() => handleDelete(session)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      title="Delete session permanently"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>

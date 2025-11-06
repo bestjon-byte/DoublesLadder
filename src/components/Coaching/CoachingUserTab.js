@@ -48,6 +48,21 @@ const CoachingUserTab = ({ currentUser }) => {
     }
   };
 
+  const handleMarkPaid = async (payment) => {
+    const note = window.prompt(
+      'Enter payment reference or note (optional):\n\nFor example: "Bank transfer on ' + new Date().toLocaleDateString('en-GB') + '"'
+    );
+    if (note === null) return; // User cancelled
+
+    const result = await coaching.actions.userMarkPaymentPaid(payment.id, note || '');
+    if (result.error) {
+      error('Failed to mark payment as paid');
+    } else {
+      success('Payment marked as paid - awaiting admin confirmation');
+      coaching.actions.fetchPayments({ playerId: currentUser.id });
+    }
+  };
+
   if (checkingAccess) {
     return <LoadingSpinner />;
   }
@@ -78,6 +93,14 @@ const CoachingUserTab = ({ currentUser }) => {
   const myPayments = coaching.payments
     .filter(p => p.player_id === currentUser.id)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  // Calculate payment totals
+  const totalOwed = myPayments
+    .filter(p => p.status === 'pending' || p.status === 'pending_confirmation')
+    .reduce((sum, p) => sum + parseFloat(p.amount_due), 0);
+  const totalPaid = myPayments
+    .filter(p => p.status === 'paid')
+    .reduce((sum, p) => sum + parseFloat(p.amount_due), 0);
 
   return (
     <div className="space-y-6">
@@ -207,57 +230,104 @@ const CoachingUserTab = ({ currentUser }) => {
                   <p className="text-gray-600">No payment requests yet</p>
                 </div>
               ) : (
-                myPayments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className={`
-                      border rounded-lg p-4
-                      ${payment.status === 'pending'
-                        ? 'bg-yellow-50 border-yellow-200'
-                        : 'bg-white border-gray-200'
-                      }
-                    `}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-lg font-semibold text-gray-900">
-                            £{payment.amount_due.toFixed(2)}
-                          </span>
-                          <span className={`
-                            px-2 py-1 rounded text-xs font-medium
-                            ${payment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : ''}
-                            ${payment.status === 'paid' ? 'bg-green-100 text-green-700' : ''}
-                          `}>
-                            {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          {payment.total_sessions} session{payment.total_sessions !== 1 ? 's' : ''} •{' '}
-                          {new Date(payment.billing_period_start).toLocaleDateString('en-GB')} -{' '}
-                          {new Date(payment.billing_period_end).toLocaleDateString('en-GB')}
-                        </p>
-                      </div>
+                <>
+                  {/* Payment Summary */}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-sm text-yellow-700 font-medium mb-1">Amount Owed</p>
+                      <p className="text-2xl font-bold text-yellow-900">£{totalOwed.toFixed(2)}</p>
                     </div>
-                    {payment.payment_deadline && payment.status === 'pending' && (
-                      <p className="text-sm text-gray-700 mb-2">
-                        <span className="font-medium">Due:</span> {new Date(payment.payment_deadline).toLocaleDateString('en-GB')}
-                      </p>
-                    )}
-                    {payment.paid_at && (
-                      <p className="text-sm text-green-600">
-                        Paid {new Date(payment.paid_at).toLocaleDateString('en-GB')}
-                      </p>
-                    )}
-                    {payment.status === 'pending' && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-sm text-gray-700">
-                          Please transfer payment to the club bank account and include your name as reference.
-                        </p>
-                      </div>
-                    )}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-sm text-green-700 font-medium mb-1">Total Paid</p>
+                      <p className="text-2xl font-bold text-green-900">£{totalPaid.toFixed(2)}</p>
+                    </div>
                   </div>
-                ))
+
+                  {/* Payment List */}
+                  <div className="space-y-4">
+                    {myPayments.map((payment) => {
+                      const getStatusBadge = () => {
+                        const statusConfig = {
+                          pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pending' },
+                          pending_confirmation: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Awaiting Confirmation' },
+                          paid: { bg: 'bg-green-100', text: 'text-green-700', label: 'Paid' },
+                        };
+                        const config = statusConfig[payment.status] || statusConfig.pending;
+                        return (
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${config.bg} ${config.text}`}>
+                            {config.label}
+                          </span>
+                        );
+                      };
+
+                      return (
+                        <div
+                          key={payment.id}
+                          className={`
+                            border rounded-lg p-4
+                            ${payment.status === 'pending' ? 'bg-yellow-50 border-yellow-200' : ''}
+                            ${payment.status === 'pending_confirmation' ? 'bg-blue-50 border-blue-200' : ''}
+                            ${payment.status === 'paid' ? 'bg-white border-gray-200' : ''}
+                          `}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-lg font-semibold text-gray-900">
+                                  £{payment.amount_due.toFixed(2)}
+                                </span>
+                                {getStatusBadge()}
+                              </div>
+                              <p className="text-sm text-gray-600">
+                                {payment.total_sessions} session{payment.total_sessions !== 1 ? 's' : ''} •{' '}
+                                {new Date(payment.billing_period_start).toLocaleDateString('en-GB')} -{' '}
+                                {new Date(payment.billing_period_end).toLocaleDateString('en-GB')}
+                              </p>
+                            </div>
+                          </div>
+
+                          {payment.payment_deadline && (payment.status === 'pending' || payment.status === 'pending_confirmation') && (
+                            <p className="text-sm text-gray-700 mb-2">
+                              <span className="font-medium">Due:</span> {new Date(payment.payment_deadline).toLocaleDateString('en-GB')}
+                            </p>
+                          )}
+
+                          {payment.status === 'pending_confirmation' && payment.user_marked_paid_at && (
+                            <div className="mb-2 p-2 bg-blue-100 border border-blue-200 rounded">
+                              <p className="text-sm text-blue-800">
+                                <span className="font-medium">You marked as paid:</span> {new Date(payment.user_marked_paid_at).toLocaleDateString('en-GB')}
+                              </p>
+                              {payment.user_payment_note && (
+                                <p className="text-sm text-blue-700 mt-1">Note: {payment.user_payment_note}</p>
+                              )}
+                              <p className="text-xs text-blue-600 mt-1">Awaiting admin confirmation</p>
+                            </div>
+                          )}
+
+                          {payment.paid_at && payment.status === 'paid' && (
+                            <p className="text-sm text-green-600">
+                              Confirmed paid {new Date(payment.paid_at).toLocaleDateString('en-GB')}
+                            </p>
+                          )}
+
+                          {payment.status === 'pending' && (
+                            <div className="mt-3 pt-3 border-t border-yellow-200">
+                              <p className="text-sm text-gray-700 mb-3">
+                                Please transfer payment to the club bank account and include your name as reference.
+                              </p>
+                              <button
+                                onClick={() => handleMarkPaid(payment)}
+                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                              >
+                                Mark as Paid
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           )}

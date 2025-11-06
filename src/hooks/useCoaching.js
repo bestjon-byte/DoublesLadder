@@ -256,6 +256,25 @@ export const useCoaching = (userId, isAdmin = false) => {
     return updateSession(sessionId, { status: 'completed' });
   }, [updateSession]);
 
+  /**
+   * Delete a session completely
+   */
+  const deleteSession = useCallback(async (sessionId) => {
+    try {
+      const { error } = await supabase
+        .from('coaching_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) throw error;
+      await fetchSessions();
+      return { error: null };
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      return { error };
+    }
+  }, [fetchSessions]);
+
   // ==========================================================================
   // ATTENDANCE MANAGEMENT
   // ==========================================================================
@@ -495,6 +514,43 @@ export const useCoaching = (userId, isAdmin = false) => {
     }
   }, [fetchPayments]);
 
+  /**
+   * User marks payment as paid (pending admin confirmation)
+   */
+  const userMarkPaymentPaid = useCallback(async (paymentId, note = '') => {
+    try {
+      const { data, error } = await supabase
+        .rpc('user_mark_payment_paid', {
+          p_payment_id: paymentId,
+          p_user_id: userId,
+          p_note: note,
+        });
+
+      if (error) throw error;
+      await fetchPayments();
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error marking payment as paid:', error);
+      return { data: null, error };
+    }
+  }, [userId, fetchPayments]);
+
+  /**
+   * Get payment statistics
+   */
+  const getPaymentStatistics = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_payment_statistics');
+
+      if (error) throw error;
+      return { data: data?.[0] || null, error: null };
+    } catch (error) {
+      console.error('Error fetching payment statistics:', error);
+      return { data: null, error };
+    }
+  }, []);
+
   // ==========================================================================
   // ACCESS CONTROL
   // ==========================================================================
@@ -647,6 +703,7 @@ export const useCoaching = (userId, isAdmin = false) => {
       updateSession,
       cancelSession,
       completeSession,
+      deleteSession,
 
       // Attendance
       fetchAttendance,
@@ -660,6 +717,8 @@ export const useCoaching = (userId, isAdmin = false) => {
       createPaymentRequest,
       markPaymentReceived,
       sendPaymentReminder,
+      userMarkPaymentPaid,
+      getPaymentStatistics,
 
       // Access Control
       fetchAccessList,
