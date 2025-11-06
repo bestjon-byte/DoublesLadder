@@ -1,5 +1,5 @@
-// VERSION_PLACEHOLDER will be replaced at build time with package.json version
-const APP_VERSION = 'VERSION_PLACEHOLDER';
+// 1.0.143 will be replaced at build time with package.json version
+const APP_VERSION = '1.0.143';
 const CACHE_NAME = `tennis-ladder-v${APP_VERSION}`;
 
 // Static assets that can be cached long-term

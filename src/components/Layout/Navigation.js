@@ -1,37 +1,43 @@
 // src/components/Layout/Navigation.js
 import React from 'react';
-import { Users, Calendar, Trophy, Settings, User, Award } from 'lucide-react';
+import { Users, Calendar, Trophy, Settings, User, Award, GraduationCap } from 'lucide-react';
 import { haptics } from '../../utils/haptics';
 
 const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers, selectedSeason }) => {
   const isLeagueSeason = selectedSeason?.season_type === 'league';
-  
+
   const tabs = [
     { id: 'ladder', icon: Trophy, label: 'League', show: true }, // RENAMED: Ladder → League
     { id: 'matches', icon: Calendar, label: 'Matches', show: true },
-    { 
-      id: 'profile', 
-      icon: User, 
-      label: 'Profile', 
-      show: ladderPlayers?.find(player => player.id === currentUser?.id) 
+    {
+      id: 'profile',
+      icon: User,
+      label: 'Profile',
+      show: ladderPlayers?.find(player => player.id === currentUser?.id)
     },
-    { 
-      id: 'trophies', 
-      icon: Award, 
-      label: 'Trophies', 
-      show: true 
+    {
+      id: 'trophies',
+      icon: Award,
+      label: 'Trophies',
+      show: true
     },
-    { 
-      id: 'availability', 
-      icon: Users, 
-      label: 'Available', 
+    {
+      id: 'availability',
+      icon: Users,
+      label: 'Available',
       show: !isLeagueSeason && ladderPlayers?.find(player => player.id === currentUser?.id) // Hide for league seasons
     },
-    { 
-      id: 'admin', 
-      icon: Settings, 
-      label: 'Admin', 
-      show: currentUser?.role === 'admin' 
+    {
+      id: 'coaching',
+      icon: GraduationCap,
+      label: 'Coaching',
+      show: true // All users can see coaching tab (access control handled in component)
+    },
+    {
+      id: 'admin',
+      icon: Settings,
+      label: 'Admin',
+      show: currentUser?.role === 'admin'
     }
   ].filter(tab => tab.show);
 

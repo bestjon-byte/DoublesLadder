@@ -1,0 +1,205 @@
+import React, { useState } from 'react';
+import { Plus, Edit, Trash2, Play, Calendar, RefreshCw } from 'lucide-react';
+import { useAppToast } from '../../../contexts/ToastContext';
+import ScheduleModal from '../Modals/ScheduleModal';
+import { LoadingSpinner } from '../../shared/LoadingSpinner';
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
+  const { success, error } = useAppToast();
+  const [showModal, setShowModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState(null);
+  const [generating, setGenerating] = useState(false);
+
+  const handleCreate = () => {
+    setEditingSchedule(null);
+    setShowModal(true);
+  };
+
+  const handleEdit = (schedule) => {
+    setEditingSchedule(schedule);
+    setShowModal(true);
+  };
+
+  const handleDeactivate = async (scheduleId) => {
+    if (!window.confirm('Are you sure you want to deactivate this schedule? Future sessions will no longer be generated.')) {
+      return;
+    }
+
+    const result = await actions.deactivateSchedule(scheduleId);
+    if (result.error) {
+      error('Failed to deactivate schedule');
+    } else {
+      success('Schedule deactivated successfully');
+    }
+  };
+
+  const handleGenerateSessions = async () => {
+    if (!window.confirm('Generate coaching sessions for the next 4 weeks from active schedules?')) {
+      return;
+    }
+
+    setGenerating(true);
+    const result = await actions.generateSessions(4);
+    setGenerating(false);
+
+    if (result.error) {
+      error('Failed to generate sessions: ' + result.error.message);
+    } else {
+      const count = result.data?.length || 0;
+      success(`Generated ${count} new session${count !== 1 ? 's' : ''}`);
+    }
+  };
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  const activeSchedules = schedules.filter(s => s.is_active);
+  const inactiveSchedules = schedules.filter(s => !s.is_active);
+
+  return (
+    <div className="space-y-6">
+      {/* Header Actions */}
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold text-gray-900">
+          Recurring Schedules ({activeSchedules.length} active)
+        </h3>
+        <div className="flex gap-3">
+          <button
+            onClick={handleGenerateSessions}
+            disabled={generating || activeSchedules.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {generating ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Calendar className="w-4 h-4" />
+            )}
+            Generate Sessions
+          </button>
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Schedule
+          </button>
+        </div>
+      </div>
+
+      {/* Active Schedules */}
+      {activeSchedules.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600 mb-4">No active schedules</p>
+          <button
+            onClick={handleCreate}
+            className="text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Create your first schedule
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {activeSchedules.map((schedule) => (
+            <div
+              key={schedule.id}
+              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className={`
+                      px-3 py-1 rounded-full text-sm font-medium
+                      ${schedule.session_type === 'Adults'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-green-100 text-green-700'
+                      }
+                    `}>
+                      {schedule.session_type}
+                    </span>
+                    <span className="text-gray-900 font-medium">
+                      Every {DAY_NAMES[schedule.day_of_week]}
+                    </span>
+                    <span className="text-gray-600">
+                      at {schedule.session_time}
+                    </span>
+                  </div>
+                  {schedule.notes && (
+                    <p className="text-sm text-gray-600">{schedule.notes}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Created {new Date(schedule.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(schedule)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    title="Edit schedule"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeactivate(schedule.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    title="Deactivate schedule"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Inactive Schedules */}
+      {inactiveSchedules.length > 0 && (
+        <div className="mt-8">
+          <h4 className="text-md font-semibold text-gray-700 mb-3">
+            Inactive Schedules ({inactiveSchedules.length})
+          </h4>
+          <div className="space-y-2">
+            {inactiveSchedules.map((schedule) => (
+              <div
+                key={schedule.id}
+                className="bg-gray-50 border border-gray-200 rounded-lg p-3 opacity-60"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-700">
+                    {schedule.session_type}
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    Every {DAY_NAMES[schedule.day_of_week]} at {schedule.session_time}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    (Deactivated {new Date(schedule.deactivated_at).toLocaleDateString()})
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <ScheduleModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          schedule={editingSchedule}
+          onSuccess={() => {
+            setShowModal(false);
+            actions.fetchSchedules();
+          }}
+          actions={actions}
+        />
+      )}
+    </div>
+  );
+};
+
+export default ScheduleManagement;

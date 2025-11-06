@@ -14,6 +14,8 @@ import ProfileTab from './components/Profile/ProfileTab';
 import TrophyCabinetTab from './components/TrophyCabinet/TrophyCabinetTab';
 import AvailabilityTab from './components/Availability/AvailabilityTab';
 import AdminTab from './components/Admin/AdminTab';
+import CoachingAdminTab from './components/Coaching/CoachingAdminTab';
+import CoachingUserTab from './components/Coaching/CoachingUserTab';
 import ScheduleModal from './components/Modals/ScheduleModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import PlayersGuideModal from './components/Modals/PlayersGuideModal';
@@ -328,7 +330,7 @@ const CawoodTennisApp = () => {
           )}
 
           {activeTab === 'admin' && user?.role === 'admin' && (
-            <AdminTab 
+            <AdminTab
               users={allUsers} // CHANGED: Use allUsers
               ladderPlayers={ladderPlayers} // NEW: Add ladder players for filtering
               currentUser={user}
@@ -358,6 +360,19 @@ const CawoodTennisApp = () => {
               // NEW: Refetch functions for data refresh
               refetch={refetch}
             />
+          )}
+
+          {activeTab === 'coaching' && (
+            user?.role === 'admin' ? (
+              <CoachingAdminTab
+                currentUser={user}
+                allUsers={allUsers}
+              />
+            ) : (
+              <CoachingUserTab
+                currentUser={user}
+              />
+            )
           )}
         </main>
 
