@@ -142,13 +142,22 @@ export const useCoaching = (userId, isAdmin = false) => {
         .rpc('generate_coaching_sessions', { weeks_ahead: weeksAhead });
 
       if (error) throw error;
+
+      // Map the returned column names (generated_*) to expected names
+      const mappedData = data?.map(session => ({
+        session_id: session.generated_session_id,
+        session_type: session.generated_session_type,
+        session_date: session.generated_session_date,
+        session_time: session.generated_session_time,
+      }));
+
       await fetchSessions();
-      return { data, error: null };
+      return { data: mappedData, error: null };
     } catch (error) {
       console.error('Error generating sessions:', error);
       return { data: null, error };
     }
-  }, []);
+  }, [fetchSessions]);
 
   // ==========================================================================
   // SESSIONS MANAGEMENT
