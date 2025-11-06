@@ -551,6 +551,124 @@ export const useCoaching = (userId, isAdmin = false) => {
     }
   }, []);
 
+  /**
+   * Player marks session(s) as paid
+   */
+  const playerMarkSessionsPaid = useCallback(async (attendanceIds, note = '') => {
+    try {
+      const { data, error } = await supabase
+        .rpc('player_mark_sessions_paid', {
+          p_attendance_ids: attendanceIds,
+          p_player_id: userId,
+          p_note: note,
+        });
+
+      if (error) throw error;
+      await fetchAttendance({ playerId: userId });
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error marking sessions as paid:', error);
+      return { data: null, error };
+    }
+  }, [userId, fetchAttendance]);
+
+  /**
+   * Admin confirms payment received - auto-allocates to oldest unpaid sessions
+   */
+  const adminConfirmPayment = useCallback(async (playerId, amount, reference = '', sessionCost = 4.00) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('admin_confirm_payment', {
+          p_player_id: playerId,
+          p_amount: amount,
+          p_reference: reference,
+          p_session_cost: sessionCost,
+        });
+
+      if (error) throw error;
+      await fetchAttendance();
+      return { data: data?.[0] || null, error: null };
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      return { data: null, error };
+    }
+  }, [fetchAttendance]);
+
+  /**
+   * Admin confirms specific sessions as paid
+   */
+  const adminConfirmSessions = useCallback(async (attendanceIds, reference = '') => {
+    try {
+      const { data, error } = await supabase
+        .rpc('admin_confirm_sessions', {
+          p_attendance_ids: attendanceIds,
+          p_reference: reference,
+        });
+
+      if (error) throw error;
+      await fetchAttendance();
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error confirming sessions:', error);
+      return { data: null, error };
+    }
+  }, [fetchAttendance]);
+
+  /**
+   * Get payment summary for all players
+   */
+  const getAllPlayersPaymentSummary = useCallback(async (sessionCost = 4.00) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_all_players_payment_summary', {
+          p_session_cost: sessionCost,
+        });
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Error fetching all players payment summary:', error);
+      return { data: [], error };
+    }
+  }, []);
+
+  /**
+   * Get payment summary for a specific player
+   */
+  const getPlayerPaymentSummary = useCallback(async (playerId, sessionCost = 4.00) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_player_payment_summary', {
+          p_player_id: playerId,
+          p_session_cost: sessionCost,
+        });
+
+      if (error) throw error;
+      return { data: data?.[0] || null, error: null };
+    } catch (error) {
+      console.error('Error fetching player payment summary:', error);
+      return { data: null, error };
+    }
+  }, []);
+
+  /**
+   * Get detailed session list for a player grouped by payment status
+   */
+  const getPlayerSessionsByPaymentStatus = useCallback(async (playerId) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_player_sessions_by_payment_status', {
+          p_player_id: playerId,
+        });
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Error fetching player sessions:', error);
+      return { data: [], error };
+    }
+  }, []);
+
   // ==========================================================================
   // ACCESS CONTROL
   // ==========================================================================
@@ -711,7 +829,7 @@ export const useCoaching = (userId, isAdmin = false) => {
       removeAttendance,
       getSessionAttendance,
 
-      // Payments
+      // Payments (old system - to be deprecated)
       fetchPayments,
       getUnpaidSessions,
       createPaymentRequest,
@@ -719,6 +837,14 @@ export const useCoaching = (userId, isAdmin = false) => {
       sendPaymentReminder,
       userMarkPaymentPaid,
       getPaymentStatistics,
+
+      // Payments (new session-level system)
+      playerMarkSessionsPaid,
+      adminConfirmPayment,
+      adminConfirmSessions,
+      getAllPlayersPaymentSummary,
+      getPlayerPaymentSummary,
+      getPlayerSessionsByPaymentStatus,
 
       // Access Control
       fetchAccessList,

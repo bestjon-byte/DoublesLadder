@@ -1,143 +1,132 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Plus, Check, Mail } from 'lucide-react';
+import { DollarSign, User, Mail, Check, ChevronRight } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
-import CreatePaymentModal from '../Modals/CreatePaymentModal';
-import PaymentDetailsModal from '../Modals/PaymentDetailsModal';
+import PlayerPaymentModal from '../Modals/PlayerPaymentModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 
-const PaymentManagement = ({ payments, loading, actions, allUsers, currentUser }) => {
+const PaymentManagement = ({ loading, actions }) => {
   const { success, error } = useAppToast();
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [viewingPayment, setViewingPayment] = useState(null);
-  const [filter, setFilter] = useState('pending'); // 'pending', 'pending_confirmation', 'paid', 'all'
-  const [statistics, setStatistics] = useState(null);
-  const [loadingStats, setLoadingStats] = useState(true);
+  const [playersSummary, setPlayersSummary] = useState([]);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [viewingPlayer, setViewingPlayer] = useState(null);
+  const [filter, setFilter] = useState('all'); // 'all', 'owe_money', 'awaiting_confirmation', 'paid_up'
 
+  // Load all players payment summary
   useEffect(() => {
-    const loadStatistics = async () => {
-      setLoadingStats(true);
-      const result = await actions.getPaymentStatistics();
+    const loadSummary = async () => {
+      setLoadingSummary(true);
+      const result = await actions.getAllPlayersPaymentSummary();
       if (result.data) {
-        setStatistics(result.data);
+        setPlayersSummary(result.data);
       }
-      setLoadingStats(false);
+      setLoadingSummary(false);
     };
-    loadStatistics();
-  }, [payments, actions]);
+    loadSummary();
+  }, [actions]);
 
-  const handleMarkPaid = async (payment) => {
-    const reference = window.prompt('Enter payment reference (optional):');
-    if (reference === null) return;
+  const handleSendReminders = async () => {
+    const playersOwingMoney = playersSummary.filter(p =>
+      parseFloat(p.amount_owed) > 0
+    );
 
-    const result = await actions.markPaymentReceived(payment.id, reference);
-    if (result.error) {
-      error('Failed to mark payment as received');
-    } else {
-      success('Payment marked as received');
+    if (playersOwingMoney.length === 0) {
+      error('No players owe money');
+      return;
     }
+
+    const confirmMsg = `Send payment reminders to ${playersOwingMoney.length} player(s) with outstanding payments?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    // TODO: Implement email sending
+    success(`Payment reminders would be sent to ${playersOwingMoney.length} player(s) (email system not yet implemented)`);
   };
 
-  const handleSendReminder = async (payment) => {
-    if (!window.confirm(`Send payment reminder to ${payment.player?.name}?`)) return;
-
-    const result = await actions.sendPaymentReminder(payment.id);
-    if (result.error) {
-      error('Failed to send reminder');
-    } else {
-      success('Reminder sent successfully');
-      // TODO: Actual email sending logic
+  const handleRefresh = async () => {
+    setLoadingSummary(true);
+    const result = await actions.getAllPlayersPaymentSummary();
+    if (result.data) {
+      setPlayersSummary(result.data);
     }
+    setLoadingSummary(false);
   };
 
-  if (loading) {
+  if (loadingSummary && playersSummary.length === 0) {
     return <LoadingSpinner />;
   }
 
-  const filteredPayments = payments.filter(p => {
-    if (filter === 'pending') return p.status === 'pending';
-    if (filter === 'pending_confirmation') return p.status === 'pending_confirmation';
-    if (filter === 'paid') return p.status === 'paid';
-    return true;
+  // Filter players
+  const filteredPlayers = playersSummary.filter(player => {
+    if (filter === 'owe_money') {
+      return parseFloat(player.amount_owed) > 0;
+    } else if (filter === 'awaiting_confirmation') {
+      return parseFloat(player.amount_pending_confirmation) > 0;
+    } else if (filter === 'paid_up') {
+      return parseFloat(player.amount_owed) === 0 && parseFloat(player.amount_pending_confirmation) === 0;
+    }
+    return true; // 'all'
   });
 
-  const getStatusBadge = (status) => {
-    const styles = {
-      pending: 'bg-yellow-100 text-yellow-700',
-      pending_confirmation: 'bg-blue-100 text-blue-700',
-      paid: 'bg-green-100 text-green-700',
-      overdue: 'bg-red-100 text-red-700',
-      cancelled: 'bg-gray-100 text-gray-700',
-    };
-    const labels = {
-      pending: 'Pending',
-      pending_confirmation: 'Awaiting Confirmation',
-      paid: 'Paid',
-      overdue: 'Overdue',
-      cancelled: 'Cancelled',
-    };
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${styles[status] || styles.pending}`}>
-        {labels[status] || status}
-      </span>
-    );
-  };
+  // Calculate totals
+  const totals = playersSummary.reduce((acc, player) => ({
+    owed: acc.owed + parseFloat(player.amount_owed || 0),
+    pending: acc.pending + parseFloat(player.amount_pending_confirmation || 0),
+    paid: acc.paid + parseFloat(player.amount_paid || 0),
+    playersOwing: acc.playersOwing + (parseFloat(player.amount_owed) > 0 ? 1 : 0),
+    playersPending: acc.playersPending + (parseFloat(player.amount_pending_confirmation) > 0 ? 1 : 0),
+  }), { owed: 0, pending: 0, paid: 0, playersOwing: 0, playersPending: 0 });
 
   return (
     <div className="space-y-6">
       {/* Statistics Dashboard */}
-      {loadingStats ? (
-        <LoadingSpinner />
-      ) : statistics && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-yellow-700 font-medium">Amount Owed</p>
-              <DollarSign className="w-5 h-5 text-yellow-600" />
-            </div>
-            <p className="text-2xl font-bold text-yellow-900">
-              £{parseFloat(statistics.total_owed || 0).toFixed(2)}
-            </p>
-            <p className="text-xs text-yellow-600 mt-1">
-              {statistics.pending_count || 0} pending payment{statistics.pending_count !== 1 ? 's' : ''}
-            </p>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-yellow-700 font-medium">Total Owed</p>
+            <DollarSign className="w-5 h-5 text-yellow-600" />
           </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-blue-700 font-medium">Pending Confirmation</p>
-              <Check className="w-5 h-5 text-blue-600" />
-            </div>
-            <p className="text-2xl font-bold text-blue-900">
-              £{parseFloat(statistics.total_pending_confirmation || 0).toFixed(2)}
-            </p>
-            <p className="text-xs text-blue-600 mt-1">
-              {statistics.pending_confirmation_count || 0} awaiting confirmation
-            </p>
-          </div>
-
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-green-700 font-medium">Total Received</p>
-              <Check className="w-5 h-5 text-green-600" />
-            </div>
-            <p className="text-2xl font-bold text-green-900">
-              £{parseFloat(statistics.total_received || 0).toFixed(2)}
-            </p>
-            <p className="text-xs text-green-600 mt-1">
-              {statistics.paid_count || 0} confirmed payment{statistics.paid_count !== 1 ? 's' : ''}
-            </p>
-          </div>
+          <p className="text-2xl font-bold text-yellow-900">
+            £{totals.owed.toFixed(2)}
+          </p>
+          <p className="text-xs text-yellow-600 mt-1">
+            {totals.playersOwing} player{totals.playersOwing !== 1 ? 's' : ''} owing money
+          </p>
         </div>
-      )}
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-blue-700 font-medium">Awaiting Confirmation</p>
+            <Check className="w-5 h-5 text-blue-600" />
+          </div>
+          <p className="text-2xl font-bold text-blue-900">
+            £{totals.pending.toFixed(2)}
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            {totals.playersPending} player{totals.playersPending !== 1 ? 's' : ''} marked as paid
+          </p>
+        </div>
+
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-green-700 font-medium">Total Received</p>
+            <Check className="w-5 h-5 text-green-600" />
+          </div>
+          <p className="text-2xl font-bold text-green-900">
+            £{totals.paid.toFixed(2)}
+          </p>
+          <p className="text-xs text-green-600 mt-1">
+            All-time confirmed payments
+          </p>
+        </div>
+      </div>
 
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex gap-2">
           {[
-            { value: 'pending', label: 'Pending' },
-            { value: 'pending_confirmation', label: 'To Confirm' },
-            { value: 'paid', label: 'Paid' },
-            { value: 'all', label: 'All' }
+            { value: 'all', label: 'All Players' },
+            { value: 'owe_money', label: 'Owe Money' },
+            { value: 'awaiting_confirmation', label: 'To Confirm' },
+            { value: 'paid_up', label: 'Paid Up' }
           ].map((f) => (
             <button
               key={f.value}
@@ -151,118 +140,129 @@ const PaymentManagement = ({ payments, loading, actions, allUsers, currentUser }
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Create Payment Request
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={loadingSummary}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            {loadingSummary ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button
+            onClick={handleSendReminders}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <Mail className="w-4 h-4" />
+            Send Payment Reminders
+          </button>
+        </div>
       </div>
 
-      {/* Payments List */}
-      {filteredPayments.length === 0 ? (
+      {/* Players List */}
+      {filteredPlayers.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600">No {filter !== 'all' && filter} payments found</p>
+          <User className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600">
+            {filter === 'all' ? 'No players with coaching attendance found' :
+             filter === 'owe_money' ? 'No players owe money' :
+             filter === 'awaiting_confirmation' ? 'No payments awaiting confirmation' :
+             'No players are fully paid up'}
+          </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredPayments.map((payment) => (
-            <div
-              key={payment.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="font-medium text-gray-900">{payment.player?.name}</span>
-                    {getStatusBadge(payment.status)}
-                    <span className="text-gray-600">£{payment.amount_due.toFixed(2)}</span>
-                  </div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p>
-                      {payment.total_sessions} session{payment.total_sessions !== 1 ? 's' : ''} •{' '}
-                      {new Date(payment.billing_period_start).toLocaleDateString('en-GB')} -{' '}
-                      {new Date(payment.billing_period_end).toLocaleDateString('en-GB')}
-                    </p>
-                    {payment.payment_deadline && (
-                      <p>Due: {new Date(payment.payment_deadline).toLocaleDateString('en-GB')}</p>
-                    )}
-                    {payment.status === 'pending_confirmation' && payment.user_marked_paid_at && (
-                      <div className="mt-2 p-2 bg-blue-100 border border-blue-200 rounded">
-                        <p className="text-blue-800 font-medium">
-                          Player marked as paid: {new Date(payment.user_marked_paid_at).toLocaleDateString('en-GB')}
-                        </p>
-                        {payment.user_payment_note && (
-                          <p className="text-blue-700 mt-1">Note: {payment.user_payment_note}</p>
-                        )}
-                      </div>
-                    )}
-                    {payment.reminder_sent_at && (
-                      <p className="text-blue-600">
-                        Reminder sent {new Date(payment.reminder_sent_at).toLocaleDateString('en-GB')}
-                      </p>
-                    )}
-                    {payment.paid_at && (
-                      <p className="text-green-600">
-                        Paid {new Date(payment.paid_at).toLocaleDateString('en-GB')}
-                        {payment.payment_reference && ` (Ref: ${payment.payment_reference})`}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setViewingPayment(payment)}
-                    className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors text-sm"
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Player
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Sessions
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Owed
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  To Confirm
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Paid
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredPlayers.map((player) => {
+                const owedAmount = parseFloat(player.amount_owed || 0);
+                const pendingAmount = parseFloat(player.amount_pending_confirmation || 0);
+                const paidAmount = parseFloat(player.amount_paid || 0);
+
+                return (
+                  <tr
+                    key={player.player_id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setViewingPlayer(player)}
                   >
-                    View Details
-                  </button>
-                  {payment.status === 'pending' && (
-                    <button
-                      onClick={() => handleSendReminder(payment)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                      title="Send reminder"
-                    >
-                      <Mail className="w-4 h-4" />
-                    </button>
-                  )}
-                  {(payment.status === 'pending' || payment.status === 'pending_confirmation') && (
-                    <button
-                      onClick={() => handleMarkPaid(payment)}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                      title={payment.status === 'pending_confirmation' ? 'Confirm payment received' : 'Mark as paid'}
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{player.player_name}</div>
+                        <div className="text-sm text-gray-500">{player.player_email}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <div>
+                        <div>{player.total_sessions} total</div>
+                        <div className="text-xs text-gray-500">
+                          {player.unpaid_sessions} unpaid • {player.pending_confirmation_sessions} pending • {player.paid_sessions} paid
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className={`text-sm font-semibold ${owedAmount > 0 ? 'text-yellow-700' : 'text-gray-400'}`}>
+                        £{owedAmount.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className={`text-sm font-semibold ${pendingAmount > 0 ? 'text-blue-700' : 'text-gray-400'}`}>
+                        £{pendingAmount.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className="text-sm font-semibold text-green-700">
+                        £{paidAmount.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewingPlayer(player);
+                        }}
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                      >
+                        View Details
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Modals */}
-      {showCreateModal && (
-        <CreatePaymentModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            actions.fetchPayments();
-          }}
+      {/* Player Payment Modal */}
+      {viewingPlayer && (
+        <PlayerPaymentModal
+          isOpen={!!viewingPlayer}
+          onClose={() => setViewingPlayer(null)}
+          player={viewingPlayer}
           actions={actions}
-          allUsers={allUsers}
-        />
-      )}
-
-      {viewingPayment && (
-        <PaymentDetailsModal
-          isOpen={!!viewingPayment}
-          onClose={() => setViewingPayment(null)}
-          payment={viewingPayment}
+          onSuccess={handleRefresh}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, CheckCircle, XCircle, DollarSign, Clock } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, DollarSign, Clock, CheckSquare, Square } from 'lucide-react';
 import { useCoaching } from '../../hooks/useCoaching';
 import { useAppToast } from '../../contexts/ToastContext';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
@@ -10,6 +10,10 @@ const CoachingUserTab = ({ currentUser }) => {
   const [activeTab, setActiveTab] = useState('sessions'); // 'sessions', 'payments'
   const [hasAccess, setHasAccess] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
+  const [paymentSummary, setPaymentSummary] = useState(null);
+  const [mySessions, setMySessions] = useState([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [selectedSessions, setSelectedSessions] = useState([]);
 
   useEffect(() => {
     if (currentUser?.id) {
@@ -19,6 +23,28 @@ const CoachingUserTab = ({ currentUser }) => {
       });
     }
   }, [currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (hasAccess && activeTab === 'payments' && currentUser?.id) {
+      loadPaymentData();
+    }
+  }, [hasAccess, activeTab, currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadPaymentData = async () => {
+    setLoadingPayments(true);
+    const [summaryResult, sessionsResult] = await Promise.all([
+      coaching.actions.getPlayerPaymentSummary(currentUser.id),
+      coaching.actions.getPlayerSessionsByPaymentStatus(currentUser.id)
+    ]);
+
+    if (summaryResult.data) {
+      setPaymentSummary(summaryResult.data);
+    }
+    if (sessionsResult.data) {
+      setMySessions(sessionsResult.data);
+    }
+    setLoadingPayments(false);
+  };
 
   const handleRegister = async (session) => {
     const result = await coaching.actions.markAttendance(session.id, currentUser.id, true);
@@ -48,18 +74,47 @@ const CoachingUserTab = ({ currentUser }) => {
     }
   };
 
-  const handleMarkPaid = async (payment) => {
+  const handleMarkSessionsPaid = async () => {
+    if (selectedSessions.length === 0) {
+      error('Please select sessions to mark as paid');
+      return;
+    }
+
     const note = window.prompt(
-      'Enter payment reference or note (optional):\n\nFor example: "Bank transfer on ' + new Date().toLocaleDateString('en-GB') + '"'
+      `Mark ${selectedSessions.length} session(s) as paid?\n\n` +
+      `Total: £${(selectedSessions.length * 4).toFixed(2)}\n\n` +
+      `Enter payment reference or note (optional):\n` +
+      `For example: "Bank transfer on ${new Date().toLocaleDateString('en-GB')}"`
     );
+
     if (note === null) return; // User cancelled
 
-    const result = await coaching.actions.userMarkPaymentPaid(payment.id, note || '');
+    const result = await coaching.actions.playerMarkSessionsPaid(selectedSessions, note || '');
     if (result.error) {
-      error('Failed to mark payment as paid');
+      error('Failed to mark sessions as paid');
     } else {
-      success('Payment marked as paid - awaiting admin confirmation');
-      coaching.actions.fetchPayments({ playerId: currentUser.id });
+      success(`Marked ${selectedSessions.length} session(s) as paid - awaiting admin confirmation`);
+      setSelectedSessions([]);
+      await loadPaymentData();
+    }
+  };
+
+  const toggleSession = (attendanceId) => {
+    setSelectedSessions(prev =>
+      prev.includes(attendanceId)
+        ? prev.filter(id => id !== attendanceId)
+        : [...prev, attendanceId]
+    );
+  };
+
+  const toggleAllUnpaid = () => {
+    const unpaidSessions = mySessions.filter(s => s.payment_status === 'unpaid');
+    const allUnpaidSelected = unpaidSessions.every(s => selectedSessions.includes(s.attendance_id));
+
+    if (allUnpaidSelected) {
+      setSelectedSessions(prev => prev.filter(id => !unpaidSessions.find(s => s.attendance_id === id)));
+    } else {
+      setSelectedSessions(prev => [...new Set([...prev, ...unpaidSessions.map(s => s.attendance_id)])]);
     }
   };
 
@@ -90,24 +145,16 @@ const CoachingUserTab = ({ currentUser }) => {
   const myAttendance = coaching.attendance.filter(a => a.player_id === currentUser.id);
   const myAttendanceMap = new Map(myAttendance.map(a => [a.session_id, a]));
 
-  const myPayments = coaching.payments
-    .filter(p => p.player_id === currentUser.id)
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-  // Calculate payment totals
-  const totalOwed = myPayments
-    .filter(p => p.status === 'pending' || p.status === 'pending_confirmation')
-    .reduce((sum, p) => sum + parseFloat(p.amount_due), 0);
-  const totalPaid = myPayments
-    .filter(p => p.status === 'paid')
-    .reduce((sum, p) => sum + parseFloat(p.amount_due), 0);
+  const unpaidSessions = mySessions.filter(s => s.payment_status === 'unpaid');
+  const pendingConfirmationSessions = mySessions.filter(s => s.payment_status === 'pending_confirmation');
+  const paidSessions = mySessions.filter(s => s.payment_status === 'paid');
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-1">Coaching Sessions</h2>
-        <p className="text-gray-600">View upcoming sessions and manage your attendance</p>
+        <p className="text-gray-600">View upcoming sessions and manage your attendance and payments</p>
       </div>
 
       {/* Tabs */}
@@ -138,9 +185,9 @@ const CoachingUserTab = ({ currentUser }) => {
           >
             <DollarSign className="w-5 h-5" />
             Payments
-            {myPayments.filter(p => p.status === 'pending').length > 0 && (
+            {paymentSummary && paymentSummary.unpaid_sessions > 0 && (
               <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                {myPayments.filter(p => p.status === 'pending').length}
+                {paymentSummary.unpaid_sessions}
               </span>
             )}
           </button>
@@ -221,112 +268,189 @@ const CoachingUserTab = ({ currentUser }) => {
               )}
             </div>
           ) : (
-            <div className="space-y-4">
-              {coaching.loading.payments ? (
+            <div className="space-y-6">
+              {loadingPayments ? (
                 <LoadingSpinner />
-              ) : myPayments.length === 0 ? (
+              ) : !paymentSummary ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600">No payment requests yet</p>
+                  <p className="text-gray-600">No coaching sessions found</p>
                 </div>
               ) : (
                 <>
                   {/* Payment Summary */}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <p className="text-sm text-yellow-700 font-medium mb-1">Amount Owed</p>
-                      <p className="text-2xl font-bold text-yellow-900">£{totalOwed.toFixed(2)}</p>
+                      <p className="text-2xl font-bold text-yellow-900">£{parseFloat(paymentSummary.amount_owed || 0).toFixed(2)}</p>
+                      <p className="text-xs text-yellow-600 mt-1">{paymentSummary.unpaid_sessions} unpaid session{paymentSummary.unpaid_sessions !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-700 font-medium mb-1">Awaiting Confirmation</p>
+                      <p className="text-2xl font-bold text-blue-900">£{parseFloat(paymentSummary.amount_pending_confirmation || 0).toFixed(2)}</p>
+                      <p className="text-xs text-blue-600 mt-1">{paymentSummary.pending_confirmation_sessions} session{paymentSummary.pending_confirmation_sessions !== 1 ? 's' : ''}</p>
                     </div>
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <p className="text-sm text-green-700 font-medium mb-1">Total Paid</p>
-                      <p className="text-2xl font-bold text-green-900">£{totalPaid.toFixed(2)}</p>
+                      <p className="text-2xl font-bold text-green-900">£{parseFloat(paymentSummary.amount_paid || 0).toFixed(2)}</p>
+                      <p className="text-xs text-green-600 mt-1">{paymentSummary.paid_sessions} confirmed session{paymentSummary.paid_sessions !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
 
-                  {/* Payment List */}
-                  <div className="space-y-4">
-                    {myPayments.map((payment) => {
-                      const getStatusBadge = () => {
-                        const statusConfig = {
-                          pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pending' },
-                          pending_confirmation: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Awaiting Confirmation' },
-                          paid: { bg: 'bg-green-100', text: 'text-green-700', label: 'Paid' },
-                        };
-                        const config = statusConfig[payment.status] || statusConfig.pending;
-                        return (
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${config.bg} ${config.text}`}>
-                            {config.label}
-                          </span>
-                        );
-                      };
+                  {/* Action Buttons */}
+                  {selectedSessions.length > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+                      <p className="text-sm text-blue-700">
+                        {selectedSessions.length} session{selectedSessions.length !== 1 ? 's' : ''} selected (£{(selectedSessions.length * 4).toFixed(2)})
+                      </p>
+                      <button
+                        onClick={handleMarkSessionsPaid}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                      >
+                        Mark as Paid
+                      </button>
+                    </div>
+                  )}
 
-                      return (
-                        <div
-                          key={payment.id}
-                          className={`
-                            border rounded-lg p-4
-                            ${payment.status === 'pending' ? 'bg-yellow-50 border-yellow-200' : ''}
-                            ${payment.status === 'pending_confirmation' ? 'bg-blue-50 border-blue-200' : ''}
-                            ${payment.status === 'paid' ? 'bg-white border-gray-200' : ''}
-                          `}
+                  {/* Unpaid Sessions */}
+                  {unpaidSessions.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Unpaid Sessions ({unpaidSessions.length})
+                        </h3>
+                        <button
+                          onClick={toggleAllUnpaid}
+                          className="text-sm text-blue-600 hover:text-blue-800"
                         >
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-lg font-semibold text-gray-900">
-                                  £{payment.amount_due.toFixed(2)}
+                          {unpaidSessions.every(s => selectedSessions.includes(s.attendance_id)) ? 'Deselect All' : 'Select All'}
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {unpaidSessions.map(session => (
+                          <div
+                            key={session.attendance_id}
+                            onClick={() => toggleSession(session.attendance_id)}
+                            className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md cursor-pointer hover:bg-yellow-100 transition-colors"
+                          >
+                            {selectedSessions.includes(session.attendance_id) ? (
+                              <CheckSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                            ) : (
+                              <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-900">
+                                  {new Date(session.session_date).toLocaleDateString('en-GB', {
+                                    weekday: 'short',
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
                                 </span>
-                                {getStatusBadge()}
+                                <span className="text-sm text-gray-600">at {session.session_time}</span>
+                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
+                                  {session.session_type}
+                                </span>
                               </div>
-                              <p className="text-sm text-gray-600">
-                                {payment.total_sessions} session{payment.total_sessions !== 1 ? 's' : ''} •{' '}
-                                {new Date(payment.billing_period_start).toLocaleDateString('en-GB')} -{' '}
-                                {new Date(payment.billing_period_end).toLocaleDateString('en-GB')}
-                              </p>
                             </div>
+                            <span className="text-sm font-semibold text-yellow-700">£4.00</span>
                           </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                          {payment.payment_deadline && (payment.status === 'pending' || payment.status === 'pending_confirmation') && (
-                            <p className="text-sm text-gray-700 mb-2">
-                              <span className="font-medium">Due:</span> {new Date(payment.payment_deadline).toLocaleDateString('en-GB')}
-                            </p>
-                          )}
-
-                          {payment.status === 'pending_confirmation' && payment.user_marked_paid_at && (
-                            <div className="mb-2 p-2 bg-blue-100 border border-blue-200 rounded">
-                              <p className="text-sm text-blue-800">
-                                <span className="font-medium">You marked as paid:</span> {new Date(payment.user_marked_paid_at).toLocaleDateString('en-GB')}
-                              </p>
-                              {payment.user_payment_note && (
-                                <p className="text-sm text-blue-700 mt-1">Note: {payment.user_payment_note}</p>
+                  {/* Pending Confirmation Sessions */}
+                  {pendingConfirmationSessions.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                        Awaiting Confirmation ({pendingConfirmationSessions.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {pendingConfirmationSessions.map(session => (
+                          <div
+                            key={session.attendance_id}
+                            className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md"
+                          >
+                            <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-gray-900">
+                                  {new Date(session.session_date).toLocaleDateString('en-GB', {
+                                    weekday: 'short',
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                </span>
+                                <span className="text-sm text-gray-600">at {session.session_time}</span>
+                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                  {session.session_type}
+                                </span>
+                              </div>
+                              <div className="text-xs text-blue-700">
+                                You marked as paid: {new Date(session.user_marked_paid_at).toLocaleDateString('en-GB')}
+                              </div>
+                              {session.user_payment_note && (
+                                <div className="text-xs text-blue-600 mt-1">
+                                  Note: {session.user_payment_note}
+                                </div>
                               )}
-                              <p className="text-xs text-blue-600 mt-1">Awaiting admin confirmation</p>
                             </div>
-                          )}
+                            <span className="text-sm font-semibold text-blue-700">£4.00</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                          {payment.paid_at && payment.status === 'paid' && (
-                            <p className="text-sm text-green-600">
-                              Confirmed paid {new Date(payment.paid_at).toLocaleDateString('en-GB')}
-                            </p>
-                          )}
-
-                          {payment.status === 'pending' && (
-                            <div className="mt-3 pt-3 border-t border-yellow-200">
-                              <p className="text-sm text-gray-700 mb-3">
-                                Please transfer payment to the club bank account and include your name as reference.
-                              </p>
-                              <button
-                                onClick={() => handleMarkPaid(payment)}
-                                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
-                              >
-                                Mark as Paid
-                              </button>
+                  {/* Paid Sessions - Show recent 5 */}
+                  {paidSessions.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                        Paid Sessions ({paidSessions.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {paidSessions.slice(0, 5).map(session => (
+                          <div
+                            key={session.attendance_id}
+                            className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-md"
+                          >
+                            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-900">
+                                  {new Date(session.session_date).toLocaleDateString('en-GB', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                </span>
+                                <span className="text-xs text-gray-600">at {session.session_time}</span>
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                  {session.session_type}
+                                </span>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                            <span className="text-sm font-semibold text-green-700">£4.00</span>
+                          </div>
+                        ))}
+                        {paidSessions.length > 5 && (
+                          <p className="text-sm text-gray-500 text-center py-2">
+                            + {paidSessions.length - 5} more paid session{paidSessions.length - 5 !== 1 ? 's' : ''}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {mySessions.length === 0 && (
+                    <div className="text-center py-12 bg-gray-50 rounded-lg">
+                      <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600">You haven't attended any coaching sessions yet</p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
