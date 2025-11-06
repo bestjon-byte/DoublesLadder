@@ -42,11 +42,14 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
 
     setGenerating(true);
     const result = await actions.generateSessions(4);
-    setGenerating(false);
 
     if (result.error) {
+      setGenerating(false);
       error('Failed to generate sessions: ' + result.error.message);
     } else {
+      // Refresh the sessions list after generating
+      await actions.fetchSessions();
+      setGenerating(false);
       const count = result.data?.length || 0;
       success(`Generated ${count} new session${count !== 1 ? 's' : ''}`);
     }

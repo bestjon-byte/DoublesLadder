@@ -142,13 +142,12 @@ export const useCoaching = (userId, isAdmin = false) => {
         .rpc('generate_coaching_sessions', { weeks_ahead: weeksAhead });
 
       if (error) throw error;
-      await fetchSessions();
       return { data, error: null };
     } catch (error) {
       console.error('Error generating sessions:', error);
       return { data: null, error };
     }
-  }, [fetchSessions]);
+  }, []);
 
   // ==========================================================================
   // SESSIONS MANAGEMENT
