@@ -12,6 +12,15 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
   const [markingAttendanceFor, setMarkingAttendanceFor] = useState(null);
   const [filter, setFilter] = useState('upcoming'); // 'upcoming', 'past', 'cancelled', 'all'
 
+  const formatTime = (time24) => {
+    if (!time24) return '';
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours, 10);
+    const ampm = hour >= 12 ? 'pm' : 'am';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}${minutes !== '00' ? ':' + minutes : ''}${ampm}`;
+  };
+
   const toggleSession = (sessionId) => {
     setExpandedSessions(prev => {
       const next = new Set(prev);
@@ -192,7 +201,7 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
                             year: 'numeric'
                           })}
                         </span>
-                        <span className="text-gray-600">at {session.session_time}</span>
+                        <span className="text-gray-600">at {formatTime(session.session_time)}</span>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <button
@@ -207,9 +216,6 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
                             <ChevronDown className="w-4 h-4" />
                           )}
                         </button>
-                        {session.schedule && (
-                          <span className="text-xs text-gray-500">(Auto-generated)</span>
-                        )}
                         {session.notes && (
                           <span className="text-gray-500">• {session.notes}</span>
                         )}
@@ -221,6 +227,14 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
                       )}
                     </div>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => setMarkingAttendanceFor(session)}
+                        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                        title="Add attendee"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        Add
+                      </button>
                       {session.status === 'scheduled' && (
                         <>
                           <button
@@ -253,16 +267,7 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
                 {/* Expanded Attendance Section */}
                 {isExpanded && (
                   <div className="border-t border-gray-200 bg-gray-50 p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium text-gray-900">Attendance</h4>
-                      <button
-                        onClick={() => setMarkingAttendanceFor(session)}
-                        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        Add Attendee
-                      </button>
-                    </div>
+                    <h4 className="font-medium text-gray-900 mb-3">Attendance</h4>
 
                     {sessionAttendance.length === 0 ? (
                       <div className="text-center py-6 text-gray-500 text-sm">
