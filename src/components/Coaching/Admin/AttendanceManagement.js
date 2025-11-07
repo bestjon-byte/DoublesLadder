@@ -30,17 +30,24 @@ const AttendanceManagement = ({ sessions, attendance, loading, actions, allUsers
     return <LoadingSpinner />;
   }
 
-  // Group attendance by session
-  const today = new Date().toISOString().split('T')[0];
+  // Group attendance by session - show last 30 days + future sessions
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
   const recentSessions = sessions
-    .filter(s => s.session_date >= today || s.status === 'completed')
+    .filter(s => s.session_date >= thirtyDaysAgoStr && s.status !== 'cancelled')
     .sort((a, b) => new Date(b.session_date) - new Date(a.session_date))
-    .slice(0, 10);
+    .slice(0, 20); // Increased from 10 to 20 to show more sessions
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-900">Recent Sessions</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Recent Sessions</h3>
+          <p className="text-sm text-gray-600">Last 30 days and upcoming sessions</p>
+        </div>
       </div>
 
       {recentSessions.length === 0 ? (
