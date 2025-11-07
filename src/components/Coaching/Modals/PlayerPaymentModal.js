@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, CheckSquare, Square, DollarSign, Calendar } from 'lucide-react';
+import { X, Check, DollarSign, Calendar } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 
@@ -7,7 +7,6 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
   const { success, error } = useAppToast();
   const [sessions, setSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
-  const [selectedSessions, setSelectedSessions] = useState([]);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   useEffect(() => {
@@ -62,64 +61,6 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
     setConfirmingPayment(false);
   };
 
-  const handleConfirmSelected = async () => {
-    if (selectedSessions.length === 0) {
-      error('Please select sessions to confirm');
-      return;
-    }
-
-    const reference = window.prompt(
-      `Confirm ${selectedSessions.length} session(s) as paid?\n\n` +
-      `Total: £${(selectedSessions.length * 4).toFixed(2)}\n\n` +
-      `Enter payment reference (optional):`
-    ) || '';
-
-    if (reference === null) return;
-
-    setConfirmingPayment(true);
-    const result = await actions.adminConfirmSessions(selectedSessions, reference);
-
-    if (result.error) {
-      error('Failed to confirm sessions');
-    } else {
-      success(`Confirmed ${selectedSessions.length} session(s) as paid`);
-      setSelectedSessions([]);
-      await loadSessions();
-      if (onSuccess) onSuccess();
-    }
-    setConfirmingPayment(false);
-  };
-
-  const toggleSession = (attendanceId) => {
-    setSelectedSessions(prev =>
-      prev.includes(attendanceId)
-        ? prev.filter(id => id !== attendanceId)
-        : [...prev, attendanceId]
-    );
-  };
-
-  const toggleAllUnpaid = () => {
-    const unpaidSessions = sessions.filter(s => s.payment_status === 'unpaid');
-    const allUnpaidSelected = unpaidSessions.every(s => selectedSessions.includes(s.attendance_id));
-
-    if (allUnpaidSelected) {
-      setSelectedSessions(prev => prev.filter(id => !unpaidSessions.find(s => s.attendance_id === id)));
-    } else {
-      setSelectedSessions(prev => [...new Set([...prev, ...unpaidSessions.map(s => s.attendance_id)])]);
-    }
-  };
-
-  const toggleAllPending = () => {
-    const pendingSessions = sessions.filter(s => s.payment_status === 'pending_confirmation');
-    const allPendingSelected = pendingSessions.every(s => selectedSessions.includes(s.attendance_id));
-
-    if (allPendingSelected) {
-      setSelectedSessions(prev => prev.filter(id => !pendingSessions.find(s => s.attendance_id === id)));
-    } else {
-      setSelectedSessions(prev => [...new Set([...prev, ...pendingSessions.map(s => s.attendance_id)])]);
-    }
-  };
-
   if (!isOpen) return null;
 
   const unpaidSessions = sessions.filter(s => s.payment_status === 'unpaid');
@@ -170,18 +111,8 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             <DollarSign className="w-4 h-4" />
-            Confirm Payment by Amount
+            Confirm Payment
           </button>
-          {selectedSessions.length > 0 && (
-            <button
-              onClick={handleConfirmSelected}
-              disabled={confirmingPayment}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
-            >
-              <Check className="w-4 h-4" />
-              Confirm Selected ({selectedSessions.length})
-            </button>
-          )}
         </div>
 
         {/* Sessions List */}
@@ -198,29 +129,15 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
               {/* Unpaid Sessions */}
               {unpaidSessions.length > 0 && (
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Unpaid Sessions ({unpaidSessions.length})
-                    </h3>
-                    <button
-                      onClick={toggleAllUnpaid}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      {unpaidSessions.every(s => selectedSessions.includes(s.attendance_id)) ? 'Deselect All' : 'Select All'}
-                    </button>
-                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Unpaid Sessions ({unpaidSessions.length})
+                  </h3>
                   <div className="space-y-2">
                     {unpaidSessions.map(session => (
                       <div
                         key={session.attendance_id}
-                        onClick={() => toggleSession(session.attendance_id)}
-                        className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md cursor-pointer hover:bg-yellow-100 transition-colors"
+                        className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md"
                       >
-                        {selectedSessions.includes(session.attendance_id) ? (
-                          <CheckSquare className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                        ) : (
-                          <Square className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                        )}
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-gray-900">
@@ -247,29 +164,15 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
               {/* Pending Confirmation Sessions */}
               {pendingConfirmationSessions.length > 0 && (
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Awaiting Confirmation ({pendingConfirmationSessions.length})
-                    </h3>
-                    <button
-                      onClick={toggleAllPending}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      {pendingConfirmationSessions.every(s => selectedSessions.includes(s.attendance_id)) ? 'Deselect All' : 'Select All'}
-                    </button>
-                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Awaiting Confirmation ({pendingConfirmationSessions.length})
+                  </h3>
                   <div className="space-y-2">
                     {pendingConfirmationSessions.map(session => (
                       <div
                         key={session.attendance_id}
-                        onClick={() => toggleSession(session.attendance_id)}
-                        className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md cursor-pointer hover:bg-blue-100 transition-colors"
+                        className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md"
                       >
-                        {selectedSessions.includes(session.attendance_id) ? (
-                          <CheckSquare className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                        ) : (
-                          <Square className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                        )}
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium text-gray-900">
