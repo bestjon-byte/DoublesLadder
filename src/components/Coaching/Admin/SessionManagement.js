@@ -54,7 +54,7 @@ const SessionManagement = ({ sessions, schedules, loading, actions, allUsers, cu
     return <LoadingSpinner />;
   }
 
-  // Filter sessions
+  // Filter and sort sessions
   const today = new Date().toISOString().split('T')[0];
   const filteredSessions = sessions.filter(session => {
     if (filter === 'upcoming') {
@@ -65,6 +65,14 @@ const SessionManagement = ({ sessions, schedules, loading, actions, allUsers, cu
       return session.status === 'cancelled';
     }
     return true; // 'all'
+  }).sort((a, b) => {
+    // For upcoming: next session first (ascending)
+    // For past/cancelled/all: most recent first (descending)
+    if (filter === 'upcoming') {
+      return new Date(a.session_date) - new Date(b.session_date);
+    } else {
+      return new Date(b.session_date) - new Date(a.session_date);
+    }
   });
 
   const getStatusBadge = (status) => {

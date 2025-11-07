@@ -134,7 +134,7 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
                     <p className="text-sm text-gray-600">{schedule.notes}</p>
                   )}
                   <p className="text-xs text-gray-500 mt-2">
-                    Created {new Date(schedule.created_at).toLocaleDateString()}
+                    Created {new Date(schedule.created_at).toLocaleDateString('en-GB')}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -179,7 +179,7 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
                     Every {DAY_NAMES[schedule.day_of_week]} at {schedule.session_time}
                   </span>
                   <span className="text-xs text-gray-500">
-                    (Deactivated {new Date(schedule.deactivated_at).toLocaleDateString()})
+                    (Deactivated {new Date(schedule.deactivated_at).toLocaleDateString('en-GB')})
                   </span>
                 </div>
               </div>
