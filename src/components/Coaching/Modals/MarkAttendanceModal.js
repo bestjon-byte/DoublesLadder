@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search } from 'lucide-react';
+import { X, Search, CheckSquare, Square } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 
 const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSuccess }) => {
   const { success, error } = useAppToast();
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPlayerId, setSelectedPlayerId] = useState('');
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState([]);
   const [existingAttendance, setExistingAttendance] = useState([]);
 
   useEffect(() => {
@@ -16,19 +16,38 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
           setExistingAttendance(result.data || []);
         }
       });
+      // Reset selections when modal opens with a new session
+      setSelectedPlayerIds([]);
+      setSearchTerm('');
     }
   }, [session, actions]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedPlayerId) return;
+    if (selectedPlayerIds.length === 0) return;
 
     setLoading(true);
     try {
-      const result = await actions.markAttendance(session.id, selectedPlayerId, false);
-      if (result.error) throw result.error;
+      let successCount = 0;
+      let errorCount = 0;
 
-      success('Attendance marked successfully');
+      // Mark attendance for each selected player
+      for (const playerId of selectedPlayerIds) {
+        const result = await actions.markAttendance(session.id, playerId, false);
+        if (result.error) {
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        success(`Marked attendance for ${successCount} player${successCount !== 1 ? 's' : ''}`);
+      }
+      if (errorCount > 0) {
+        error(`Failed to mark attendance for ${errorCount} player${errorCount !== 1 ? 's' : ''}`);
+      }
+
       onSuccess();
     } catch (err) {
       error(err.message || 'Failed to mark attendance');
@@ -43,6 +62,22 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
   const availablePlayers = allUsers
     .filter(u => !attendedPlayerIds.has(u.id))
     .filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const togglePlayer = (playerId) => {
+    setSelectedPlayerIds(prev =>
+      prev.includes(playerId)
+        ? prev.filter(id => id !== playerId)
+        : [...prev, playerId]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedPlayerIds.length === availablePlayers.length) {
+      setSelectedPlayerIds([]);
+    } else {
+      setSelectedPlayerIds(availablePlayers.map(p => p.id));
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -66,7 +101,7 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search Player</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search Players</label>
               <div className="relative">
                 <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
                 <input
@@ -79,26 +114,44 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
               </div>
             </div>
 
+            {availablePlayers.length > 0 && (
+              <div className="flex items-center justify-between px-1">
+                <span className="text-sm text-gray-600">
+                  {selectedPlayerIds.length} of {availablePlayers.length} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  {selectedPlayerIds.length === availablePlayers.length ? 'Clear All' : 'Select All'}
+                </button>
+              </div>
+            )}
+
             <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-md">
               {availablePlayers.length === 0 ? (
                 <p className="text-center py-8 text-gray-500">No players found</p>
               ) : (
-                availablePlayers.map((player) => (
-                  <label
-                    key={player.id}
-                    className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  >
-                    <input
-                      type="radio"
-                      name="player"
-                      value={player.id}
-                      checked={selectedPlayerId === player.id}
-                      onChange={(e) => setSelectedPlayerId(e.target.value)}
-                      className="mr-3"
-                    />
-                    <span className="font-medium">{player.name}</span>
-                  </label>
-                ))
+                availablePlayers.map((player) => {
+                  const isSelected = selectedPlayerIds.includes(player.id);
+                  return (
+                    <div
+                      key={player.id}
+                      onClick={() => togglePlayer(player.id)}
+                      className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" />
+                      ) : (
+                        <Square className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" />
+                      )}
+                      <span className={`font-medium ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
+                        {player.name}
+                      </span>
+                    </div>
+                  );
+                })
               )}
             </div>
 
@@ -108,10 +161,10 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
               </button>
               <button
                 type="submit"
-                disabled={loading || !selectedPlayerId}
+                disabled={loading || selectedPlayerIds.length === 0}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {loading ? 'Marking...' : 'Mark Attendance'}
+                {loading ? 'Marking...' : `Mark ${selectedPlayerIds.length} Player${selectedPlayerIds.length !== 1 ? 's' : ''}`}
               </button>
             </div>
           </form>
