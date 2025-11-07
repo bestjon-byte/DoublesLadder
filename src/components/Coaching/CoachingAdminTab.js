@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Calendar, Users, DollarSign, Clock, Settings, UserCheck } from 'lucide-react';
+import { Calendar, Users, DollarSign, Clock, Settings } from 'lucide-react';
 import { useCoaching } from '../../hooks/useCoaching';
 import ScheduleManagement from './Admin/ScheduleManagement';
-import SessionManagement from './Admin/SessionManagement';
-import AttendanceManagement from './Admin/AttendanceManagement';
+import UnifiedSessionManagement from './Admin/UnifiedSessionManagement';
 import PaymentManagement from './Admin/PaymentManagement';
 import AccessManagement from './Admin/AccessManagement';
 
@@ -13,8 +12,7 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
 
   const sections = [
     { id: 'schedules', name: 'Schedules', icon: Clock, color: 'blue' },
-    { id: 'sessions', name: 'Sessions', icon: Calendar, color: 'green' },
-    { id: 'attendance', name: 'Attendance', icon: UserCheck, color: 'purple' },
+    { id: 'sessions', name: 'Sessions & Attendance', icon: Calendar, color: 'green' },
     { id: 'payments', name: 'Payments', icon: DollarSign, color: 'orange' },
     { id: 'access', name: 'Access Control', icon: Users, color: 'red' },
   ];
@@ -32,21 +30,11 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
         );
       case 'sessions':
         return (
-          <SessionManagement
+          <UnifiedSessionManagement
             sessions={coaching.sessions}
             schedules={coaching.schedules}
-            loading={coaching.loading.sessions}
-            actions={coaching.actions}
-            allUsers={allUsers}
-            currentUser={currentUser}
-          />
-        );
-      case 'attendance':
-        return (
-          <AttendanceManagement
-            sessions={coaching.sessions}
             attendance={coaching.attendance}
-            loading={coaching.loading.attendance}
+            loading={coaching.loading.sessions || coaching.loading.attendance}
             actions={coaching.actions}
             allUsers={allUsers}
             currentUser={currentUser}
