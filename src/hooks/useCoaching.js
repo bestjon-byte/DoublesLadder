@@ -145,13 +145,26 @@ export const useCoaching = (userId, isAdmin = false) => {
         params.start_from_date = startDate;
       }
 
+      console.log('🔧 useCoaching.generateSessions called with:', {
+        weeksAhead,
+        startDate,
+        params,
+        types: {
+          weeksAhead: typeof weeksAhead,
+          startDate: typeof startDate,
+        }
+      });
+
       const { data, error } = await supabase
         .rpc('generate_coaching_sessions', params);
+
+      console.log('🔧 RPC response:', { data, error, fullError: error ? JSON.stringify(error) : null });
 
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
-      console.error('Error generating sessions:', error);
+      console.error('❌ Error generating sessions:', error);
+      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
       return { data: null, error };
     }
   }, []);
