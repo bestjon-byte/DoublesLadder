@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Calendar, Plus, X, Check, Trash2, ChevronDown, ChevronUp, UserPlus, Users } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import SessionModal from '../Modals/SessionModal';
+import CancelSessionModal from '../Modals/CancelSessionModal';
 import MarkAttendanceModal from '../Modals/MarkAttendanceModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 
 const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, actions, allUsers, currentUser }) => {
   const { success, error } = useAppToast();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [cancellingSession, setCancellingSession] = useState(null);
   const [expandedSessions, setExpandedSessions] = useState(new Set());
   const [markingAttendanceFor, setMarkingAttendanceFor] = useState(null);
   const [filter, setFilter] = useState('upcoming'); // 'upcoming', 'past', 'cancelled', 'all'
@@ -33,16 +35,8 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
     });
   };
 
-  const handleCancel = async (session) => {
-    const reason = window.prompt('Enter cancellation reason (optional):');
-    if (reason === null) return;
-
-    const result = await actions.cancelSession(session.id, reason);
-    if (result.error) {
-      error('Failed to cancel session');
-    } else {
-      success('Session cancelled successfully');
-    }
+  const handleCancel = (session) => {
+    setCancellingSession(session);
   };
 
   const handleComplete = async (sessionId) => {
@@ -336,6 +330,19 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
           onSuccess={() => {
             setMarkingAttendanceFor(null);
             actions.fetchAttendance();
+          }}
+        />
+      )}
+
+      {cancellingSession && (
+        <CancelSessionModal
+          isOpen={!!cancellingSession}
+          onClose={() => setCancellingSession(null)}
+          session={cancellingSession}
+          actions={actions}
+          onSuccess={() => {
+            setCancellingSession(null);
+            actions.fetchSessions();
           }}
         />
       )}

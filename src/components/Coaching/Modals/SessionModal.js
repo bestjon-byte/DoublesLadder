@@ -52,6 +52,7 @@ const SessionModal = ({ isOpen, onClose, onSuccess, actions }) => {
             >
               <option value="Adults">Adults</option>
               <option value="Beginners">Beginners</option>
+              <option value="Juniors">Juniors</option>
             </select>
           </div>
 

@@ -12,7 +12,7 @@ const DAY_OPTIONS = [
   { value: 6, label: 'Saturday' },
 ];
 
-const SESSION_TYPES = ['Adults', 'Beginners'];
+const SESSION_TYPES = ['Adults', 'Beginners', 'Juniors'];
 
 const ScheduleModal = ({ isOpen, onClose, schedule, onSuccess, actions }) => {
   const { success, error } = useAppToast();

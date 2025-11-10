@@ -696,6 +696,127 @@ export const useCoaching = (userId, isAdmin = false) => {
   }, []);
 
   // ==========================================================================
+  // COACH PAYMENT TRACKING (Club Liability)
+  // ==========================================================================
+
+  /**
+   * Get coach payment summary (total paid, total owed, balance)
+   */
+  const getCoachPaymentSummary = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_coach_payment_summary');
+
+      if (error) throw error;
+      return { data: data?.[0] || null, error: null };
+    } catch (error) {
+      console.error('Error fetching coach payment summary:', error);
+      return { data: null, error };
+    }
+  }, []);
+
+  /**
+   * Get sessions awaiting payment to coach
+   */
+  const getCoachSessionsToPay = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_coach_sessions_to_pay');
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Error fetching coach sessions to pay:', error);
+      return { data: [], error };
+    }
+  }, []);
+
+  /**
+   * Record a payment to the coach
+   */
+  const recordCoachPayment = useCallback(async (paymentData) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('record_coach_payment', {
+          p_payment_date: paymentData.payment_date,
+          p_amount: paymentData.amount,
+          p_payment_type: paymentData.payment_type || 'regular',
+          p_payment_method: paymentData.payment_method || 'bank_transfer',
+          p_reference: paymentData.reference || '',
+          p_notes: paymentData.notes || '',
+          p_recorded_by: userId,
+        });
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error recording coach payment:', error);
+      return { data: null, error };
+    }
+  }, [userId]);
+
+  /**
+   * Get coach payment history
+   */
+  const getCoachPaymentHistory = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_coach_payment_history');
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Error fetching coach payment history:', error);
+      return { data: [], error };
+    }
+  }, []);
+
+  /**
+   * Update coach payment rate for a session type
+   */
+  const updateCoachRate = useCallback(async (sessionType, newRate, effectiveFrom, notes = '') => {
+    try {
+      const { data, error } = await supabase
+        .rpc('update_coach_rate', {
+          p_session_type: sessionType,
+          p_new_rate: newRate,
+          p_effective_from: effectiveFrom,
+          p_notes: notes,
+        });
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error updating coach rate:', error);
+      return { data: null, error };
+    }
+  }, []);
+
+  /**
+   * Update coach payment status for a session (when cancelling, etc.)
+   */
+  const updateSessionCoachPaymentStatus = useCallback(async (sessionId, status, notes = '') => {
+    try {
+      const { data, error } = await supabase
+        .from('coaching_sessions')
+        .update({
+          coach_payment_status: status,
+          coach_payment_notes: notes,
+        })
+        .eq('id', sessionId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      await fetchSessions();
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error updating session coach payment status:', error);
+      return { data: null, error };
+    }
+  }, [fetchSessions]);
+
+  // ==========================================================================
   // ACCESS CONTROL
   // ==========================================================================
 
@@ -872,6 +993,14 @@ export const useCoaching = (userId, isAdmin = false) => {
       getAllPlayersPaymentSummary,
       getPlayerPaymentSummary,
       getPlayerSessionsByPaymentStatus,
+
+      // Coach Payment Tracking (Club Liability)
+      getCoachPaymentSummary,
+      getCoachSessionsToPay,
+      recordCoachPayment,
+      getCoachPaymentHistory,
+      updateCoachRate,
+      updateSessionCoachPaymentStatus,
 
       // Access Control
       fetchAccessList,
