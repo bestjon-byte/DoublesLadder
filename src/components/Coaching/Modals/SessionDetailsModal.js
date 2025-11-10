@@ -10,6 +10,7 @@ const SessionDetailsModal = ({ isOpen, onClose, session, actions, allUsers }) =>
   const [addingAttendance, setAddingAttendance] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [accessList, setAccessList] = useState([]);
+  const [playerStats, setPlayerStats] = useState([]);
 
   useEffect(() => {
     if (session) {
@@ -19,13 +20,18 @@ const SessionDetailsModal = ({ isOpen, onClose, session, actions, allUsers }) =>
 
   const loadData = async () => {
     setLoading(true);
-    const [attendanceResult, accessResult] = await Promise.all([
+    const [attendanceResult, accessResult, statsResult] = await Promise.all([
       actions.getSessionAttendance(session.id),
-      actions.fetchAccessList ? actions.fetchAccessList() : Promise.resolve({ data: [] })
+      actions.fetchAccessList ? actions.fetchAccessList() : Promise.resolve({ data: [] }),
+      actions.getPlayerAttendanceStats(session.session_type)
     ]);
 
     if (!attendanceResult.error) {
       setAttendance(attendanceResult.data || []);
+    }
+
+    if (!statsResult.error) {
+      setPlayerStats(statsResult.data || []);
     }
 
     // Get list of users with coaching access
@@ -81,7 +87,27 @@ const SessionDetailsModal = ({ isOpen, onClose, session, actions, allUsers }) =>
 
   // Get players not yet registered for this session
   const attendeeIds = attendance.map(a => a.player_id);
-  const availablePlayers = allUsers ? allUsers.filter(u => !attendeeIds.includes(u.id)) : [];
+
+  // Create a map of player stats for quick lookup
+  const statsMap = new Map(playerStats.map(stat => [stat.player_id, stat]));
+
+  // Sort players by attendance count (frequent attendees first), then alphabetically
+  const availablePlayers = allUsers
+    ? allUsers
+        .filter(u => !attendeeIds.includes(u.id))
+        .map(player => ({
+          ...player,
+          attendanceCount: statsMap.get(player.id)?.attendance_count || 0
+        }))
+        .sort((a, b) => {
+          // First, sort by attendance count (descending)
+          const countDiff = b.attendanceCount - a.attendanceCount;
+          if (countDiff !== 0) return countDiff;
+
+          // Then alphabetically by name
+          return a.name.localeCompare(b.name);
+        })
+    : [];
 
   const getPaymentStatusBadge = (paymentStatus) => {
     if (!paymentStatus || paymentStatus === 'unpaid') {
@@ -167,7 +193,9 @@ const SessionDetailsModal = ({ isOpen, onClose, session, actions, allUsers }) =>
                 <option value="">Select a player...</option>
                 {availablePlayers.map(user => (
                   <option key={user.id} value={user.id}>
-                    {user.name} ({user.email})
+                    {user.name}
+                    {user.attendanceCount > 0 ? ` (${user.attendanceCount}x)` : ''}
+                    {' - ' + user.email}
                   </option>
                 ))}
               </select>

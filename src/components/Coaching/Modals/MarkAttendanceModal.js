@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, CheckSquare, Square } from 'lucide-react';
+import { X, Search, CheckSquare, Square, TrendingUp } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 
 const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSuccess }) => {
@@ -8,14 +8,24 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPlayerIds, setSelectedPlayerIds] = useState([]);
   const [existingAttendance, setExistingAttendance] = useState([]);
+  const [playerStats, setPlayerStats] = useState([]);
 
   useEffect(() => {
     if (session) {
+      // Load existing attendance
       actions.getSessionAttendance(session.id).then(result => {
         if (!result.error) {
           setExistingAttendance(result.data || []);
         }
       });
+
+      // Load player attendance stats for this session type
+      actions.getPlayerAttendanceStats(session.session_type).then(result => {
+        if (!result.error) {
+          setPlayerStats(result.data || []);
+        }
+      });
+
       // Reset selections when modal opens with a new session
       setSelectedPlayerIds([]);
       setSearchTerm('');
@@ -59,9 +69,26 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
   if (!isOpen) return null;
 
   const attendedPlayerIds = new Set(existingAttendance.map(a => a.player_id));
+
+  // Create a map of player stats for quick lookup
+  const statsMap = new Map(playerStats.map(stat => [stat.player_id, stat]));
+
+  // Sort players by attendance count (frequent attendees first), then alphabetically
   const availablePlayers = allUsers
     .filter(u => !attendedPlayerIds.has(u.id))
-    .filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    .filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .map(player => ({
+      ...player,
+      stats: statsMap.get(player.id) || { attendance_count: 0, last_attended_date: null }
+    }))
+    .sort((a, b) => {
+      // First, sort by attendance count (descending - most frequent first)
+      const countDiff = (b.stats.attendance_count || 0) - (a.stats.attendance_count || 0);
+      if (countDiff !== 0) return countDiff;
+
+      // Then alphabetically by name
+      return a.name.localeCompare(b.name);
+    });
 
   const togglePlayer = (playerId) => {
     setSelectedPlayerIds(prev =>
@@ -135,20 +162,33 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
               ) : (
                 availablePlayers.map((player) => {
                   const isSelected = selectedPlayerIds.includes(player.id);
+                  const attendanceCount = player.stats.attendance_count || 0;
+                  const isFrequentAttendee = attendanceCount > 0;
+
                   return (
                     <div
                       key={player.id}
                       onClick={() => togglePlayer(player.id)}
-                      className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                      className="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
                     >
-                      {isSelected ? (
-                        <CheckSquare className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" />
-                      ) : (
-                        <Square className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" />
+                      <div className="flex items-center flex-1 min-w-0">
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-blue-600 mr-3 flex-shrink-0" />
+                        ) : (
+                          <Square className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0" />
+                        )}
+                        <span className={`font-medium truncate ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
+                          {player.name}
+                        </span>
+                      </div>
+                      {isFrequentAttendee && (
+                        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <TrendingUp className="w-3 h-3 text-green-600" />
+                          <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded">
+                            {attendanceCount}x
+                          </span>
+                        </div>
                       )}
-                      <span className={`font-medium ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
-                        {player.name}
-                      </span>
                     </div>
                   );
                 })

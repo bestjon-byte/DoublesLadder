@@ -388,6 +388,25 @@ export const useCoaching = (userId, isAdmin = false) => {
     }
   }, []);
 
+  /**
+   * Get player attendance statistics by session type
+   * Returns players sorted by attendance frequency for that session type
+   */
+  const getPlayerAttendanceStats = useCallback(async (sessionType = null) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_player_attendance_stats_by_type', {
+          p_session_type: sessionType
+        });
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Error fetching player attendance stats:', error);
+      return { data: [], error };
+    }
+  }, []);
+
   // ==========================================================================
   // PAYMENT MANAGEMENT
   // ==========================================================================
@@ -835,6 +854,7 @@ export const useCoaching = (userId, isAdmin = false) => {
       markAttendance,
       removeAttendance,
       getSessionAttendance,
+      getPlayerAttendanceStats,
 
       // Payments (old system - to be deprecated)
       fetchPayments,
