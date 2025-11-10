@@ -394,22 +394,15 @@ export const useCoaching = (userId, isAdmin = false) => {
    */
   const getPlayerAttendanceStats = useCallback(async (sessionType = null) => {
     try {
-      console.log('[useCoaching] Calling get_player_attendance_stats_by_type with sessionType:', sessionType);
       const { data, error } = await supabase
         .rpc('get_player_attendance_stats_by_type', {
           p_session_type: sessionType
         });
 
-      console.log('[useCoaching] RPC response:', {
-        error: error,
-        dataLength: data?.length,
-        sampleData: data?.slice(0, 3)
-      });
-
       if (error) throw error;
       return { data: data || [], error: null };
     } catch (error) {
-      console.error('[useCoaching] Error fetching player attendance stats:', error);
+      console.error('Error fetching player attendance stats:', error);
       return { data: [], error };
     }
   }, []);
