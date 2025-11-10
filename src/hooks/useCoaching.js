@@ -135,11 +135,18 @@ export const useCoaching = (userId, isAdmin = false) => {
 
   /**
    * Generate upcoming sessions from active schedules
+   * @param {number} weeksAhead - Number of weeks to generate sessions for
+   * @param {string} startDate - ISO date string (YYYY-MM-DD) to start generating from (optional, defaults to today)
    */
-  const generateSessions = useCallback(async (weeksAhead = 4) => {
+  const generateSessions = useCallback(async (weeksAhead = 4, startDate = null) => {
     try {
+      const params = { weeks_ahead: weeksAhead };
+      if (startDate) {
+        params.start_from_date = startDate;
+      }
+
       const { data, error } = await supabase
-        .rpc('generate_coaching_sessions', { weeks_ahead: weeksAhead });
+        .rpc('generate_coaching_sessions', params);
 
       if (error) throw error;
       return { data, error: null };
