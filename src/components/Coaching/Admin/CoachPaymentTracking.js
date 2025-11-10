@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCoaching } from '../../../hooks/useCoaching';
-import { useToast } from '../../../contexts/ToastContext';
+import { useAppToast } from '../../../contexts/ToastContext';
 
 /**
  * Coach Payment Tracking Component (Admin Only)
@@ -8,7 +8,7 @@ import { useToast } from '../../../contexts/ToastContext';
  */
 const CoachPaymentTracking = ({ userId }) => {
   const { actions } = useCoaching(userId, true);
-  const { showToast } = useToast();
+  const { success: showToast, error: showError } = useAppToast();
 
   const [summary, setSummary] = useState(null);
   const [sessionsToPay, setSessionsToPay] = useState([]);
@@ -55,7 +55,7 @@ const CoachPaymentTracking = ({ userId }) => {
       setPaymentHistory(historyRes.data);
     } catch (error) {
       console.error('Error loading coach payment data:', error);
-      showToast('Failed to load coach payment data', 'error');
+      showError('Failed to load coach payment data');
     } finally {
       setLoading(false);
     }
@@ -72,11 +72,11 @@ const CoachPaymentTracking = ({ userId }) => {
     const { error } = await actions.recordCoachPayment(paymentForm);
 
     if (error) {
-      showToast('Failed to record payment', 'error');
+      showError('Failed to record payment');
       return;
     }
 
-    showToast('Payment recorded successfully', 'success');
+    showToast('Payment recorded successfully');
     setShowRecordPayment(false);
     setPaymentForm({
       payment_date: new Date().toISOString().split('T')[0],
@@ -99,11 +99,11 @@ const CoachPaymentTracking = ({ userId }) => {
     });
 
     if (error) {
-      showToast('Failed to record goodwill payment', 'error');
+      showError('Failed to record goodwill payment');
       return;
     }
 
-    showToast('Goodwill payment recorded successfully', 'success');
+    showToast('Goodwill payment recorded successfully');
     setShowGoodwillPayment(false);
     setPaymentForm({
       payment_date: new Date().toISOString().split('T')[0],
@@ -128,11 +128,11 @@ const CoachPaymentTracking = ({ userId }) => {
     );
 
     if (error) {
-      showToast('Failed to update rate', 'error');
+      showError('Failed to update rate');
       return;
     }
 
-    showToast('Rate updated successfully', 'success');
+    showToast('Rate updated successfully');
     setShowRateConfig(false);
     setRateForm({
       session_type: 'Adults',
