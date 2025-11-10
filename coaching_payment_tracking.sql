@@ -298,7 +298,7 @@ RETURNS TABLE (
     payment_method VARCHAR,
     reference VARCHAR,
     notes TEXT,
-    recorded_by_name VARCHAR,
+    recorded_by_name TEXT,
     created_at TIMESTAMP WITH TIME ZONE
 ) AS $$
 BEGIN
