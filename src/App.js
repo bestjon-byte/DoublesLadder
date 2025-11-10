@@ -24,6 +24,7 @@ import ErrorBoundary from './components/shared/ErrorBoundary';
 import UpdateNotification from './components/shared/UpdateNotification';
 import VersionDisplay from './components/shared/VersionDisplay';
 import SeasonSelector from './components/Season/SeasonSelector';
+import PaymentConfirmation from './components/Public/PaymentConfirmation';
 import { ToastProvider } from './contexts/ToastContext';
 import './components/TrophyCabinet/TrophyCabinet.css';
 
@@ -96,6 +97,13 @@ const CawoodTennisApp = () => {
         </div>
       </div>
     );
+  }
+
+  // Check for payment confirmation token (public access - no auth required)
+  const urlParams = new URLSearchParams(window.location.search);
+  const paymentToken = urlParams.get('token');
+  if (paymentToken) {
+    return <PaymentConfirmation />;
   }
 
   // Score submission handler

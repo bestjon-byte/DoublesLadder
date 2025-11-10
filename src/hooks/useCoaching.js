@@ -821,6 +821,104 @@ export const useCoaching = (userId, isAdmin = false) => {
   }, [fetchSessions]);
 
   // ==========================================================================
+  // PAYMENT REMINDER SYSTEM
+  // ==========================================================================
+
+  /**
+   * Get payments eligible for reminders based on filter criteria
+   */
+  const getPaymentsForReminder = useCallback(async (filterType, threshold = null) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_payments_for_reminder', {
+          p_filter_type: filterType,
+          p_threshold: threshold,
+        });
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error getting payments for reminder:', error);
+      return { data: null, error };
+    }
+  }, []);
+
+  /**
+   * Send payment reminders via Edge Function
+   */
+  const sendPaymentReminders = useCallback(async (filterType, threshold = null) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(
+        `${supabase.supabaseUrl}/functions/v1/send-payment-reminders`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            filterType,
+            threshold,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send reminders');
+      }
+
+      const data = await response.json();
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error sending payment reminders:', error);
+      return { data: null, error };
+    }
+  }, []);
+
+  /**
+   * Get reminder history
+   */
+  const getReminderHistory = useCallback(async (limit = 100) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_reminder_history', {
+          p_limit: limit,
+        });
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error getting reminder history:', error);
+      return { data: null, error };
+    }
+  }, []);
+
+  /**
+   * Validate and redeem a payment token (public - no auth required)
+   */
+  const validatePaymentToken = useCallback(async (token) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('validate_payment_token', {
+          p_token: token,
+        });
+
+      if (error) throw error;
+      return { data: data?.[0] || null, error: null };
+    } catch (error) {
+      console.error('Error validating payment token:', error);
+      return { data: null, error };
+    }
+  }, []);
+
+  // ==========================================================================
   // ACCESS CONTROL
   // ==========================================================================
 
@@ -1005,6 +1103,12 @@ export const useCoaching = (userId, isAdmin = false) => {
       getCoachPaymentHistory,
       updateCoachRate,
       updateSessionCoachPaymentStatus,
+
+      // Payment Reminder System
+      getPaymentsForReminder,
+      sendPaymentReminders,
+      getReminderHistory,
+      validatePaymentToken,
 
       // Access Control
       fetchAccessList,

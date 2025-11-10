@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DollarSign, User, Mail, Check, ChevronRight } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import PlayerPaymentModal from '../Modals/PlayerPaymentModal';
+import SendReminderModal from '../Modals/SendReminderModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 
 const PaymentManagement = ({ loading, actions }) => {
@@ -10,6 +11,7 @@ const PaymentManagement = ({ loading, actions }) => {
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [viewingPlayer, setViewingPlayer] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'owe_money', 'awaiting_confirmation', 'paid_up'
+  const [showReminderModal, setShowReminderModal] = useState(false);
 
   // Load all players payment summary
   useEffect(() => {
@@ -24,21 +26,8 @@ const PaymentManagement = ({ loading, actions }) => {
     loadSummary();
   }, [actions]);
 
-  const handleSendReminders = async () => {
-    const playersOwingMoney = playersSummary.filter(p =>
-      parseFloat(p.amount_owed) > 0
-    );
-
-    if (playersOwingMoney.length === 0) {
-      error('No players owe money');
-      return;
-    }
-
-    const confirmMsg = `Send payment reminders to ${playersOwingMoney.length} player(s) with outstanding payments?`;
-    if (!window.confirm(confirmMsg)) return;
-
-    // TODO: Implement email sending
-    success(`Payment reminders would be sent to ${playersOwingMoney.length} player(s) (email system not yet implemented)`);
+  const handleSendReminders = () => {
+    setShowReminderModal(true);
   };
 
   const handleRefresh = async () => {
@@ -265,6 +254,16 @@ const PaymentManagement = ({ loading, actions }) => {
           onSuccess={handleRefresh}
         />
       )}
+
+      {/* Send Reminder Modal */}
+      <SendReminderModal
+        isOpen={showReminderModal}
+        onClose={() => {
+          setShowReminderModal(false);
+          handleRefresh();
+        }}
+        actions={actions}
+      />
     </div>
   );
 };
