@@ -107,7 +107,10 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
       showToast(`Successfully sent ${result.data.sent} reminder(s)`);
 
       if (result.data.failed > 0) {
-        showError(`${result.data.failed} email(s) failed to send`);
+        const errorDetails = result.data.errors && result.data.errors.length > 0
+          ? result.data.errors.map(e => `${e.player}: ${e.error}`).join('\n')
+          : 'Unknown error';
+        showError(`${result.data.failed} email(s) failed to send:\n\n${errorDetails}`);
       }
 
       onClose();
