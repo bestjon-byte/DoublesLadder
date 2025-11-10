@@ -13,6 +13,7 @@ import SinglesImportModal from './SinglesImportModal';
 import AddExternalPlayerModal from './AddExternalPlayerModal';
 import EloSeedingModal from './EloSeedingModal';
 import UsageStatsSection from './UsageStatsSection';
+import EditProfileModal from './EditProfileModal';
 
 const AdminTab = ({ 
   users, 
@@ -58,6 +59,7 @@ const AdminTab = ({
   const [showSinglesImporter, setShowSinglesImporter] = useState(false);
   const [showAddExternalPlayer, setShowAddExternalPlayer] = useState(false);
   const [showEloSeeding, setShowEloSeeding] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   const handleApproveUser = async (userId) => {
     setLoading(true);
@@ -226,6 +228,25 @@ const AdminTab = ({
               className="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
             >
               Manage User Roles
+            </button>
+          </div>
+
+          {/* Edit User Profile */}
+          <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="bg-indigo-100 p-2 rounded-full">
+                <Users className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Edit Profile</h4>
+                <p className="text-xs text-gray-500">Edit user information</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowEditProfile(true)}
+              className="w-full bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 transition-colors text-sm"
+            >
+              Edit User Profile
             </button>
           </div>
 
@@ -654,7 +675,7 @@ const AdminTab = ({
       />
 
       {/* ELO Seeding Modal */}
-      <EloSeedingModal 
+      <EloSeedingModal
         isOpen={showEloSeeding}
         onClose={() => setShowEloSeeding(false)}
         season={activeSeason}
@@ -663,6 +684,18 @@ const AdminTab = ({
           // Refresh season players data to update ELO ratings in ladder
           if (refetch?.seasonPlayers) refetch.seasonPlayers();
           // Also refresh users list if callback is available
+          if (fetchUsers) fetchUsers();
+        }}
+      />
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditProfile}
+        onClose={() => setShowEditProfile(false)}
+        allUsers={users}
+        currentUser={currentUser}
+        onProfileUpdated={(updatedUser) => {
+          // Refresh users list after profile update
           if (fetchUsers) fetchUsers();
         }}
       />
