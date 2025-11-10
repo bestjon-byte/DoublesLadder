@@ -41,9 +41,12 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
   };
 
   const handleGenerateSessions = async (startDate, weeksAhead) => {
+    console.log('Generate params:', { startDate, weeksAhead, types: { date: typeof startDate, weeks: typeof weeksAhead } });
+
     const result = await actions.generateSessions(weeksAhead, startDate);
 
     if (result.error) {
+      console.error('Generation error:', result.error);
       error('Failed to generate sessions: ' + result.error.message);
     } else {
       // Refresh the sessions list after generating
