@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Play, Calendar, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, RefreshCw } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import ScheduleModal from '../Modals/ScheduleModal';
+import GenerateSessionsModal from '../Modals/GenerateSessionsModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -9,6 +10,7 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
   const { success, error } = useAppToast();
   const [showModal, setShowModal] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [generating, setGenerating] = useState(false);
 
@@ -35,13 +37,13 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
     }
   };
 
-  const handleGenerateSessions = async () => {
-    if (!window.confirm('Generate coaching sessions for the next 4 weeks from active schedules?')) {
-      return;
-    }
+  const handleOpenGenerateModal = () => {
+    setShowGenerateModal(true);
+  };
 
+  const handleGenerateSessions = async (startDate, weeksAhead) => {
     setGenerating(true);
-    const result = await actions.generateSessions(4);
+    const result = await actions.generateSessions(weeksAhead, startDate);
 
     if (result.error) {
       setGenerating(false);
@@ -71,7 +73,7 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
         </h3>
         <div className="flex gap-3">
           <button
-            onClick={handleGenerateSessions}
+            onClick={handleOpenGenerateModal}
             disabled={generating || activeSchedules.length === 0}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
@@ -188,7 +190,7 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modals */}
       {showModal && (
         <ScheduleModal
           isOpen={showModal}
@@ -199,6 +201,15 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
             actions.fetchSchedules();
           }}
           actions={actions}
+        />
+      )}
+
+      {showGenerateModal && (
+        <GenerateSessionsModal
+          isOpen={showGenerateModal}
+          onClose={() => setShowGenerateModal(false)}
+          onGenerate={handleGenerateSessions}
+          activeSchedulesCount={activeSchedules.length}
         />
       )}
     </div>
