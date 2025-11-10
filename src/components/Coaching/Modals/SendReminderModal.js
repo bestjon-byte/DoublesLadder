@@ -16,6 +16,7 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
   const [amountThreshold, setAmountThreshold] = useState('20');
   const [ageThreshold, setAgeThreshold] = useState('7');
   const [previewData, setPreviewData] = useState(null);
+  const [selectedRecipients, setSelectedRecipients] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -41,7 +42,11 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
         throw new Error(result.error);
       }
 
-      setPreviewData(result.data || []);
+      const data = result.data || [];
+      setPreviewData(data);
+
+      // Auto-select all recipients by default
+      setSelectedRecipients(new Set(data.map(p => p.payment_id)));
     } catch (error) {
       console.error('Error loading preview:', error);
       showError('Failed to load preview data');
@@ -50,13 +55,36 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
     }
   };
 
+  const handleSelectAll = () => {
+    setSelectedRecipients(new Set(previewData.map(p => p.payment_id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedRecipients(new Set());
+  };
+
+  const handleToggleRecipient = (paymentId) => {
+    const newSelected = new Set(selectedRecipients);
+    if (newSelected.has(paymentId)) {
+      newSelected.delete(paymentId);
+    } else {
+      newSelected.add(paymentId);
+    }
+    setSelectedRecipients(newSelected);
+  };
+
   const handleSend = async () => {
     if (!previewData || previewData.length === 0) {
       showError('No recipients to send to');
       return;
     }
 
-    const confirmMsg = `Send payment reminders to ${previewData.length} player(s)?`;
+    if (selectedRecipients.size === 0) {
+      showError('Please select at least one recipient');
+      return;
+    }
+
+    const confirmMsg = `Send payment reminders to ${selectedRecipients.size} selected player(s)?`;
     if (!window.confirm(confirmMsg)) return;
 
     setSending(true);
@@ -67,7 +95,10 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
         ? parseInt(ageThreshold)
         : null;
 
-      const result = await actions.sendPaymentReminders(filterType, threshold);
+      // Filter to only selected recipients
+      const selectedPayments = previewData.filter(p => selectedRecipients.has(p.payment_id));
+
+      const result = await actions.sendPaymentReminders(filterType, threshold, selectedPayments);
 
       if (result.error) {
         throw new Error(result.error);
@@ -212,7 +243,30 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
         {/* Preview Section */}
         <div style={{ marginBottom: '25px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h3 style={{ margin: 0 }}>Preview Recipients ({previewData?.length || 0})</h3>
+            <div>
+              <h3 style={{ margin: '0 0 8px 0' }}>Preview Recipients ({previewData?.length || 0})</h3>
+              {previewData && previewData.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={handleSelectAll}
+                    className="btn btn-sm"
+                    style={{ padding: '4px 8px', fontSize: '12px', background: '#e5e7eb', color: '#374151' }}
+                  >
+                    Select All ({previewData.length})
+                  </button>
+                  <button
+                    onClick={handleDeselectAll}
+                    className="btn btn-sm"
+                    style={{ padding: '4px 8px', fontSize: '12px', background: '#e5e7eb', color: '#374151' }}
+                  >
+                    Deselect All
+                  </button>
+                  <span style={{ fontSize: '13px', color: '#6b7280', alignSelf: 'center', marginLeft: '8px' }}>
+                    {selectedRecipients.size} selected
+                  </span>
+                </div>
+              )}
+            </div>
             <button
               onClick={loadPreview}
               disabled={loading}
@@ -237,6 +291,14 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead style={{ backgroundColor: '#f8f9fa', position: 'sticky', top: 0 }}>
                   <tr>
+                    <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd', fontSize: '14px', fontWeight: '600', width: '50px' }}>
+                      <input
+                        type="checkbox"
+                        checked={previewData.length > 0 && selectedRecipients.size === previewData.length}
+                        onChange={(e) => e.target.checked ? handleSelectAll() : handleDeselectAll()}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      />
+                    </th>
                     <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', fontSize: '14px', fontWeight: '600' }}>Player</th>
                     <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #ddd', fontSize: '14px', fontWeight: '600' }}>Amount</th>
                     <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd', fontSize: '14px', fontWeight: '600' }}>Sessions</th>
@@ -247,6 +309,14 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
                 <tbody>
                   {previewData.map((payment, index) => (
                     <tr key={payment.payment_id} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f9fafb' }}>
+                      <td style={{ padding: '12px', borderBottom: '1px solid #eee', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedRecipients.has(payment.payment_id)}
+                          onChange={() => handleToggleRecipient(payment.payment_id)}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        />
+                      </td>
                       <td style={{ padding: '12px', borderBottom: '1px solid #eee' }}>
                         <div style={{ fontWeight: '500' }}>{payment.player_name}</div>
                         <div style={{ fontSize: '12px', color: '#666' }}>{payment.player_email}</div>
@@ -307,7 +377,7 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
           </button>
           <button
             onClick={handleSend}
-            disabled={sending || loading || !previewData || previewData.length === 0}
+            disabled={sending || loading || !previewData || previewData.length === 0 || selectedRecipients.size === 0}
             className="btn btn-primary"
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
@@ -316,7 +386,7 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
             ) : (
               <>
                 <Mail className="w-4 h-4" />
-                Send {previewData?.length || 0} Reminder{previewData?.length !== 1 ? 's' : ''}
+                Send {selectedRecipients.size} Selected Reminder{selectedRecipients.size !== 1 ? 's' : ''}
               </>
             )}
           </button>

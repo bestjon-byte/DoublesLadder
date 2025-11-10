@@ -24,6 +24,7 @@ interface Payment {
 interface ReminderRequest {
   filterType: 'all' | 'amount_threshold' | 'age_threshold'
   threshold?: number
+  selectedPayments?: Payment[] // Optional: manually selected payments from UI
 }
 
 serve(async (req) => {
@@ -75,17 +76,27 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { filterType, threshold }: ReminderRequest = await req.json()
+    const { filterType, threshold, selectedPayments }: ReminderRequest = await req.json()
 
-    // Get payments matching filter criteria
-    const { data: payments, error: paymentsError } = await supabaseClient
-      .rpc('get_payments_for_reminder', {
-        p_filter_type: filterType,
-        p_threshold: threshold || null,
-      })
+    // Use selectedPayments if provided, otherwise query database
+    let payments: Payment[]
 
-    if (paymentsError) {
-      throw paymentsError
+    if (selectedPayments && selectedPayments.length > 0) {
+      // Use manually selected payments from UI
+      payments = selectedPayments
+    } else {
+      // Get payments matching filter criteria from database
+      const { data, error: paymentsError } = await supabaseClient
+        .rpc('get_payments_for_reminder', {
+          p_filter_type: filterType,
+          p_threshold: threshold || null,
+        })
+
+      if (paymentsError) {
+        throw paymentsError
+      }
+
+      payments = data || []
     }
 
     if (!payments || payments.length === 0) {

@@ -29,12 +29,12 @@ CREATE TABLE IF NOT EXISTS payment_reminder_history (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     payment_id UUID NOT NULL REFERENCES coaching_payments(id) ON DELETE CASCADE,
     player_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    player_email VARCHAR(255) NOT NULL,
+    player_email TEXT NOT NULL,
     amount_owed DECIMAL(10, 2) NOT NULL,
-    filter_criteria VARCHAR(100), -- 'all', 'amount_threshold:50', 'age_threshold:2'
+    filter_criteria TEXT, -- 'all', 'amount_threshold:50', 'age_threshold:2'
     sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     sent_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
-    email_status VARCHAR(20) DEFAULT 'sent' CHECK (email_status IN ('sent', 'failed', 'bounced')),
+    email_status TEXT DEFAULT 'sent' CHECK (email_status IN ('sent', 'failed', 'bounced')),
     error_message TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -158,8 +158,8 @@ CREATE OR REPLACE FUNCTION get_payments_for_reminder(
 RETURNS TABLE (
     payment_id UUID,
     player_id UUID,
-    player_name VARCHAR,
-    player_email VARCHAR,
+    player_name TEXT,
+    player_email TEXT,
     amount_due DECIMAL,
     billing_period_start DATE,
     billing_period_end DATE,
@@ -173,8 +173,8 @@ BEGIN
     SELECT
         cp.id as payment_id,
         cp.player_id,
-        p.name as player_name,
-        p.email as player_email,
+        p.name::TEXT as player_name,
+        p.email::TEXT as player_email,
         cp.amount_due,
         cp.billing_period_start,
         cp.billing_period_end,
@@ -209,15 +209,15 @@ COMMENT ON FUNCTION get_payments_for_reminder IS 'Gets list of payments matching
 CREATE OR REPLACE FUNCTION record_reminder_sent(
     p_payment_id UUID,
     p_sent_by UUID,
-    p_filter_criteria VARCHAR,
-    p_email_status VARCHAR DEFAULT 'sent',
+    p_filter_criteria TEXT,
+    p_email_status TEXT DEFAULT 'sent',
     p_error_message TEXT DEFAULT NULL
 )
 RETURNS UUID AS $$
 DECLARE
     v_history_id UUID;
     v_player_id UUID;
-    v_player_email VARCHAR;
+    v_player_email TEXT;
     v_amount_owed DECIMAL;
 BEGIN
     -- Get payment details
@@ -227,7 +227,7 @@ BEGIN
     WHERE id = p_payment_id;
 
     -- Get player email
-    SELECT email
+    SELECT email::TEXT
     INTO v_player_email
     FROM profiles
     WHERE id = v_player_id;
@@ -274,13 +274,13 @@ CREATE OR REPLACE FUNCTION get_reminder_history(
 RETURNS TABLE (
     history_id UUID,
     payment_id UUID,
-    player_name VARCHAR,
-    player_email VARCHAR,
+    player_name TEXT,
+    player_email TEXT,
     amount_owed DECIMAL,
     sent_at TIMESTAMP WITH TIME ZONE,
-    sent_by_name VARCHAR,
-    email_status VARCHAR,
-    filter_criteria VARCHAR,
+    sent_by_name TEXT,
+    email_status TEXT,
+    filter_criteria TEXT,
     error_message TEXT
 ) AS $$
 BEGIN
@@ -288,13 +288,13 @@ BEGIN
     SELECT
         prh.id as history_id,
         prh.payment_id,
-        p.name as player_name,
-        prh.player_email,
+        p.name::TEXT as player_name,
+        prh.player_email::TEXT,
         prh.amount_owed,
         prh.sent_at,
-        sent_by.name as sent_by_name,
-        prh.email_status,
-        prh.filter_criteria,
+        sent_by.name::TEXT as sent_by_name,
+        prh.email_status::TEXT,
+        prh.filter_criteria::TEXT,
         prh.error_message
     FROM payment_reminder_history prh
     INNER JOIN profiles p ON p.id = prh.player_id

@@ -846,7 +846,7 @@ export const useCoaching = (userId, isAdmin = false) => {
   /**
    * Send payment reminders via Edge Function
    */
-  const sendPaymentReminders = useCallback(async (filterType, threshold = null) => {
+  const sendPaymentReminders = useCallback(async (filterType, threshold = null, selectedPayments = null) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -865,6 +865,7 @@ export const useCoaching = (userId, isAdmin = false) => {
           body: JSON.stringify({
             filterType,
             threshold,
+            selectedPayments, // Pass selected payments array
           }),
         }
       );
