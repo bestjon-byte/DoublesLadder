@@ -20,9 +20,17 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
       });
 
       // Load player attendance stats for this session type
+      console.log('[MarkAttendance] Loading stats for session type:', session.session_type);
       actions.getPlayerAttendanceStats(session.session_type).then(result => {
+        console.log('[MarkAttendance] Stats result:', {
+          error: result.error,
+          dataLength: result.data?.length,
+          data: result.data
+        });
         if (!result.error) {
           setPlayerStats(result.data || []);
+        } else {
+          console.error('[MarkAttendance] Stats error:', result.error);
         }
       });
 
@@ -72,6 +80,7 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
 
   // Create a map of player stats for quick lookup
   const statsMap = new Map(playerStats.map(stat => [stat.player_id, stat]));
+  console.log('[MarkAttendance] Stats map size:', statsMap.size, 'players with stats');
 
   // Sort players by attendance count (frequent attendees first), then alphabetically
   const availablePlayers = allUsers
@@ -89,6 +98,14 @@ const MarkAttendanceModal = ({ isOpen, onClose, session, allUsers, actions, onSu
       // Then alphabetically by name
       return a.name.localeCompare(b.name);
     });
+
+  console.log('[MarkAttendance] Available players:', availablePlayers.length);
+  if (availablePlayers.length > 0) {
+    console.log('[MarkAttendance] Top 5 players:', availablePlayers.slice(0, 5).map(p => ({
+      name: p.name,
+      attendanceCount: p.stats.attendance_count
+    })));
+  }
 
   const togglePlayer = (playerId) => {
     setSelectedPlayerIds(prev =>
