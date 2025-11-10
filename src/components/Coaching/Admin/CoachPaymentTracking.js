@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCoaching } from '../../../hooks/useCoaching';
 import { useToast } from '../../../contexts/ToastContext';
-import '../../Ladder/Ladder.css';
 
 /**
  * Coach Payment Tracking Component (Admin Only)
