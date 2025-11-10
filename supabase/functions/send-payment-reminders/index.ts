@@ -121,14 +121,33 @@ serve(async (req) => {
     // Send email to each player
     for (const payment of payments as Payment[]) {
       try {
+        // Create payment record from unpaid sessions (if payment_id is temporary)
+        let actualPaymentId = payment.payment_id
+
+        // Create payment record from this player's unpaid sessions
+        const { data: createdPaymentId, error: createError } = await supabaseClient
+          .rpc('create_payment_from_unpaid_sessions', {
+            p_player_id: payment.player_id,
+          })
+
+        if (createError) {
+          throw new Error(`Failed to create payment record: ${createError.message}`)
+        }
+
+        if (!createdPaymentId) {
+          throw new Error('No unpaid sessions found for player')
+        }
+
+        actualPaymentId = createdPaymentId
+
         // Generate token for this payment
         const { data: tokenData, error: tokenError } = await supabaseClient
           .rpc('generate_payment_reminder_token', {
-            p_payment_id: payment.payment_id,
+            p_payment_id: actualPaymentId,
           })
 
         if (tokenError || !tokenData || tokenData.length === 0) {
-          throw new Error('Failed to generate token')
+          throw new Error(`Failed to generate token: ${tokenError?.message || 'Unknown error'}`)
         }
 
         const token = tokenData[0].token
@@ -234,7 +253,7 @@ serve(async (req) => {
           : filterType
 
         await supabaseClient.rpc('record_reminder_sent', {
-          p_payment_id: payment.payment_id,
+          p_payment_id: actualPaymentId,
           p_sent_by: user.id,
           p_filter_criteria: filterCriteria,
           p_email_status: 'sent',
@@ -250,18 +269,25 @@ serve(async (req) => {
           error: error.message,
         })
 
-        // Record failed reminder
-        const filterCriteria = threshold
-          ? `${filterType}:${threshold}`
-          : filterType
+        // Record failed reminder (only if we have a payment_id)
+        try {
+          const filterCriteria = threshold
+            ? `${filterType}:${threshold}`
+            : filterType
 
-        await supabaseClient.rpc('record_reminder_sent', {
-          p_payment_id: payment.payment_id,
-          p_sent_by: user.id,
-          p_filter_criteria: filterCriteria,
-          p_email_status: 'failed',
-          p_error_message: error.message,
-        })
+          // Only record if we have a valid payment ID to reference
+          if (actualPaymentId && actualPaymentId !== payment.payment_id) {
+            await supabaseClient.rpc('record_reminder_sent', {
+              p_payment_id: actualPaymentId,
+              p_sent_by: user.id,
+              p_filter_criteria: filterCriteria,
+              p_email_status: 'failed',
+              p_error_message: error.message,
+            })
+          }
+        } catch (recordError) {
+          console.error('Failed to record error:', recordError)
+        }
       }
     }
 
