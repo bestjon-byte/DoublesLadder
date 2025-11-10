@@ -41,9 +41,9 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
     setShowGenerateModal(true);
   };
 
-  const handleGenerateSessions = async (startDate, weeksAhead) => {
+  const handleGenerateSessions = async (startDate, weeksAhead, scheduleIds) => {
     setGenerating(true);
-    const result = await actions.generateSessions(weeksAhead, startDate);
+    const result = await actions.generateSessions(weeksAhead, startDate, scheduleIds);
 
     if (result.error) {
       setGenerating(false);
@@ -209,7 +209,7 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
           isOpen={showGenerateModal}
           onClose={() => setShowGenerateModal(false)}
           onGenerate={handleGenerateSessions}
-          activeSchedulesCount={activeSchedules.length}
+          activeSchedules={activeSchedules}
         />
       )}
     </div>

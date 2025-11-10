@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, X } from 'lucide-react';
 
-const GenerateSessionsModal = ({ isOpen, onClose, onGenerate, activeSchedulesCount }) => {
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const GenerateSessionsModal = ({ isOpen, onClose, onGenerate, activeSchedules }) => {
   const [startDate, setStartDate] = useState(() => {
     // Default to next Monday
     const today = new Date();
@@ -13,6 +15,14 @@ const GenerateSessionsModal = ({ isOpen, onClose, onGenerate, activeSchedulesCou
 
   const [weeksAhead, setWeeksAhead] = useState(4);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedSchedules, setSelectedSchedules] = useState([]);
+
+  // Initialize all schedules as selected when modal opens
+  useEffect(() => {
+    if (isOpen && activeSchedules) {
+      setSelectedSchedules(activeSchedules.map(s => s.id));
+    }
+  }, [isOpen, activeSchedules]);
 
   if (!isOpen) return null;
 
@@ -21,13 +31,29 @@ const GenerateSessionsModal = ({ isOpen, onClose, onGenerate, activeSchedulesCou
     setIsGenerating(true);
 
     try {
-      await onGenerate(startDate, weeksAhead);
+      await onGenerate(startDate, weeksAhead, selectedSchedules);
       onClose();
     } catch (error) {
       console.error('Error generating sessions:', error);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const toggleSchedule = (scheduleId) => {
+    setSelectedSchedules(prev =>
+      prev.includes(scheduleId)
+        ? prev.filter(id => id !== scheduleId)
+        : [...prev, scheduleId]
+    );
+  };
+
+  const selectAll = () => {
+    setSelectedSchedules(activeSchedules.map(s => s.id));
+  };
+
+  const deselectAll = () => {
+    setSelectedSchedules([]);
   };
 
   // Calculate end date for preview
@@ -75,11 +101,61 @@ const GenerateSessionsModal = ({ isOpen, onClose, onGenerate, activeSchedulesCou
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-6">
-            {/* Active Schedules Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <span className="font-semibold">{activeSchedulesCount}</span> active schedule
-                {activeSchedulesCount !== 1 ? 's' : ''} will be used to generate sessions
+            {/* Schedule Selection */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Select Schedules
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={selectAll}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-gray-400">|</span>
+                  <button
+                    type="button"
+                    onClick={deselectAll}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2 border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto">
+                {activeSchedules && activeSchedules.length > 0 ? (
+                  activeSchedules.map((schedule) => (
+                    <label
+                      key={schedule.id}
+                      className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSchedules.includes(schedule.id)}
+                        onChange={() => toggleSchedule(schedule.id)}
+                        className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-sm text-gray-900">
+                          {schedule.session_type}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {DAY_NAMES[schedule.day_of_week]} at {schedule.session_time}
+                        </div>
+                      </div>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No active schedules available
+                  </p>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                {selectedSchedules.length} of {activeSchedules?.length || 0} schedule{activeSchedules?.length !== 1 ? 's' : ''} selected
               </p>
             </div>
 
@@ -175,7 +251,7 @@ const GenerateSessionsModal = ({ isOpen, onClose, onGenerate, activeSchedulesCou
             </button>
             <button
               type="submit"
-              disabled={isGenerating || !startDate || weeksAhead < 1}
+              disabled={isGenerating || !startDate || weeksAhead < 1 || selectedSchedules.length === 0}
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isGenerating ? 'Generating...' : 'Generate Sessions'}
