@@ -135,36 +135,16 @@ export const useCoaching = (userId, isAdmin = false) => {
 
   /**
    * Generate upcoming sessions from active schedules
-   * @param {number} weeksAhead - Number of weeks to generate sessions for
-   * @param {string} startDate - ISO date string (YYYY-MM-DD) to start generating from (optional, defaults to today)
    */
-  const generateSessions = useCallback(async (weeksAhead = 4, startDate = null) => {
+  const generateSessions = useCallback(async (weeksAhead = 4) => {
     try {
-      const params = { weeks_ahead: weeksAhead };
-      if (startDate) {
-        params.start_from_date = startDate;
-      }
-
-      console.log('🔧 useCoaching.generateSessions called with:', {
-        weeksAhead,
-        startDate,
-        params,
-        types: {
-          weeksAhead: typeof weeksAhead,
-          startDate: typeof startDate,
-        }
-      });
-
       const { data, error } = await supabase
-        .rpc('generate_coaching_sessions', params);
-
-      console.log('🔧 RPC response:', { data, error, fullError: error ? JSON.stringify(error) : null });
+        .rpc('generate_coaching_sessions', { weeks_ahead: weeksAhead });
 
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
-      console.error('❌ Error generating sessions:', error);
-      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+      console.error('Error generating sessions:', error);
       return { data: null, error };
     }
   }, []);
