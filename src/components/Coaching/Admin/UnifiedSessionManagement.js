@@ -5,6 +5,7 @@ import SessionModal from '../Modals/SessionModal';
 import CancelSessionModal from '../Modals/CancelSessionModal';
 import MarkAttendanceModal from '../Modals/MarkAttendanceModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { formatDateResponsive, formatDateShort } from '../../../utils/dateFormatting';
 
 const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, actions, allUsers, currentUser }) => {
   const { success, error } = useAppToast();
@@ -188,12 +189,7 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
                         </span>
                         {getStatusBadge(session.status)}
                         <span className="text-gray-900 font-medium">
-                          {new Date(session.session_date).toLocaleDateString('en-GB', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
+                          {formatDateShort(session.session_date)}
                         </span>
                         <span className="text-gray-600">at {formatTime(session.session_time)}</span>
                       </div>

@@ -3,6 +3,7 @@ import { Calendar, CheckCircle, XCircle, DollarSign, Clock, CheckSquare, Square 
 import { useCoaching } from '../../hooks/useCoaching';
 import { useAppToast } from '../../contexts/ToastContext';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
+import { formatDateResponsive, formatDateShort } from '../../utils/dateFormatting';
 
 const CoachingUserTab = ({ currentUser }) => {
   const coaching = useCoaching(currentUser?.id, false);
@@ -225,13 +226,12 @@ const CoachingUserTab = ({ currentUser }) => {
                             `}>
                               {session.session_type}
                             </span>
-                            <span className="text-gray-900 font-medium">
-                              {new Date(session.session_date).toLocaleDateString('en-GB', {
-                                weekday: 'long',
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric'
-                              })}
+                            {/* Responsive date display */}
+                            <span className="hidden md:inline text-gray-900 font-medium">
+                              {formatDateResponsive(session.session_date, false)}
+                            </span>
+                            <span className="md:hidden text-gray-900 font-medium">
+                              {formatDateResponsive(session.session_date, true)}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-gray-600">
@@ -246,15 +246,16 @@ const CoachingUserTab = ({ currentUser }) => {
                           {isRegistered ? (
                             <button
                               onClick={() => handleUnregister(myAttendanceRecord.id)}
-                              className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors"
+                              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors whitespace-nowrap"
                             >
-                              <XCircle className="w-4 h-4" />
-                              Cancel Registration
+                              <XCircle className="w-4 h-4 flex-shrink-0" />
+                              <span className="hidden sm:inline">Cancel Registration</span>
+                              <span className="sm:hidden">Cancel</span>
                             </button>
                           ) : (
                             <button
                               onClick={() => handleRegister(session)}
-                              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                             >
                               <CheckCircle className="w-4 h-4" />
                               Register
@@ -305,9 +306,10 @@ const CoachingUserTab = ({ currentUser }) => {
                       </p>
                       <button
                         onClick={handleMarkSessionsPaid}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
                       >
-                        Mark as Paid
+                        <span className="hidden sm:inline">Mark as Paid</span>
+                        <span className="sm:hidden">Mark Paid</span>
                       </button>
                     </div>
                   )}
@@ -341,12 +343,7 @@ const CoachingUserTab = ({ currentUser }) => {
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-gray-900">
-                                  {new Date(session.session_date).toLocaleDateString('en-GB', {
-                                    weekday: 'short',
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric'
-                                  })}
+                                  {formatDateShort(session.session_date)}
                                 </span>
                                 <span className="text-sm text-gray-600">at {session.session_time}</span>
                                 <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">
@@ -377,12 +374,7 @@ const CoachingUserTab = ({ currentUser }) => {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="font-medium text-gray-900">
-                                  {new Date(session.session_date).toLocaleDateString('en-GB', {
-                                    weekday: 'short',
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric'
-                                  })}
+                                  {formatDateShort(session.session_date)}
                                 </span>
                                 <span className="text-sm text-gray-600">at {session.session_time}</span>
                                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
@@ -390,7 +382,7 @@ const CoachingUserTab = ({ currentUser }) => {
                                 </span>
                               </div>
                               <div className="text-xs text-blue-700">
-                                You marked as paid: {new Date(session.user_marked_paid_at).toLocaleDateString('en-GB')}
+                                You marked as paid: {formatDateShort(session.user_marked_paid_at)}
                               </div>
                               {session.user_payment_note && (
                                 <div className="text-xs text-blue-600 mt-1">
@@ -421,11 +413,7 @@ const CoachingUserTab = ({ currentUser }) => {
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-900">
-                                  {new Date(session.session_date).toLocaleDateString('en-GB', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric'
-                                  })}
+                                  {formatDateShort(session.session_date)}
                                 </span>
                                 <span className="text-xs text-gray-600">at {session.session_time}</span>
                                 <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
