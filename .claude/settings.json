@@ -4,7 +4,9 @@
       "Bash(git fetch:*)",
       "Bash(git stash:*)",
       "Bash(git merge:*)",
-      "Bash(./.claude/generate-schema.sh:*)"
+      "Bash(./.claude/generate-schema.sh:*)",
+      "Bash(./.claude/supabase-query.sh:*)",
+      "Bash(./.claude/supabase-rpc.sh:*)"
     ],
     "deny": [],
     "ask": []

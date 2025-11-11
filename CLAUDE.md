@@ -63,26 +63,50 @@ The schema file is your primary reference for understanding the database structu
 
 ### Access Methods
 
-#### 1. **Supabase Dashboard (Preferred for SQL)**
+#### 1. **Query Scripts via PostgREST API** ⭐ (MOST RELIABLE)
+**Use these tools to query data - they bypass flaky MCP!**
+
+```bash
+# Query any table
+./.claude/supabase-query.sh 'table_name?filters'
+
+# Call RPC functions
+./.claude/supabase-rpc.sh function_name '{"param":"value"}'
+```
+
+**Common queries:**
+```bash
+# Who owes money?
+./.claude/supabase-rpc.sh get_all_players_payment_summary
+
+# Check payment status
+./.claude/supabase-query.sh 'coaching_attendance?select=*,profiles(name)&payment_status=eq.unpaid'
+
+# Get profiles
+./.claude/supabase-query.sh 'profiles?select=name,email,role&limit=10'
+```
+
+**Full examples**: See `.claude/QUERY_EXAMPLES.md` for comprehensive guide
+
+**Why use this**: Direct HTTP calls to PostgREST API - no MCP dependency, 100% reliable!
+
+#### 2. **Supabase Dashboard (For SQL/Migrations)**
 - Go to: https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv
 - SQL Editor → Run queries directly
 - Table Editor → View/edit data with UI
-- **Best for**: Running migrations, debugging, viewing data
+- **Best for**: Running migrations, schema changes, complex SQL
 
-#### 2. **Claude Code with MCP (Automated)**
-Claude Code can execute SQL via MCP (Model Context Protocol):
+#### 3. **Claude Code with MCP (Unreliable)**
 ```javascript
-// Claude Code can call:
+// Claude Code can call (but often fails):
 mcp__supabase__execute_sql
 mcp__supabase__list_tables
-mcp__supabase__get_advisors
 ```
 **Configuration**: `.mcp.json` (in repo root)
-**Access Token**: sbp_1e915da665c3573755dfef9874ab1c93211c1247
 
-**Note**: MCP access can be flaky. If queries fail, fall back to Dashboard method.
+⚠️ **Warning**: MCP is flaky - **always prefer query scripts (#1) instead**
 
-#### 3. **Supabase CLI (Local Terminal)**
+#### 4. **Supabase CLI (Local Terminal)**
 ```bash
 # Not currently installed - install if needed:
 brew install supabase/tap/supabase
