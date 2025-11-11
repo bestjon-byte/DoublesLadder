@@ -6,7 +6,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const RESEND_API_KEY = 're_XmpqYGZv_FaXAyDp8n3CDDKWD4qpiC3Qe'
 const FROM_EMAIL = 'cawoodtennis@gmail.com'
-const APP_URL = 'https://tennis-ladder-app.vercel.app' // Update with your actual domain
+const APP_URL = 'https://cawood-tennis.vercel.app' // Production domain
 
 interface Payment {
   payment_id: string
@@ -144,6 +144,7 @@ serve(async (req) => {
         const { data: tokenData, error: tokenError } = await supabaseClient
           .rpc('generate_payment_reminder_token', {
             p_payment_id: actualPaymentId,
+            p_player_id: payment.player_id, // Add player_id for session-based system
           })
 
         if (tokenError || !tokenData || tokenData.length === 0) {
