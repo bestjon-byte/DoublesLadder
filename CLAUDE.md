@@ -49,6 +49,18 @@ REACT_APP_SUPABASE_ANON_KEY=[anon key here]
 - **Project URL**: https://hwpjrkmplydqaxiikupv.supabase.co
 - **Dashboard**: https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv
 
+### 📖 Database Schema Documentation
+**Always read `SUPABASE_SCHEMA.md` first when starting a session!**
+
+This file is auto-generated on every Claude Code startup and contains:
+- Complete list of all database tables
+- Table structures with key fields
+- Relationships between tables
+- Important RPC functions
+- Payment status workflows
+
+The schema file is your primary reference for understanding the database structure.
+
 ### Access Methods
 
 #### 1. **Supabase Dashboard (Preferred for SQL)**
@@ -272,6 +284,10 @@ Components generate WhatsApp-friendly text exports:
 ---
 
 ## Troubleshooting
+
+### "Can't find table structure" or "Need database schema"
+→ Read `SUPABASE_SCHEMA.md` (auto-generated on startup)
+→ If file is missing or outdated, run: `./.claude/generate-schema.sh`
 
 ### "Supabase query failed"
 → Use Supabase Dashboard SQL Editor instead: https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv/sql

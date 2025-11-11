@@ -136,3 +136,6 @@ dist
 .pnp.*
 .mcp.json
 .vercel
+
+# Auto-generated files
+SUPABASE_SCHEMA.md
