@@ -170,43 +170,48 @@ const CoachPaymentTracking = ({ userId }) => {
       <p className="subtitle">Track payments owed to coach for delivered sessions</p>
 
       {/* Summary Cards */}
-      <div className="payment-summary-cards" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '30px' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
         {/* Total Paid */}
-        <div className="summary-card" style={{ background: '#e8f5e9', padding: '20px', borderRadius: '8px', border: '2px solid #4caf50' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#2e7d32' }}>Total Paid</h3>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1b5e20' }}>
+        <div className="bg-green-50 p-5 rounded-lg border-2 border-green-500">
+          <h3 className="m-0 mb-2.5 text-green-800">Total Paid</h3>
+          <div className="text-3xl font-bold text-green-900">
             {formatCurrency(summary?.total_paid)}
           </div>
-          <div style={{ fontSize: '14px', color: '#558b2f', marginTop: '5px' }}>
+          <div className="text-sm text-green-700 mt-1">
             Credits available
           </div>
         </div>
 
         {/* Total Owed */}
-        <div className="summary-card" style={{ background: '#fff3e0', padding: '20px', borderRadius: '8px', border: '2px solid #ff9800' }}>
-          <h3 style={{ margin: '0 0 10px 0', color: '#e65100' }}>Total Owed</h3>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#bf360c' }}>
+        <div className="bg-orange-50 p-5 rounded-lg border-2 border-orange-500">
+          <h3 className="m-0 mb-2.5 text-orange-800">Total Owed</h3>
+          <div className="text-3xl font-bold text-orange-900">
             {formatCurrency(summary?.total_owed)}
           </div>
-          <div style={{ fontSize: '14px', color: '#f57c00', marginTop: '5px' }}>
+          <div className="text-sm text-orange-600 mt-1">
             {summary?.sessions_to_pay_count || 0} sessions to pay
           </div>
         </div>
 
         {/* Balance */}
-        <div className="summary-card" style={{
-          background: summary?.balance >= 0 ? '#e3f2fd' : '#ffebee',
-          padding: '20px',
-          borderRadius: '8px',
-          border: `2px solid ${summary?.balance >= 0 ? '#2196f3' : '#f44336'}`
-        }}>
-          <h3 style={{ margin: '0 0 10px 0', color: summary?.balance >= 0 ? '#0d47a1' : '#b71c1c' }}>
+        <div className={`p-5 rounded-lg border-2 ${
+          summary?.balance >= 0
+            ? 'bg-blue-50 border-blue-500'
+            : 'bg-red-50 border-red-500'
+        }`}>
+          <h3 className={`m-0 mb-2.5 ${
+            summary?.balance >= 0 ? 'text-blue-900' : 'text-red-900'
+          }`}>
             Balance
           </h3>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: summary?.balance >= 0 ? '#1565c0' : '#c62828' }}>
+          <div className={`text-3xl font-bold ${
+            summary?.balance >= 0 ? 'text-blue-800' : 'text-red-800'
+          }`}>
             {formatCurrency(summary?.balance)}
           </div>
-          <div style={{ fontSize: '14px', color: summary?.balance >= 0 ? '#1976d2' : '#d32f2f', marginTop: '5px' }}>
+          <div className={`text-sm mt-1 ${
+            summary?.balance >= 0 ? 'text-blue-700' : 'text-red-700'
+          }`}>
             {summary?.balance >= 0 ? 'In credit' : 'Amount owed'}
           </div>
         </div>
@@ -214,21 +219,21 @@ const CoachPaymentTracking = ({ userId }) => {
 
       {/* Session Type Breakdown */}
       {summary && (
-        <div className="session-breakdown" style={{ marginBottom: '30px', padding: '15px', background: '#f5f5f5', borderRadius: '8px' }}>
-          <h3 style={{ marginTop: 0 }}>Breakdown by Session Type</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+        <div className="mb-8 p-4 bg-gray-100 rounded-lg">
+          <h3 className="mt-0">Breakdown by Session Type</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {summary.adults_sessions_count > 0 && (
-              <div style={{ padding: '10px', background: 'white', borderRadius: '4px' }}>
+              <div className="p-2.5 bg-white rounded">
                 <strong>Adults:</strong> {formatCurrency(summary.adults_owed)} ({summary.adults_sessions_count} sessions)
               </div>
             )}
             {summary.beginners_sessions_count > 0 && (
-              <div style={{ padding: '10px', background: 'white', borderRadius: '4px' }}>
+              <div className="p-2.5 bg-white rounded">
                 <strong>Beginners:</strong> {formatCurrency(summary.beginners_owed)} ({summary.beginners_sessions_count} sessions)
               </div>
             )}
             {summary.juniors_sessions_count > 0 && (
-              <div style={{ padding: '10px', background: 'white', borderRadius: '4px' }}>
+              <div className="p-2.5 bg-white rounded">
                 <strong>Juniors:</strong> {formatCurrency(summary.juniors_owed)} ({summary.juniors_sessions_count} sessions)
               </div>
             )}
@@ -237,7 +242,7 @@ const CoachPaymentTracking = ({ userId }) => {
       )}
 
       {/* Action Buttons */}
-      <div className="action-buttons" style={{ marginBottom: '30px', display: 'flex', gap: '10px' }}>
+      <div className="mb-8 flex flex-wrap gap-2.5">
         <button
           className="btn btn-primary"
           onClick={() => setShowRecordPayment(!showRecordPayment)}
@@ -260,10 +265,10 @@ const CoachPaymentTracking = ({ userId }) => {
 
       {/* Record Payment Form */}
       {showRecordPayment && (
-        <div className="record-payment-form" style={{ marginBottom: '30px', padding: '20px', background: '#f9f9f9', borderRadius: '8px' }}>
+        <div className="mb-8 p-5 bg-gray-50 rounded-lg">
           <h3>Record Payment to Coach</h3>
           <form onSubmit={handleRecordPayment}>
-            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label>Payment Date *</label>
                 <input
@@ -287,7 +292,7 @@ const CoachPaymentTracking = ({ userId }) => {
               </div>
             </div>
 
-            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label>Payment Method</label>
                 <select
@@ -311,7 +316,7 @@ const CoachPaymentTracking = ({ userId }) => {
               </div>
             </div>
 
-            <div className="form-row" style={{ marginBottom: '15px' }}>
+            <div className="mb-4">
               <label>Notes</label>
               <textarea
                 value={paymentForm.notes}
@@ -331,13 +336,13 @@ const CoachPaymentTracking = ({ userId }) => {
 
       {/* Goodwill Payment Form */}
       {showGoodwillPayment && (
-        <div className="goodwill-payment-form" style={{ marginBottom: '30px', padding: '20px', background: '#f0f8ff', borderRadius: '8px' }}>
+        <div className="mb-8 p-5 bg-blue-50 rounded-lg">
           <h3>Add Goodwill Payment</h3>
-          <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+          <p className="text-sm text-gray-600 mb-4">
             Record a one-off payment to the coach not tied to specific sessions
           </p>
           <form onSubmit={handleGoodwillPayment}>
-            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label>Payment Date *</label>
                 <input
@@ -361,7 +366,7 @@ const CoachPaymentTracking = ({ userId }) => {
               </div>
             </div>
 
-            <div className="form-row" style={{ marginBottom: '15px' }}>
+            <div className="mb-4">
               <label>Reason / Notes *</label>
               <textarea
                 value={paymentForm.notes}
@@ -382,13 +387,13 @@ const CoachPaymentTracking = ({ userId }) => {
 
       {/* Rate Configuration Form */}
       {showRateConfig && (
-        <div className="rate-config-form" style={{ marginBottom: '30px', padding: '20px', background: '#fff9e6', borderRadius: '8px' }}>
+        <div className="mb-8 p-5 bg-yellow-50 rounded-lg">
           <h3>Update Coach Payment Rates</h3>
-          <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+          <p className="text-sm text-gray-600 mb-4">
             Set new payment rates for coaching sessions by type
           </p>
           <form onSubmit={handleUpdateRate}>
-            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <div>
                 <label>Session Type *</label>
                 <select
@@ -424,7 +429,7 @@ const CoachPaymentTracking = ({ userId }) => {
               </div>
             </div>
 
-            <div className="form-row" style={{ marginBottom: '15px' }}>
+            <div className="mb-4">
               <label>Notes</label>
               <input
                 type="text"
@@ -443,36 +448,41 @@ const CoachPaymentTracking = ({ userId }) => {
       )}
 
       {/* Sessions Awaiting Payment */}
-      <div className="sessions-to-pay" style={{ marginBottom: '30px' }}>
+      <div className="mb-8">
         <h3>Sessions Awaiting Payment ({sessionsToPay.length})</h3>
         {sessionsToPay.length === 0 ? (
-          <p style={{ color: '#666', fontStyle: 'italic' }}>No sessions awaiting payment</p>
+          <p className="text-gray-600 italic">No sessions awaiting payment</p>
         ) : (
-          <div className="sessions-list">
-            <table className="data-table">
-              <thead>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead className="bg-gray-100">
                 <tr>
-                  <th>Date</th>
-                  <th>Time</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Amount</th>
-                  <th>Notes</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Date</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Time</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Type</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Status</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Amount</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Notes</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white">
                 {sessionsToPay.map((session) => (
-                  <tr key={session.session_id}>
-                    <td>{formatDate(session.session_date)}</td>
-                    <td>{session.session_time}</td>
-                    <td>{session.session_type}</td>
-                    <td>
-                      <span className={`status-badge status-${session.status}`}>
+                  <tr key={session.session_id} className="hover:bg-gray-50">
+                    <td className="p-2.5 border-b border-gray-200">{formatDate(session.session_date)}</td>
+                    <td className="p-2.5 border-b border-gray-200">{session.session_time}</td>
+                    <td className="p-2.5 border-b border-gray-200">{session.session_type}</td>
+                    <td className="p-2.5 border-b border-gray-200">
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                        session.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                        session.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        session.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
                         {session.status}
                       </span>
                     </td>
-                    <td>{formatCurrency(session.amount_owed)}</td>
-                    <td style={{ fontSize: '12px', color: '#666' }}>
+                    <td className="p-2.5 border-b border-gray-200">{formatCurrency(session.amount_owed)}</td>
+                    <td className="text-xs text-gray-600 p-2.5 border-b border-gray-200">
                       {session.cancellation_reason || session.notes || '-'}
                     </td>
                   </tr>
@@ -484,38 +494,43 @@ const CoachPaymentTracking = ({ userId }) => {
       </div>
 
       {/* Payment History */}
-      <div className="payment-history">
+      <div className="mb-8">
         <h3>Payment History ({paymentHistory.length})</h3>
         {paymentHistory.length === 0 ? (
-          <p style={{ color: '#666', fontStyle: 'italic' }}>No payments recorded yet</p>
+          <p className="text-gray-600 italic">No payments recorded yet</p>
         ) : (
-          <div className="history-list">
-            <table className="data-table">
-              <thead>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead className="bg-gray-100">
                 <tr>
-                  <th>Date</th>
-                  <th>Amount</th>
-                  <th>Type</th>
-                  <th>Method</th>
-                  <th>Reference</th>
-                  <th>Recorded By</th>
-                  <th>Notes</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Date</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Amount</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Type</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Method</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Reference</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Recorded By</th>
+                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Notes</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white">
                 {paymentHistory.map((payment) => (
-                  <tr key={payment.payment_id}>
-                    <td>{formatDate(payment.payment_date)}</td>
-                    <td style={{ fontWeight: 'bold' }}>{formatCurrency(payment.amount)}</td>
-                    <td>
-                      <span className={`type-badge type-${payment.payment_type}`}>
+                  <tr key={payment.payment_id} className="hover:bg-gray-50">
+                    <td className="p-2.5 border-b border-gray-200">{formatDate(payment.payment_date)}</td>
+                    <td className="font-bold p-2.5 border-b border-gray-200">{formatCurrency(payment.amount)}</td>
+                    <td className="p-2.5 border-b border-gray-200">
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                        payment.payment_type === 'regular' ? 'bg-blue-100 text-blue-800' :
+                        payment.payment_type === 'advance' ? 'bg-purple-100 text-purple-800' :
+                        payment.payment_type === 'goodwill' ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
                         {payment.payment_type}
                       </span>
                     </td>
-                    <td>{payment.payment_method}</td>
-                    <td>{payment.reference || '-'}</td>
-                    <td>{payment.recorded_by_name}</td>
-                    <td style={{ fontSize: '12px', color: '#666' }}>{payment.notes || '-'}</td>
+                    <td className="p-2.5 border-b border-gray-200">{payment.payment_method}</td>
+                    <td className="p-2.5 border-b border-gray-200">{payment.reference || '-'}</td>
+                    <td className="p-2.5 border-b border-gray-200">{payment.recorded_by_name}</td>
+                    <td className="text-xs text-gray-600 p-2.5 border-b border-gray-200">{payment.notes || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -523,104 +538,6 @@ const CoachPaymentTracking = ({ userId }) => {
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        .status-badge {
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-        .status-scheduled {
-          background: #e3f2fd;
-          color: #1565c0;
-        }
-        .status-completed {
-          background: #e8f5e9;
-          color: #2e7d32;
-        }
-        .status-cancelled {
-          background: #ffebee;
-          color: #c62828;
-        }
-        .type-badge {
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-        .type-regular {
-          background: #e3f2fd;
-          color: #1565c0;
-        }
-        .type-advance {
-          background: #f3e5f5;
-          color: #6a1b9a;
-        }
-        .type-goodwill {
-          background: #fff3e0;
-          color: #e65100;
-        }
-        .data-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .data-table th {
-          background: #f5f5f5;
-          padding: 12px;
-          text-align: left;
-          border-bottom: 2px solid #ddd;
-          font-weight: 600;
-        }
-        .data-table td {
-          padding: 10px 12px;
-          border-bottom: 1px solid #eee;
-        }
-        .data-table tr:hover {
-          background: #fafafa;
-        }
-        label {
-          display: block;
-          margin-bottom: 5px;
-          font-weight: 600;
-          font-size: 14px;
-        }
-        input, select, textarea {
-          width: 100%;
-          padding: 8px;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          font-size: 14px;
-        }
-        .form-actions {
-          display: flex;
-          gap: 10px;
-          margin-top: 15px;
-        }
-        .btn {
-          padding: 10px 20px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-        .btn-primary {
-          background: #2196f3;
-          color: white;
-        }
-        .btn-primary:hover {
-          background: #1976d2;
-        }
-        .btn-secondary {
-          background: #757575;
-          color: white;
-        }
-        .btn-secondary:hover {
-          background: #616161;
-        }
-      `}</style>
     </div>
   );
 };

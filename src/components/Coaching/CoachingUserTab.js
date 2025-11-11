@@ -279,7 +279,7 @@ const CoachingUserTab = ({ currentUser }) => {
               ) : (
                 <>
                   {/* Payment Summary */}
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <p className="text-sm text-yellow-700 font-medium mb-1">Amount Owed</p>
                       <p className="text-2xl font-bold text-yellow-900">£{parseFloat(paymentSummary.amount_owed || 0).toFixed(2)}</p>

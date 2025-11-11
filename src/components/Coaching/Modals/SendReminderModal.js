@@ -141,7 +141,7 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}>
+      <div className="modal-content mx-4 sm:mx-0" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}>
         {/* Header */}
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -290,8 +290,68 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
               <p style={{ color: '#666', margin: 0 }}>No players match the selected criteria</p>
             </div>
           ) : (
-            <div style={{ border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', maxHeight: '400px', overflowY: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <>
+              {/* Mobile Card Layout */}
+              <div className="md:hidden" style={{ maxHeight: '400px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {previewData.map((payment, index) => (
+                  <div
+                    key={payment.payment_id}
+                    onClick={() => handleToggleRecipient(payment.payment_id)}
+                    style={{
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      backgroundColor: selectedRecipients.has(payment.payment_id) ? '#eff6ff' : 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedRecipients.has(payment.payment_id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleToggleRecipient(payment.payment_id);
+                            }}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                          />
+                          <div style={{ fontWeight: '500', fontSize: '15px' }}>{payment.player_name}</div>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#666', marginLeft: '24px' }}>{payment.player_email}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: '600', color: '#d97706', fontSize: '16px' }}>
+                          {formatCurrency(payment.amount_due)}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                          {payment.total_sessions} sessions
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ borderTop: '1px solid #eee', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                      <div style={{ color: '#666' }}>
+                        {formatDate(payment.billing_period_start)} - {formatDate(payment.billing_period_end)}
+                      </div>
+                      <span style={{
+                        padding: '4px 8px',
+                        backgroundColor: payment.days_outstanding > 14 ? '#fee2e2' : '#fef3c7',
+                        color: payment.days_outstanding > 14 ? '#991b1b' : '#92400e',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600'
+                      }}>
+                        {payment.days_outstanding}d
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table Layout */}
+              <div className="hidden md:block" style={{ border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', maxHeight: '400px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead style={{ backgroundColor: '#f8f9fa', position: 'sticky', top: 0 }}>
                   <tr>
                     <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #ddd', fontSize: '14px', fontWeight: '600', width: '50px' }}>
@@ -349,7 +409,8 @@ const SendReminderModal = ({ isOpen, onClose, actions }) => {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </div>
 

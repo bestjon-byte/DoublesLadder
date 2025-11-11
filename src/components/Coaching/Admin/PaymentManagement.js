@@ -67,7 +67,7 @@ const PaymentManagement = ({ loading, actions }) => {
   return (
     <div className="space-y-6">
       {/* Statistics Dashboard */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-yellow-700 font-medium">Total Owed</p>
@@ -109,8 +109,8 @@ const PaymentManagement = ({ loading, actions }) => {
       </div>
 
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-wrap gap-2">
           {[
             { value: 'all', label: 'All Players' },
             { value: 'owe_money', label: 'Owe Money' },
@@ -139,10 +139,11 @@ const PaymentManagement = ({ loading, actions }) => {
           </button>
           <button
             onClick={handleSendReminders}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
           >
             <Mail className="w-4 h-4" />
-            Send Payment Reminders
+            <span className="hidden sm:inline">Send Payment Reminders</span>
+            <span className="sm:hidden">Send Reminders</span>
           </button>
         </div>
       </div>
@@ -159,8 +160,66 @@ const PaymentManagement = ({ loading, actions }) => {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
+        <>
+          {/* Mobile Card Layout */}
+          <div className="md:hidden space-y-3">
+            {filteredPlayers.map((player) => {
+              const owedAmount = parseFloat(player.amount_owed || 0);
+              const pendingAmount = parseFloat(player.amount_pending_confirmation || 0);
+              const paidAmount = parseFloat(player.amount_paid || 0);
+
+              return (
+                <div
+                  key={player.player_id}
+                  onClick={() => setViewingPlayer(player)}
+                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900">{player.player_name}</h3>
+                      <p className="text-sm text-gray-500">{player.player_email}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {player.total_sessions} sessions ({player.unpaid_sessions} unpaid • {player.pending_confirmation_sessions} pending • {player.paid_sessions} paid)
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewingPlayer(player);
+                      }}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center pt-3 border-t border-gray-200">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Owed</p>
+                      <p className={`text-sm font-semibold ${owedAmount > 0 ? 'text-yellow-700' : 'text-gray-400'}`}>
+                        £{owedAmount.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Pending</p>
+                      <p className={`text-sm font-semibold ${pendingAmount > 0 ? 'text-blue-700' : 'text-gray-400'}`}>
+                        £{pendingAmount.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Paid</p>
+                      <p className="text-sm font-semibold text-green-700">
+                        £{paidAmount.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table Layout */}
+          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -241,7 +300,8 @@ const PaymentManagement = ({ loading, actions }) => {
               })}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Player Payment Modal */}
