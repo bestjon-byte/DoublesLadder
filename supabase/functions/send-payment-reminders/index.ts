@@ -125,6 +125,7 @@ serve(async (req) => {
         const { data: tokenData, error: tokenError } = await supabaseClient
           .rpc('generate_payment_reminder_token', {
             p_payment_id: payment.payment_id,
+            p_player_id: payment.player_id, // Add player_id for session-based system
           })
 
         if (tokenError || !tokenData || tokenData.length === 0) {
