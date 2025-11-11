@@ -97,15 +97,17 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={`
-                  flex items-center gap-2 px-6 py-4 font-medium transition-colors whitespace-nowrap
+                  flex items-center gap-2 px-4 sm:px-6 py-4 font-medium transition-colors whitespace-nowrap
                   ${isActive
                     ? `text-${section.color}-600 border-b-2 border-${section.color}-600 bg-${section.color}-50`
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }
                 `}
+                title={section.name}
               >
-                <Icon className="w-5 h-5" />
-                <span>{section.name}</span>
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="hidden sm:inline">{section.name}</span>
+                <span className="sm:hidden text-xs">{section.name.split(' ')[0]}</span>
               </button>
             );
           })}
