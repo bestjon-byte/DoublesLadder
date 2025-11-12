@@ -197,7 +197,7 @@ const CoachingUserTab = ({ currentUser }) => {
             `}
           >
             <Calendar className="w-5 h-5" />
-            Upcoming Sessions
+            Sessions
           </button>
           <button
             onClick={() => setActiveTab('payments')}

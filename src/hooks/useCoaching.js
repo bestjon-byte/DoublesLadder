@@ -1053,7 +1053,7 @@ export const useCoaching = (userId, isAdmin = false) => {
         checkUserAccess().then(({ hasAccess }) => {
           if (hasAccess) {
             fetchSchedules();
-            fetchSessions({ status: 'scheduled' }); // Only upcoming sessions
+            fetchSessions(); // Fetch all sessions so they can see past/cancelled ones
             fetchAttendance({ playerId: userId }); // Only their attendance
             fetchPayments({ playerId: userId }); // Only their payments
           }
