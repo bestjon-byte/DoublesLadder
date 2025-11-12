@@ -458,7 +458,6 @@ const CoachPaymentTracking = ({ userId }) => {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Date</th>
-                  <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Time</th>
                   <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Type</th>
                   <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Status</th>
                   <th className="p-3 text-left border-b-2 border-gray-300 font-semibold">Amount</th>
@@ -469,7 +468,6 @@ const CoachPaymentTracking = ({ userId }) => {
                 {sessionsToPay.map((session) => (
                   <tr key={session.session_id} className="hover:bg-gray-50">
                     <td className="p-2.5 border-b border-gray-200">{formatDate(session.session_date)}</td>
-                    <td className="p-2.5 border-b border-gray-200">{session.session_time}</td>
                     <td className="p-2.5 border-b border-gray-200">{session.session_type}</td>
                     <td className="p-2.5 border-b border-gray-200">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
