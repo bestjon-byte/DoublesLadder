@@ -20,9 +20,10 @@ BEGIN
   RETURN QUERY
   UPDATE coaching_attendance
   SET
-    coaching_attendance.payment_status = 'pending_confirmation',
-    coaching_attendance.user_marked_paid_at = NOW(),
-    coaching_attendance.user_payment_note = p_note
+    -- SET clause cannot have table qualifiers
+    payment_status = 'pending_confirmation',
+    user_marked_paid_at = NOW(),
+    user_payment_note = p_note
   WHERE coaching_attendance.id = ANY(p_attendance_ids)
     AND coaching_attendance.player_id = p_player_id
     AND coaching_attendance.payment_status = 'unpaid'
