@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, DollarSign, Calendar } from 'lucide-react';
+import { X, Check, DollarSign, Calendar, AlertCircle } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 
@@ -8,6 +8,8 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
   const [sessions, setSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [selectedSessions, setSelectedSessions] = useState([]);
+  const [reversingPayment, setReversingPayment] = useState(false);
 
   useEffect(() => {
     if (isOpen && player) {
@@ -22,6 +24,7 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
       setSessions(result.data);
     }
     setLoadingSessions(false);
+    setSelectedSessions([]); // Clear selection when reloading
   };
 
   const handleConfirmByAmount = async () => {
@@ -59,6 +62,52 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
       if (onSuccess) onSuccess();
     }
     setConfirmingPayment(false);
+  };
+
+  const handleReversePayment = async () => {
+    if (selectedSessions.length === 0) {
+      error('Please select sessions to mark as unpaid');
+      return;
+    }
+
+    const confirmMsg = `Are you sure you want to mark ${selectedSessions.length} session(s) as UNPAID?\n\n` +
+      `This will reverse the payment status because the money hasn't been received.`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    const reason = window.prompt('Enter reason for reversal (optional):') || 'Payment not received';
+
+    setReversingPayment(true);
+    const result = await actions.adminReversePaymentStatus(selectedSessions, reason);
+
+    if (result.error) {
+      error('Failed to reverse payment status');
+    } else {
+      const reversedCount = result.data?.length || 0;
+      success(`Reversed ${reversedCount} session(s) back to unpaid`);
+      await loadSessions();
+      if (onSuccess) onSuccess();
+    }
+    setReversingPayment(false);
+  };
+
+  const toggleSessionSelection = (attendanceId) => {
+    setSelectedSessions(prev =>
+      prev.includes(attendanceId)
+        ? prev.filter(id => id !== attendanceId)
+        : [...prev, attendanceId]
+    );
+  };
+
+  const toggleSelectAll = (sessionsList) => {
+    const sessionIds = sessionsList.map(s => s.attendance_id);
+    const allSelected = sessionIds.every(id => selectedSessions.includes(id));
+
+    if (allSelected) {
+      setSelectedSessions(prev => prev.filter(id => !sessionIds.includes(id)));
+    } else {
+      setSelectedSessions(prev => [...new Set([...prev, ...sessionIds])]);
+    }
   };
 
   if (!isOpen) return null;
@@ -113,6 +162,16 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
             <DollarSign className="w-4 h-4" />
             Confirm Payment
           </button>
+          {selectedSessions.length > 0 && (
+            <button
+              onClick={handleReversePayment}
+              disabled={reversingPayment || loadingSessions}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              <AlertCircle className="w-4 h-4" />
+              Mark as Unpaid ({selectedSessions.length})
+            </button>
+          )}
         </div>
 
         {/* Sessions List */}
@@ -164,15 +223,33 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
               {/* Pending Confirmation Sessions */}
               {pendingConfirmationSessions.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Awaiting Confirmation ({pendingConfirmationSessions.length})
-                  </h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Awaiting Confirmation ({pendingConfirmationSessions.length})
+                    </h3>
+                    <button
+                      onClick={() => toggleSelectAll(pendingConfirmationSessions)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      {pendingConfirmationSessions.every(s => selectedSessions.includes(s.attendance_id))
+                        ? 'Deselect All'
+                        : 'Select All'}
+                    </button>
+                  </div>
                   <div className="space-y-2">
                     {pendingConfirmationSessions.map(session => (
                       <div
                         key={session.attendance_id}
-                        className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md"
+                        className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-md cursor-pointer hover:bg-blue-100 transition-colors"
+                        onClick={() => toggleSessionSelection(session.attendance_id)}
                       >
+                        <input
+                          type="checkbox"
+                          checked={selectedSessions.includes(session.attendance_id)}
+                          onChange={() => toggleSessionSelection(session.attendance_id)}
+                          className="mt-1 w-4 h-4 text-blue-600 rounded"
+                          onClick={(e) => e.stopPropagation()}
+                        />
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium text-gray-900">
@@ -207,15 +284,33 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
               {/* Paid Sessions */}
               {paidSessions.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Paid Sessions ({paidSessions.length})
-                  </h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Paid Sessions ({paidSessions.length})
+                    </h3>
+                    <button
+                      onClick={() => toggleSelectAll(paidSessions.slice(0, 5))}
+                      className="text-xs text-green-600 hover:text-green-800"
+                    >
+                      {paidSessions.slice(0, 5).every(s => selectedSessions.includes(s.attendance_id))
+                        ? 'Deselect All'
+                        : 'Select All'}
+                    </button>
+                  </div>
                   <div className="space-y-2">
                     {paidSessions.slice(0, 5).map(session => (
                       <div
                         key={session.attendance_id}
-                        className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-md"
+                        className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-md cursor-pointer hover:bg-green-100 transition-colors"
+                        onClick={() => toggleSessionSelection(session.attendance_id)}
                       >
+                        <input
+                          type="checkbox"
+                          checked={selectedSessions.includes(session.attendance_id)}
+                          onChange={() => toggleSessionSelection(session.attendance_id)}
+                          className="w-4 h-4 text-green-600 rounded"
+                          onClick={(e) => e.stopPropagation()}
+                        />
                         <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
