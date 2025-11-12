@@ -30,7 +30,7 @@ BEGIN
     END,
     user_marked_paid_at = NULL
   WHERE coaching_attendance.id = ANY(p_attendance_ids)
-    AND payment_status IN ('pending_confirmation', 'paid')
+    AND coaching_attendance.payment_status IN ('pending_confirmation', 'paid')
   RETURNING
     coaching_attendance.id,
     coaching_attendance.session_id,
