@@ -62,9 +62,13 @@ Even though the function is `SECURITY DEFINER`, Supabase's RLS policies still ap
 
 ## Solution
 
-**File created**: `fix_player_mark_payment_rls.sql`
+**TWO fixes are required** (both SQL files created):
 
-This migration adds a new RLS policy:
+### Fix 1: Add Missing RLS UPDATE Policy
+
+**File**: `fix_player_mark_payment_rls.sql`
+
+This migration adds a new RLS policy to allow players to update their attendance records:
 
 ```sql
 CREATE POLICY coaching_attendance_player_update_payment ON coaching_attendance
@@ -86,6 +90,24 @@ CREATE POLICY coaching_attendance_player_update_payment ON coaching_attendance
   );
 ```
 
+### Fix 2: Resolve Ambiguous Column References
+
+**File**: `fix_player_mark_payment_ambiguous_columns.sql`
+
+**Console Error Discovered**: `column reference "payment_status" is ambiguous`
+
+The `player_mark_sessions_paid` function has ambiguous column names. The RETURNS TABLE declares columns (`payment_status`, etc.) that match table column names, causing PostgreSQL to not know which one you're referring to in the WHERE and SET clauses.
+
+The fix fully qualifies all column references:
+
+```sql
+-- BEFORE (ambiguous):
+WHERE ... AND payment_status = 'unpaid'
+
+-- AFTER (explicit):
+WHERE ... AND coaching_attendance.payment_status = 'unpaid'
+```
+
 ### Security Notes
 
 This policy ensures:
@@ -98,8 +120,11 @@ This policy ensures:
 
 ## How to Apply the Fix
 
+**IMPORTANT: Both SQL files must be run in order!**
+
 ### Option 1: Supabase Dashboard (Recommended)
 
+**Step 1: Apply RLS Policy Fix**
 1. Go to: https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv/sql
 2. Open `fix_player_mark_payment_rls.sql` in this repository
 3. Copy the entire SQL content
@@ -107,10 +132,20 @@ This policy ensures:
 5. Click "Run" to execute
 6. Verify: Check the output shows the policy was created successfully
 
+**Step 2: Apply Function Fix**
+1. Still in the SQL Editor
+2. Open `fix_player_mark_payment_ambiguous_columns.sql` in this repository
+3. Copy the entire SQL content
+4. Paste into the SQL Editor (you can clear the previous query)
+5. Click "Run" to execute
+6. Verify: Check the output shows "CREATE FUNCTION" was successful
+
 ### Option 2: Using psql (if you have direct access)
 
 ```bash
+# Apply both fixes in order
 psql "$DATABASE_URL" < fix_player_mark_payment_rls.sql
+psql "$DATABASE_URL" < fix_player_mark_payment_ambiguous_columns.sql
 ```
 
 ---
@@ -151,7 +186,9 @@ Any player who tried to mark sessions as paid since the payment restructure was 
 
 ## Related Files
 
-- **Bug fix**: `fix_player_mark_payment_rls.sql` (NEW)
+- **Bug fixes** (NEW):
+  - `fix_player_mark_payment_rls.sql` - Adds missing UPDATE policy
+  - `fix_player_mark_payment_ambiguous_columns.sql` - Fixes ambiguous column references
 - **Original schema**: `coaching_schema.sql` (lines 256-301)
 - **Payment system**: `coaching_payment_restructure.sql` (line 23-52)
 - **Frontend code**:
@@ -171,8 +208,11 @@ Any player who tried to mark sessions as paid since the payment restructure was 
 
 ## Status
 
-- [x] Root cause identified
-- [x] Fix created and tested locally
-- [ ] **Migration applied to production** ← NEEDS TO BE DONE
+- [x] Root cause identified (2 issues found)
+- [x] Fix #1 created: RLS policy for UPDATE
+- [x] Fix #2 created: Ambiguous column references resolved
+- [ ] **Both migrations applied to production** ← NEEDS TO BE DONE
+  - [ ] Run fix_player_mark_payment_rls.sql
+  - [ ] Run fix_player_mark_payment_ambiguous_columns.sql
 - [ ] Fix verified with Samuel Best
 - [ ] Consider notifying other affected users
