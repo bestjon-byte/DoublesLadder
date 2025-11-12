@@ -67,29 +67,31 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
   return (
     <div className="space-y-6">
       {/* Header Actions */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Recurring Schedules ({activeSchedules.length} active)
+      <div className="flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-center">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+          Schedules <span className="text-sm sm:text-base text-gray-600">({activeSchedules.length} active)</span>
         </h3>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <button
             onClick={handleOpenGenerateModal}
             disabled={generating || activeSchedules.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white text-sm sm:text-base rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
           >
             {generating ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
+              <RefreshCw className="w-4 h-4 animate-spin flex-shrink-0" />
             ) : (
-              <Calendar className="w-4 h-4" />
+              <Calendar className="w-4 h-4 flex-shrink-0" />
             )}
-            Generate Sessions
+            <span className="hidden sm:inline">Generate Sessions</span>
+            <span className="sm:hidden">Generate</span>
           </button>
           <button
             onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm sm:text-base rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
           >
-            <Plus className="w-4 h-4" />
-            New Schedule
+            <Plus className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline">New Schedule</span>
+            <span className="sm:hidden">New</span>
           </button>
         </div>
       </div>
@@ -113,11 +115,11 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
               key={schedule.id}
               className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className={`
-                      px-3 py-1 rounded-full text-sm font-medium
+                      px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap
                       ${schedule.session_type === 'Adults'
                         ? 'bg-blue-100 text-blue-700'
                         : 'bg-green-100 text-green-700'
@@ -125,10 +127,10 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
                     `}>
                       {schedule.session_type}
                     </span>
-                    <span className="text-gray-900 font-medium">
+                    <span className="text-gray-900 font-medium whitespace-nowrap">
                       Every {DAY_NAMES[schedule.day_of_week]}
                     </span>
-                    <span className="text-gray-600">
+                    <span className="text-gray-600 whitespace-nowrap">
                       at {schedule.session_time}
                     </span>
                   </div>
@@ -139,17 +141,17 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
                     Created {new Date(schedule.created_at).toLocaleDateString('en-GB')}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 self-end sm:self-start">
                   <button
                     onClick={() => handleEdit(schedule)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors flex-shrink-0"
                     title="Edit schedule"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDeactivate(schedule.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
                     title="Deactivate schedule"
                   >
                     <Trash2 className="w-4 h-4" />

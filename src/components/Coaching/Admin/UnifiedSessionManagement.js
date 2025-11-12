@@ -129,14 +129,14 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-center">
+        <div className="flex flex-wrap gap-2">
           {['upcoming', 'past', 'cancelled', 'all'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`
-                px-4 py-2 rounded-md font-medium transition-colors
+                px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base font-medium transition-colors
                 ${filter === f
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -149,10 +149,11 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
         >
-          <Plus className="w-4 h-4" />
-          Create Session
+          <Plus className="w-4 h-4 flex-shrink-0" />
+          <span className="hidden sm:inline">Create Session</span>
+          <span className="sm:hidden">Create</span>
         </button>
       </div>
 
@@ -175,11 +176,11 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
               >
                 {/* Session Header */}
                 <div className="p-4">
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className={`
-                          px-3 py-1 rounded-full text-sm font-medium
+                          px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap
                           ${session.session_type === 'Adults'
                             ? 'bg-blue-100 text-blue-700'
                             : 'bg-green-100 text-green-700'
@@ -188,10 +189,10 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
                           {session.session_type}
                         </span>
                         {getStatusBadge(session.status)}
-                        <span className="text-gray-900 font-medium">
+                        <span className="text-gray-900 font-medium whitespace-nowrap">
                           {formatDateShort(session.session_date)}
                         </span>
-                        <span className="text-gray-600">at {formatTime(session.session_time)}</span>
+                        <span className="text-gray-600 whitespace-nowrap">at {formatTime(session.session_time)}</span>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <button
@@ -216,27 +217,27 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 sm:flex-nowrap">
                       <button
                         onClick={() => setMarkingAttendanceFor(session)}
-                        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
                         title="Add attendee"
                       >
-                        <UserPlus className="w-4 h-4" />
-                        Add
+                        <UserPlus className="w-4 h-4 flex-shrink-0" />
+                        <span>Add</span>
                       </button>
                       {session.status === 'scheduled' && (
                         <>
                           <button
                             onClick={() => handleComplete(session.id)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors flex-shrink-0"
                             title="Mark as completed"
                           >
                             <Check className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleCancel(session)}
-                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
+                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-md transition-colors flex-shrink-0"
                             title="Cancel session"
                           >
                             <X className="w-4 h-4" />
@@ -245,7 +246,7 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
                       )}
                       <button
                         onClick={() => handleDelete(session)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
                         title="Delete session permanently"
                       >
                         <Trash2 className="w-4 h-4" />
