@@ -9,6 +9,7 @@ const CoachingUserTab = ({ currentUser }) => {
   const coaching = useCoaching(currentUser?.id, false);
   const { success, error } = useAppToast();
   const [activeTab, setActiveTab] = useState('sessions'); // 'sessions', 'payments'
+  const [sessionFilter, setSessionFilter] = useState('upcoming'); // 'upcoming', 'past', 'cancelled', 'all'
   const [hasAccess, setHasAccess] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [paymentSummary, setPaymentSummary] = useState(null);
@@ -139,12 +140,36 @@ const CoachingUserTab = ({ currentUser }) => {
   }
 
   const today = new Date().toISOString().split('T')[0];
-  const upcomingSessions = coaching.sessions.filter(s =>
-    s.session_date >= today && s.status === 'scheduled'
-  ).sort((a, b) => new Date(a.session_date) - new Date(b.session_date));
-
   const myAttendance = coaching.attendance.filter(a => a.player_id === currentUser.id);
   const myAttendanceMap = new Map(myAttendance.map(a => [a.session_id, a]));
+
+  // Get all sessions where user has attendance records
+  const mySessionIds = new Set(myAttendance.map(a => a.session_id));
+  const myInvolvedSessions = coaching.sessions.filter(s => mySessionIds.has(s.id));
+
+  // Filter sessions based on selected filter
+  const filteredSessions = myInvolvedSessions.filter(session => {
+    if (sessionFilter === 'upcoming') {
+      return session.session_date >= today && session.status === 'scheduled';
+    } else if (sessionFilter === 'past') {
+      return session.session_date < today || session.status === 'completed';
+    } else if (sessionFilter === 'cancelled') {
+      return session.status === 'cancelled';
+    }
+    return true; // 'all'
+  }).sort((a, b) => {
+    // Upcoming: sort oldest to newest, Past/Cancelled/All: sort newest to oldest
+    if (sessionFilter === 'upcoming') {
+      return new Date(a.session_date) - new Date(b.session_date);
+    } else {
+      return new Date(b.session_date) - new Date(a.session_date);
+    }
+  });
+
+  // For registration - show all upcoming sessions (not just the ones user is registered for)
+  const upcomingSessionsForRegistration = coaching.sessions.filter(s =>
+    s.session_date >= today && s.status === 'scheduled'
+  ).sort((a, b) => new Date(a.session_date) - new Date(b.session_date));
 
   const unpaidSessions = mySessions.filter(s => s.payment_status === 'unpaid');
   const pendingConfirmationSessions = mySessions.filter(s => s.payment_status === 'pending_confirmation');
@@ -197,75 +222,195 @@ const CoachingUserTab = ({ currentUser }) => {
         <div className="p-6">
           {activeTab === 'sessions' ? (
             <div className="space-y-4">
+              {/* Session Filters */}
+              <div className="flex flex-wrap gap-2">
+                {['upcoming', 'past', 'cancelled', 'all'].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setSessionFilter(filter)}
+                    className={`
+                      px-3 sm:px-4 py-2 rounded-md text-sm sm:text-base font-medium transition-colors
+                      ${sessionFilter === filter
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }
+                    `}
+                  >
+                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </button>
+                ))}
+              </div>
+
               {coaching.loading.sessions ? (
                 <LoadingSpinner />
-              ) : upcomingSessions.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600">No upcoming sessions scheduled</p>
-                </div>
               ) : (
-                upcomingSessions.map((session) => {
-                  const myAttendanceRecord = myAttendanceMap.get(session.id);
-                  const isRegistered = !!myAttendanceRecord;
-
-                  return (
-                    <div
-                      key={session.id}
-                      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className={`
-                              px-3 py-1 rounded-full text-sm font-medium
-                              ${session.session_type === 'Adults'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-green-100 text-green-700'
-                              }
-                            `}>
-                              {session.session_type}
-                            </span>
-                            {/* Responsive date display */}
-                            <span className="hidden md:inline text-gray-900 font-medium">
-                              {formatDateResponsive(session.session_date, false)}
-                            </span>
-                            <span className="md:hidden text-gray-900 font-medium">
-                              {formatDateResponsive(session.session_date, true)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <Clock className="w-4 h-4" />
-                            <span>{session.session_time}</span>
-                          </div>
-                          {session.notes && (
-                            <p className="text-sm text-gray-500 mt-2">{session.notes}</p>
-                          )}
-                        </div>
-                        <div>
-                          {isRegistered ? (
-                            <button
-                              onClick={() => handleUnregister(myAttendanceRecord.id)}
-                              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors whitespace-nowrap"
-                            >
-                              <XCircle className="w-4 h-4 flex-shrink-0" />
-                              <span className="hidden sm:inline">Cancel Registration</span>
-                              <span className="sm:hidden">Cancel</span>
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleRegister(session)}
-                              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Register
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                <>
+                  {/* Show registration section only for upcoming filter */}
+                  {sessionFilter === 'upcoming' && upcomingSessionsForRegistration.length === 0 && (
+                    <div className="text-center py-12 bg-gray-50 rounded-lg">
+                      <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600">No upcoming sessions scheduled</p>
                     </div>
-                  );
-                })
+                  )}
+
+                  {sessionFilter === 'upcoming' && upcomingSessionsForRegistration.length > 0 && (
+                    <div className="space-y-3">
+                      {upcomingSessionsForRegistration.map((session) => {
+                        const myAttendanceRecord = myAttendanceMap.get(session.id);
+                        const isRegistered = !!myAttendanceRecord;
+
+                        return (
+                          <div
+                            key={session.id}
+                            className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                  <span className={`
+                                    px-3 py-1 rounded-full text-sm font-medium
+                                    ${session.session_type === 'Adults'
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : 'bg-green-100 text-green-700'
+                                    }
+                                  `}>
+                                    {session.session_type}
+                                  </span>
+                                  {isRegistered && (
+                                    <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700">
+                                      Registered
+                                    </span>
+                                  )}
+                                  {/* Responsive date display */}
+                                  <span className="hidden md:inline text-gray-900 font-medium">
+                                    {formatDateResponsive(session.session_date, false)}
+                                  </span>
+                                  <span className="md:hidden text-gray-900 font-medium">
+                                    {formatDateResponsive(session.session_date, true)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-600">
+                                  <Clock className="w-4 h-4" />
+                                  <span>{session.session_time}</span>
+                                </div>
+                                {session.notes && (
+                                  <p className="text-sm text-gray-500 mt-2">{session.notes}</p>
+                                )}
+                              </div>
+                              <div>
+                                {isRegistered ? (
+                                  <button
+                                    onClick={() => handleUnregister(myAttendanceRecord.id)}
+                                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors whitespace-nowrap"
+                                  >
+                                    <XCircle className="w-4 h-4 flex-shrink-0" />
+                                    <span className="hidden sm:inline">Cancel Registration</span>
+                                    <span className="sm:hidden">Cancel</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleRegister(session)}
+                                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                    Register
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Show filtered sessions (user's attendance history) */}
+                  {sessionFilter !== 'upcoming' && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                        {sessionFilter === 'all' ? 'All' : sessionFilter.charAt(0).toUpperCase() + sessionFilter.slice(1)} Sessions
+                      </h3>
+                      {filteredSessions.length === 0 ? (
+                        <div className="text-center py-12 bg-gray-50 rounded-lg">
+                          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                          <p className="text-gray-600">
+                            No {sessionFilter !== 'all' && sessionFilter} sessions found
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {filteredSessions.map((session) => {
+                            const myAttendanceRecord = myAttendanceMap.get(session.id);
+                            const getStatusBadge = (status) => {
+                              const styles = {
+                                scheduled: 'bg-blue-100 text-blue-700',
+                                completed: 'bg-green-100 text-green-700',
+                                cancelled: 'bg-red-100 text-red-700',
+                              };
+                              return (
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
+                                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                                </span>
+                              );
+                            };
+
+                            return (
+                              <div
+                                key={session.id}
+                                className="bg-white border border-gray-200 rounded-lg p-4"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                      <span className={`
+                                        px-3 py-1 rounded-full text-sm font-medium
+                                        ${session.session_type === 'Adults'
+                                          ? 'bg-blue-100 text-blue-700'
+                                          : 'bg-green-100 text-green-700'
+                                        }
+                                      `}>
+                                        {session.session_type}
+                                      </span>
+                                      {getStatusBadge(session.status)}
+                                      <span className="text-gray-900 font-medium">
+                                        {formatDateShort(session.session_date)}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-gray-600">
+                                      <Clock className="w-4 h-4" />
+                                      <span>{session.session_time}</span>
+                                    </div>
+                                    {session.notes && (
+                                      <p className="text-sm text-gray-500 mt-2">{session.notes}</p>
+                                    )}
+                                    {session.status === 'cancelled' && session.cancellation_reason && (
+                                      <p className="text-sm text-red-600 mt-2">
+                                        Cancelled: {session.cancellation_reason}
+                                      </p>
+                                    )}
+                                    {myAttendanceRecord?.payment_status && (
+                                      <div className="mt-2">
+                                        {myAttendanceRecord.payment_status === 'unpaid' && (
+                                          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">Unpaid</span>
+                                        )}
+                                        {myAttendanceRecord.payment_status === 'pending_confirmation' && (
+                                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Payment Pending</span>
+                                        )}
+                                        {myAttendanceRecord.payment_status === 'paid' && (
+                                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Paid</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ) : (
