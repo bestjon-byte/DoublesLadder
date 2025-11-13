@@ -13,7 +13,7 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
   const sections = [
     { id: 'schedules', name: 'Schedules', icon: Clock, color: 'blue' },
     { id: 'sessions', name: 'Sessions & Attendance', icon: Calendar, color: 'green' },
-    { id: 'payments', name: 'Player Payments', icon: DollarSign, color: 'orange' },
+    { id: 'payments', name: 'Player Payments', icon: PoundSterling, color: 'orange' },
     { id: 'coach-payments', name: 'Coach Payments', icon: Wallet, color: 'purple' },
   ];
 

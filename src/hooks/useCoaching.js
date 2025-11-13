@@ -643,6 +643,26 @@ export const useCoaching = (userId, isAdmin = false) => {
   }, [fetchAttendance]);
 
   /**
+   * Admin reverses payment status back to unpaid (when money not received)
+   */
+  const adminReversePaymentStatus = useCallback(async (attendanceIds, reason = '') => {
+    try {
+      const { data, error } = await supabase
+        .rpc('admin_reverse_payment_status', {
+          p_attendance_ids: attendanceIds,
+          p_reason: reason,
+        });
+
+      if (error) throw error;
+      await fetchAttendance();
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error reversing payment status:', error);
+      return { data: null, error };
+    }
+  }, [fetchAttendance]);
+
+  /**
    * Get payment summary for all players
    */
   const getAllPlayersPaymentSummary = useCallback(async (sessionCost = 4.00) => {
@@ -989,6 +1009,7 @@ export const useCoaching = (userId, isAdmin = false) => {
       playerMarkSessionsPaid,
       adminConfirmPayment,
       adminConfirmSessions,
+      adminReversePaymentStatus,
       getAllPlayersPaymentSummary,
       getPlayerPaymentSummary,
       getPlayerSessionsByPaymentStatus,
