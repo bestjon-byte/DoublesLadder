@@ -18,43 +18,48 @@ export const useAuth = () => {
 
   // Load user profile with timeout and retry logic
   const loadUserProfile = useCallback(async (userId) => {
-    
+    console.log('🔵 [useAuth] Loading profile for user:', userId);
+
     // Create timeout promise
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('Profile query timeout')), 2000); // Reduced to 2s
     });
-    
+
     // Create query promise
     const queryPromise = supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
-    
+
     try {
       const result = await Promise.race([queryPromise, timeoutPromise]);
       const { data: profile, error } = result;
 
       if (error) {
+        console.error('❌ [useAuth] Profile query error:', error);
         if (error.code === 'PGRST116') {
           return null;
         }
         return null;
       }
 
+      console.log('✅ [useAuth] Profile loaded successfully:', profile?.name, '(', profile?.role, ')');
       setUser(profile);
       return profile;
     } catch (error) {
       if (error.message === 'Profile query timeout') {
+        console.warn('⚠️ [useAuth] Profile query timeout - using fallback data');
         // Try to continue without profile data
         return {
           id: userId,
           name: 'Loading...',
-          email: 'loading@example.com', 
+          email: 'loading@example.com',
           status: 'approved',
           role: 'player'
         };
       } else {
+        console.error('❌ [useAuth] Unexpected profile error:', error);
         return null;
       }
     }
@@ -204,9 +209,12 @@ export const useAuth = () => {
     
     const initializeAuth = async () => {
       try {
+        console.log('🟢 [useAuth] Starting auth initialization...');
+
         // Check for password reset mode first
         const isPasswordReset = checkForPasswordReset();
         if (isPasswordReset) {
+          console.log('🔵 [useAuth] Password reset mode detected');
           if (isActive) {
             setAuthMode('reset');
             setLoading(false);
@@ -214,12 +222,16 @@ export const useAuth = () => {
           return;
         }
 
+        console.log('🔵 [useAuth] Getting current session...');
         // Get current session with timeout protection
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
+        console.log('🔵 [useAuth] Session retrieved:', session ? 'User logged in' : 'No session');
+
         if (!isActive) return; // Component unmounted
-        
+
         if (error) {
+          console.error('❌ [useAuth] Session error:', error);
           setError(error);
           setLoading(false);
           return;

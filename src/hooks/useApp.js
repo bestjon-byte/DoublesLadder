@@ -1653,30 +1653,34 @@ export const useApp = (userId, selectedSeasonId) => {
 
     const loadInitialData = async () => {
       // Loading app data for user
+      console.log('🔵 [useApp] Starting initial data load for user:', userId);
       setLoading('initial', true);
-      
+
       // Set timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
-        console.warn('App data initialization timeout - forcing loading to false');
+        console.error('❌ [useApp] TIMEOUT: App data initialization timeout (25s) - forcing loading to false');
         setLoading('initial', false);
         updateData('error', new Error('App data loading timeout - please refresh the page'));
       }, 25000); // 25 second timeout for app data - increased for slower connections
-      
+
       try {
+        console.log('🔵 [useApp] Step 1: Fetching users and seasons...');
         await Promise.all([
-          fetchUsers(),
-          fetchSeasons(),
+          fetchUsers().then(r => { console.log('✅ [useApp] fetchUsers completed'); return r; }),
+          fetchSeasons().then(r => { console.log('✅ [useApp] fetchSeasons completed'); return r; }),
         ]);
-        
+
+        console.log('🔵 [useApp] Step 2: Fetching availability, fixtures, and results...');
         await Promise.all([
-          fetchAvailability(),
-          fetchMatchFixtures(),
-          fetchMatchResults(),
+          fetchAvailability().then(r => { console.log('✅ [useApp] fetchAvailability completed'); return r; }),
+          fetchMatchFixtures().then(r => { console.log('✅ [useApp] fetchMatchFixtures completed'); return r; }),
+          fetchMatchResults().then(r => { console.log('✅ [useApp] fetchMatchResults completed'); return r; }),
         ]);
-        
+
+        console.log('✅ [useApp] All initial data loaded successfully');
         clearTimeout(timeoutId);
       } catch (error) {
-        console.error('Error loading initial data:', error);
+        console.error('❌ [useApp] Error loading initial data:', error);
         updateData('error', error);
         clearTimeout(timeoutId);
       } finally {

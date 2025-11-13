@@ -11,6 +11,7 @@ export const useSeasonManager = () => {
   // Fetch all seasons (NEW: includes league expansion support)
   const fetchSeasons = useCallback(async () => {
     try {
+      console.log('🔵 [useSeasonManager] Fetching seasons from database...');
       setLoading(true);
       const { data, error } = await supabase
         .from('seasons')
@@ -20,7 +21,11 @@ export const useSeasonManager = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('🔵 [useSeasonManager] Database query completed. Data:', data?.length, 'seasons');
+      if (error) {
+        console.error('❌ [useSeasonManager] Database error:', error);
+        throw error;
+      }
 
       // Process the data to add counts and league info
       const processedSeasons = data?.map(season => ({
@@ -169,24 +174,27 @@ export const useSeasonManager = () => {
   // Initialize on mount
   useEffect(() => {
     const initializeSeasons = async () => {
+      console.log('🟢 [useSeasonManager] Starting season initialization...');
+
       // Set timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
-        console.warn('⏰ Season initialization timeout - forcing loading to false');
+        console.error('❌ [useSeasonManager] TIMEOUT: Season initialization timeout (8s) - forcing loading to false');
         setLoading(false);
         setError(new Error('Season loading timeout - please refresh the page'));
       }, 8000); // 8 second timeout
-      
+
       try {
         await fetchSeasons();
+        console.log('✅ [useSeasonManager] Season initialization completed successfully');
         clearTimeout(timeoutId);
       } catch (error) {
-        console.error('💥 Season initialization failed:', error);
+        console.error('❌ [useSeasonManager] Season initialization failed:', error);
         setError(error);
         clearTimeout(timeoutId);
         setLoading(false);
       }
     };
-    
+
     // Start immediately - no need to wait for auth
     initializeSeasons();
   }, [fetchSeasons]);
