@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, User, Mail, Check, ChevronRight } from 'lucide-react';
+import { Banknote, User, Mail, Check, ChevronRight, Search } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import PlayerPaymentModal from '../Modals/PlayerPaymentModal';
 import SendReminderModal from '../Modals/SendReminderModal';
@@ -11,6 +11,7 @@ const PaymentManagement = ({ loading, actions }) => {
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [viewingPlayer, setViewingPlayer] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'owe_money', 'awaiting_confirmation', 'paid_up'
+  const [searchQuery, setSearchQuery] = useState('');
   const [showReminderModal, setShowReminderModal] = useState(false);
 
   // Load all players payment summary
@@ -45,14 +46,24 @@ const PaymentManagement = ({ loading, actions }) => {
 
   // Filter players
   const filteredPlayers = playersSummary.filter(player => {
+    // Payment status filter
     if (filter === 'owe_money') {
-      return parseFloat(player.amount_owed) > 0;
+      if (parseFloat(player.amount_owed) === 0) return false;
     } else if (filter === 'awaiting_confirmation') {
-      return parseFloat(player.amount_pending_confirmation) > 0;
+      if (parseFloat(player.amount_pending_confirmation) === 0) return false;
     } else if (filter === 'paid_up') {
-      return parseFloat(player.amount_owed) === 0 && parseFloat(player.amount_pending_confirmation) === 0;
+      if (parseFloat(player.amount_owed) !== 0 || parseFloat(player.amount_pending_confirmation) !== 0) return false;
     }
-    return true; // 'all'
+
+    // Search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const nameMatch = player.player_name?.toLowerCase().includes(query);
+      const emailMatch = player.player_email?.toLowerCase().includes(query);
+      if (!nameMatch && !emailMatch) return false;
+    }
+
+    return true;
   });
 
   // Calculate totals
@@ -71,7 +82,7 @@ const PaymentManagement = ({ loading, actions }) => {
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-yellow-700 font-medium">Total Owed</p>
-            <DollarSign className="w-5 h-5 text-yellow-600" />
+            <Banknote className="w-5 h-5 text-yellow-600" />
           </div>
           <p className="text-2xl font-bold text-yellow-900">
             £{totals.owed.toFixed(2)}
@@ -108,7 +119,19 @@ const PaymentManagement = ({ loading, actions }) => {
         </div>
       </div>
 
-      {/* Header */}
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search by player name or email..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      {/* Filters Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-wrap gap-2">
           {[
