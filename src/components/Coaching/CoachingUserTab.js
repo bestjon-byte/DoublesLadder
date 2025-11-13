@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, CheckCircle, XCircle, PoundSterling, Clock, CheckSquare, Square } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, Banknote, Clock, CheckSquare, Square } from 'lucide-react';
 import { useCoaching } from '../../hooks/useCoaching';
 import { useAppToast } from '../../contexts/ToastContext';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
@@ -179,7 +179,7 @@ const CoachingUserTab = ({ currentUser }) => {
               }
             `}
           >
-            <PoundSterling className="w-5 h-5" />
+            <Banknote className="w-5 h-5" />
             Payments
             {paymentSummary && paymentSummary.unpaid_sessions > 0 && (
               <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
@@ -379,7 +379,7 @@ const CoachingUserTab = ({ currentUser }) => {
                 <LoadingSpinner />
               ) : !paymentSummary ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <PoundSterling className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <Banknote className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                   <p className="text-gray-600">No coaching sessions found</p>
                 </div>
               ) : (
