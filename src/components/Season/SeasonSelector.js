@@ -128,8 +128,6 @@ const SeasonSelector = ({
                           <span>{new Date(season.start_date).toLocaleDateString()}</span>
                           <span>•</span>
                           <span>{season.player_count} players</span>
-                          <span>•</span>
-                          <span>{season.match_count} {season.season_type === 'league' ? 'matches' : 'matches'}</span>
                         </div>
                       </div>
                     </button>

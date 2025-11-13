@@ -16,19 +16,16 @@ export const useSeasonManager = () => {
         .from('seasons')
         .select(`
           *,
-          season_players(count),
-          matches(*)
+          season_players(count)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Process the data to add counts, matches, and league info
+      // Process the data to add counts and league info
       const processedSeasons = data?.map(season => ({
         ...season,
         player_count: season.season_players?.[0]?.count || 0,
-        match_count: season.matches?.length || 0,
-        matches: season.matches || [],
         // NEW: Parse league_info JSON and add season type
         season_type: season.season_type || 'ladder',
         league_info: season.league_info || {},
