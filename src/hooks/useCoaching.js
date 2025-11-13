@@ -12,13 +12,11 @@ export const useCoaching = (userId, isAdmin = false) => {
     sessions: [],
     attendance: [],
     payments: [],
-    accessList: [],
     loading: {
       schedules: false,
       sessions: false,
       attendance: false,
       payments: false,
-      access: false,
     },
     error: null,
   });
@@ -940,102 +938,6 @@ export const useCoaching = (userId, isAdmin = false) => {
   }, []);
 
   // ==========================================================================
-  // ACCESS CONTROL
-  // ==========================================================================
-
-  /**
-   * Fetch coaching access list
-   */
-  const fetchAccessList = useCallback(async () => {
-    setLoading('access', true);
-    try {
-      const { data, error } = await supabase
-        .from('coaching_access')
-        .select(`
-          *,
-          player:profiles!coaching_access_player_id_fkey(id, name, email),
-          granted_by_user:profiles!coaching_access_granted_by_fkey(id, name)
-        `)
-        .order('granted_at', { ascending: false });
-
-      if (error) throw error;
-      updateData('accessList', data || []);
-    } catch (error) {
-      console.error('Error fetching access list:', error);
-      updateData('error', error.message);
-    } finally {
-      setLoading('access', false);
-    }
-  }, [setLoading, updateData]);
-
-  /**
-   * Grant coaching access to a player
-   */
-  const grantAccess = useCallback(async (playerId, notes = '') => {
-    try {
-      const { data, error } = await supabase
-        .from('coaching_access')
-        .insert([{
-          player_id: playerId,
-          granted_by: userId,
-          notes,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-      await fetchAccessList();
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error granting access:', error);
-      return { data: null, error };
-    }
-  }, [userId, fetchAccessList]);
-
-  /**
-   * Revoke coaching access
-   */
-  const revokeAccess = useCallback(async (playerId) => {
-    try {
-      const { data, error } = await supabase
-        .from('coaching_access')
-        .update({
-          revoked_at: new Date().toISOString(),
-        })
-        .eq('player_id', playerId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      await fetchAccessList();
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error revoking access:', error);
-      return { data: null, error };
-    }
-  }, [fetchAccessList]);
-
-  /**
-   * Check if current user has coaching access
-   */
-  const checkUserAccess = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('coaching_access')
-        .select('*')
-        .eq('player_id', userId)
-        .is('revoked_at', null)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
-      return { hasAccess: !!data, data, error: null };
-    } catch (error) {
-      console.error('Error checking user access:', error);
-      return { hasAccess: false, data: null, error };
-    }
-  }, [userId]);
-
-  // ==========================================================================
   // INITIALIZATION
   // ==========================================================================
 
@@ -1047,17 +949,12 @@ export const useCoaching = (userId, isAdmin = false) => {
         fetchSessions();
         fetchAttendance();
         fetchPayments();
-        fetchAccessList();
       } else {
-        // Regular users only fetch what they need
-        checkUserAccess().then(({ hasAccess }) => {
-          if (hasAccess) {
-            fetchSchedules();
-            fetchSessions(); // Fetch all sessions so they can see past/cancelled ones
-            fetchAttendance({ playerId: userId }); // Only their attendance
-            fetchPayments({ playerId: userId }); // Only their payments
-          }
-        });
+        // Regular users fetch what they need
+        fetchSchedules();
+        fetchSessions({ status: 'scheduled' }); // Only upcoming sessions
+        fetchAttendance({ playerId: userId }); // Only their attendance
+        fetchPayments({ playerId: userId }); // Only their payments
       }
     }
   }, [userId, isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1072,7 +969,6 @@ export const useCoaching = (userId, isAdmin = false) => {
     sessions: state.sessions,
     attendance: state.attendance,
     payments: state.payments,
-    accessList: state.accessList,
     loading: state.loading,
     error: state.error,
 
@@ -1131,12 +1027,6 @@ export const useCoaching = (userId, isAdmin = false) => {
       sendPaymentReminders,
       getReminderHistory,
       validatePaymentToken,
-
-      // Access Control
-      fetchAccessList,
-      grantAccess,
-      revokeAccess,
-      checkUserAccess,
     },
   };
 };

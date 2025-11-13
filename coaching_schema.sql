@@ -5,8 +5,9 @@
 -- - Admin-configurable recurring coaching schedules
 -- - Session attendance tracking (self-registration + admin marking)
 -- - Payment tracking and billing
--- - Access control for coaching features
 -- - Historical data import capability
+--
+-- NOTE: Access control was removed in v1.1.0 - all authenticated users can access coaching
 -- ============================================================================
 
 -- ============================================================================
@@ -62,25 +63,11 @@ COMMENT ON TABLE coaching_sessions IS 'Individual coaching session instances';
 COMMENT ON COLUMN coaching_sessions.schedule_id IS 'Reference to recurring schedule (NULL if one-off session)';
 
 -- ============================================================================
--- TABLE: coaching_access
--- Controls which players can access coaching features
+-- TABLE: coaching_access (DEPRECATED - REMOVED IN v1.1.0)
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS coaching_access (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  player_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  granted_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  granted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  revoked_at TIMESTAMP WITH TIME ZONE,
-  is_active BOOLEAN GENERATED ALWAYS AS (revoked_at IS NULL) STORED,
-  notes TEXT,
-  UNIQUE(player_id) -- One record per player (soft delete via revoked_at)
-);
-
--- Index for finding active access
-CREATE INDEX IF NOT EXISTS idx_coaching_access_active ON coaching_access(player_id) WHERE revoked_at IS NULL;
-
-COMMENT ON TABLE coaching_access IS 'Access control - which players can use coaching features';
-COMMENT ON COLUMN coaching_access.is_active IS 'Generated column: true if revoked_at is NULL';
+-- This table was removed in migration v1.1.0-coaching
+-- Coaching features are now open to all authenticated users
+-- See: migrations/remove_coaching_access_control.sql
 
 -- ============================================================================
 -- TABLE: coaching_attendance
@@ -185,18 +172,11 @@ CREATE POLICY coaching_schedules_admin_all ON coaching_schedules
     )
   );
 
--- Players with coaching access can view active schedules
-CREATE POLICY coaching_schedules_player_select ON coaching_schedules
+-- All authenticated users can view active schedules (updated in v1.1.0)
+CREATE POLICY coaching_schedules_authenticated_select ON coaching_schedules
   FOR SELECT
   TO authenticated
-  USING (
-    is_active = true
-    AND EXISTS (
-      SELECT 1 FROM coaching_access
-      WHERE coaching_access.player_id = auth.uid()
-      AND coaching_access.revoked_at IS NULL
-    )
-  );
+  USING (is_active = true);
 
 -- ============================================================================
 -- RLS POLICIES: coaching_sessions
@@ -214,39 +194,17 @@ CREATE POLICY coaching_sessions_admin_all ON coaching_sessions
     )
   );
 
--- Players with coaching access can view sessions
-CREATE POLICY coaching_sessions_player_select ON coaching_sessions
+-- All authenticated users can view sessions (updated in v1.1.0)
+CREATE POLICY coaching_sessions_authenticated_select ON coaching_sessions
   FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM coaching_access
-      WHERE coaching_access.player_id = auth.uid()
-      AND coaching_access.revoked_at IS NULL
-    )
-  );
+  USING (true);
 
 -- ============================================================================
--- RLS POLICIES: coaching_access
+-- RLS POLICIES: coaching_access (REMOVED IN v1.1.0)
 -- ============================================================================
-
--- Admins can manage access
-CREATE POLICY coaching_access_admin_all ON coaching_access
-  FOR ALL
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
-    )
-  );
-
--- Players can view their own access status
-CREATE POLICY coaching_access_player_select_own ON coaching_access
-  FOR SELECT
-  TO authenticated
-  USING (player_id = auth.uid());
+-- These policies were removed when coaching_access table was dropped
+-- See: migrations/remove_coaching_access_control.sql
 
 -- ============================================================================
 -- RLS POLICIES: coaching_attendance
@@ -264,35 +222,24 @@ CREATE POLICY coaching_attendance_admin_all ON coaching_attendance
     )
   );
 
--- Players with access can view all attendance (to see who else is attending)
-CREATE POLICY coaching_attendance_player_select ON coaching_attendance
+-- All authenticated users can view attendance (updated in v1.1.0)
+CREATE POLICY coaching_attendance_authenticated_select ON coaching_attendance
   FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM coaching_access
-      WHERE coaching_access.player_id = auth.uid()
-      AND coaching_access.revoked_at IS NULL
-    )
-  );
+  USING (true);
 
--- Players can mark their own attendance (self-register)
-CREATE POLICY coaching_attendance_player_insert_own ON coaching_attendance
+-- Users can mark their own attendance (self-register) (updated in v1.1.0)
+CREATE POLICY coaching_attendance_user_insert_own ON coaching_attendance
   FOR INSERT
   TO authenticated
   WITH CHECK (
     player_id = auth.uid()
     AND marked_by = auth.uid()
     AND self_registered = true
-    AND EXISTS (
-      SELECT 1 FROM coaching_access
-      WHERE coaching_access.player_id = auth.uid()
-      AND coaching_access.revoked_at IS NULL
-    )
   );
 
--- Players can delete their own attendance (unregister)
-CREATE POLICY coaching_attendance_player_delete_own ON coaching_attendance
+-- Users can delete their own attendance (unregister)
+CREATE POLICY coaching_attendance_user_delete_own ON coaching_attendance
   FOR DELETE
   TO authenticated
   USING (

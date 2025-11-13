@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Calendar, Users, PoundSterling, Clock, Settings, Wallet } from 'lucide-react';
+import { Calendar, DollarSign, Clock, Settings, Wallet } from 'lucide-react';
 import { useCoaching } from '../../hooks/useCoaching';
 import ScheduleManagement from './Admin/ScheduleManagement';
 import UnifiedSessionManagement from './Admin/UnifiedSessionManagement';
 import PaymentManagement from './Admin/PaymentManagement';
 import CoachPaymentTracking from './Admin/CoachPaymentTracking';
-import AccessManagement from './Admin/AccessManagement';
 
 const CoachingAdminTab = ({ currentUser, allUsers }) => {
   const [activeSection, setActiveSection] = useState('schedules');
@@ -16,7 +15,6 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
     { id: 'sessions', name: 'Sessions & Attendance', icon: Calendar, color: 'green' },
     { id: 'payments', name: 'Player Payments', icon: PoundSterling, color: 'orange' },
     { id: 'coach-payments', name: 'Coach Payments', icon: Wallet, color: 'purple' },
-    { id: 'access', name: 'Access Control', icon: Users, color: 'red' },
   ];
 
   const renderSection = () => {
@@ -56,16 +54,6 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
         return (
           <CoachPaymentTracking
             userId={currentUser?.id}
-          />
-        );
-      case 'access':
-        return (
-          <AccessManagement
-            accessList={coaching.accessList}
-            loading={coaching.loading.access}
-            actions={coaching.actions}
-            allUsers={allUsers}
-            currentUser={currentUser}
           />
         );
       default:

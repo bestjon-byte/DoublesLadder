@@ -10,28 +10,16 @@ const CoachingUserTab = ({ currentUser }) => {
   const coaching = useCoaching(currentUser?.id, false);
   const { success, error } = useAppToast();
   const [activeTab, setActiveTab] = useState('sessions'); // 'sessions', 'payments'
-  const [sessionFilter, setSessionFilter] = useState('upcoming'); // 'upcoming', 'past', 'cancelled', 'all'
-  const [hasAccess, setHasAccess] = useState(false);
-  const [checkingAccess, setCheckingAccess] = useState(true);
   const [paymentSummary, setPaymentSummary] = useState(null);
   const [mySessions, setMySessions] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState([]);
 
   useEffect(() => {
-    if (currentUser?.id) {
-      coaching.actions.checkUserAccess().then(result => {
-        setHasAccess(result.hasAccess);
-        setCheckingAccess(false);
-      });
-    }
-  }, [currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (hasAccess && activeTab === 'payments' && currentUser?.id) {
+    if (activeTab === 'payments' && currentUser?.id) {
       loadPaymentData();
     }
-  }, [hasAccess, activeTab, currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeTab, currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPaymentData = async () => {
     setLoadingPayments(true);
@@ -120,25 +108,6 @@ const CoachingUserTab = ({ currentUser }) => {
       setSelectedSessions(prev => [...new Set([...prev, ...unpaidSessions.map(s => s.attendance_id)])]);
     }
   };
-
-  if (checkingAccess) {
-    return <LoadingSpinner />;
-  }
-
-  if (!hasAccess) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-8 text-center">
-        <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Coaching Access Required</h2>
-        <p className="text-gray-600 mb-4">
-          You don't have access to coaching sessions yet.
-        </p>
-        <p className="text-sm text-gray-500">
-          Please contact an administrator if you'd like to join coaching sessions.
-        </p>
-      </div>
-    );
-  }
 
   const today = new Date().toISOString().split('T')[0];
   const myAttendance = coaching.attendance.filter(a => a.player_id === currentUser.id);

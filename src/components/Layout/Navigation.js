@@ -31,7 +31,7 @@ const Navigation = ({ activeTab, setActiveTab, currentUser, ladderPlayers, selec
       id: 'coaching',
       icon: GraduationCap,
       label: 'Coaching',
-      show: true // All users can see coaching tab (access control handled in component)
+      show: true // Coaching is open to all users
     },
     {
       id: 'admin',
