@@ -4,6 +4,7 @@ import { useCoaching } from '../../hooks/useCoaching';
 import { useAppToast } from '../../contexts/ToastContext';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
 import { formatDateResponsive, formatDateShort } from '../../utils/dateFormatting';
+import { formatTime, getSessionTypeColors } from '../../utils/timeFormatter';
 
 const CoachingUserTab = ({ currentUser }) => {
   const coaching = useCoaching(currentUser?.id, false);
@@ -259,6 +260,7 @@ const CoachingUserTab = ({ currentUser }) => {
                         const myAttendanceRecord = myAttendanceMap.get(session.id);
                         const isRegistered = !!myAttendanceRecord;
 
+                        const colors = getSessionTypeColors(session.session_type);
                         return (
                           <div
                             key={session.id}
@@ -267,13 +269,7 @@ const CoachingUserTab = ({ currentUser }) => {
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2 flex-wrap">
-                                  <span className={`
-                                    px-3 py-1 rounded-full text-sm font-medium
-                                    ${session.session_type === 'Adults'
-                                      ? 'bg-blue-100 text-blue-700'
-                                      : 'bg-green-100 text-green-700'
-                                    }
-                                  `}>
+                                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}>
                                     {session.session_type}
                                   </span>
                                   {isRegistered && (
@@ -291,7 +287,7 @@ const CoachingUserTab = ({ currentUser }) => {
                                 </div>
                                 <div className="flex items-center gap-2 text-gray-600">
                                   <Clock className="w-4 h-4" />
-                                  <span>{session.session_time}</span>
+                                  <span>{formatTime(session.session_time)}</span>
                                 </div>
                                 {session.notes && (
                                   <p className="text-sm text-gray-500 mt-2">{session.notes}</p>
@@ -341,6 +337,7 @@ const CoachingUserTab = ({ currentUser }) => {
                         <div className="space-y-3">
                           {filteredSessions.map((session) => {
                             const myAttendanceRecord = myAttendanceMap.get(session.id);
+                            const colors = getSessionTypeColors(session.session_type);
                             const getStatusBadge = (status) => {
                               const styles = {
                                 scheduled: 'bg-blue-100 text-blue-700',
@@ -362,13 +359,7 @@ const CoachingUserTab = ({ currentUser }) => {
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                      <span className={`
-                                        px-3 py-1 rounded-full text-sm font-medium
-                                        ${session.session_type === 'Adults'
-                                          ? 'bg-blue-100 text-blue-700'
-                                          : 'bg-green-100 text-green-700'
-                                        }
-                                      `}>
+                                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}>
                                         {session.session_type}
                                       </span>
                                       {getStatusBadge(session.status)}
@@ -378,7 +369,7 @@ const CoachingUserTab = ({ currentUser }) => {
                                     </div>
                                     <div className="flex items-center gap-2 text-gray-600">
                                       <Clock className="w-4 h-4" />
-                                      <span>{session.session_time}</span>
+                                      <span>{formatTime(session.session_time)}</span>
                                     </div>
                                     {session.notes && (
                                       <p className="text-sm text-gray-500 mt-2">{session.notes}</p>

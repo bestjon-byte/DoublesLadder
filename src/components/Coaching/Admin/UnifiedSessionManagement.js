@@ -6,6 +6,7 @@ import CancelSessionModal from '../Modals/CancelSessionModal';
 import MarkAttendanceModal from '../Modals/MarkAttendanceModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { formatDateResponsive, formatDateShort } from '../../../utils/dateFormatting';
+import { formatTime, getSessionTypeColors } from '../../../utils/timeFormatter';
 
 const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, actions, allUsers, currentUser }) => {
   const { success, error } = useAppToast();
@@ -168,6 +169,7 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
           {filteredSessions.map((session) => {
             const sessionAttendance = attendance.filter(a => a.session_id === session.id);
             const isExpanded = expandedSessions.has(session.id);
+            const colors = getSessionTypeColors(session.session_type);
 
             return (
               <div
@@ -179,13 +181,7 @@ const UnifiedSessionManagement = ({ sessions, schedules, loading, attendance, ac
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className={`
-                          px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap
-                          ${session.session_type === 'Adults'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-green-100 text-green-700'
-                          }
-                        `}>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${colors.bg} ${colors.text}`}>
                           {session.session_type}
                         </span>
                         {getStatusBadge(session.status)}

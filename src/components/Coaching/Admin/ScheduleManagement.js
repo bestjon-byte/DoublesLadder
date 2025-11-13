@@ -4,6 +4,7 @@ import { useAppToast } from '../../../contexts/ToastContext';
 import ScheduleModal from '../Modals/ScheduleModal';
 import GenerateSessionsModal from '../Modals/GenerateSessionsModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
+import { formatTime, getSessionTypeColors } from '../../../utils/timeFormatter';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -110,30 +111,26 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
         </div>
       ) : (
         <div className="grid gap-4">
-          {activeSchedules.map((schedule) => (
-            <div
-              key={schedule.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <span className={`
-                      px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap
-                      ${schedule.session_type === 'Adults'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-green-100 text-green-700'
-                      }
-                    `}>
-                      {schedule.session_type}
-                    </span>
-                    <span className="text-gray-900 font-medium whitespace-nowrap">
-                      Every {DAY_NAMES[schedule.day_of_week]}
-                    </span>
-                    <span className="text-gray-600 whitespace-nowrap">
-                      at {schedule.session_time}
-                    </span>
-                  </div>
+          {activeSchedules.map((schedule) => {
+            const colors = getSessionTypeColors(schedule.session_type);
+            return (
+              <div
+                key={schedule.id}
+                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${colors.bg} ${colors.text}`}>
+                        {schedule.session_type}
+                      </span>
+                      <span className="text-gray-900 font-medium whitespace-nowrap">
+                        Every {DAY_NAMES[schedule.day_of_week]}
+                      </span>
+                      <span className="text-gray-600 whitespace-nowrap">
+                        at {formatTime(schedule.session_time)}
+                      </span>
+                    </div>
                   {schedule.notes && (
                     <p className="text-sm text-gray-600">{schedule.notes}</p>
                   )}
@@ -159,7 +156,8 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
