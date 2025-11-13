@@ -10,6 +10,7 @@ const CoachingUserTab = ({ currentUser }) => {
   const coaching = useCoaching(currentUser?.id, false);
   const { success, error } = useAppToast();
   const [activeTab, setActiveTab] = useState('sessions'); // 'sessions', 'payments'
+  const [sessionFilter, setSessionFilter] = useState('upcoming'); // 'all', 'upcoming', 'past', 'cancelled'
   const [paymentSummary, setPaymentSummary] = useState(null);
   const [mySessions, setMySessions] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
