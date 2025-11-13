@@ -31,15 +31,16 @@ import './components/TrophyCabinet/TrophyCabinet.css';
 const CawoodTennisApp = () => {
   // Authentication hook
   const authData = useAuth();
-  const { 
-    user = null, 
-    loading: authLoading = true, 
-    authMode = 'normal', 
+  const {
+    user = null,
+    loading: authLoading = true,
+    authMode = 'normal',
     actions: authActions = {}
   } = authData || {};
-  
-  // NEW: Season management hook
-  const seasonData = useSeasonManager();
+
+  // NEW: Season management hook - only load seasons when authenticated
+  const isAuthenticated = !!user;
+  const seasonData = useSeasonManager(isAuthenticated);
   const {
     seasons = [],
     activeSeason = null,

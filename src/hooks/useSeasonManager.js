@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 
-export const useSeasonManager = () => {
+export const useSeasonManager = (isAuthenticated = false) => {
   const [seasons, setSeasons] = useState([]);
   const [activeSeason, setActiveSeason] = useState(null);
   const [selectedSeason, setSelectedSeason] = useState(null);
@@ -171,10 +171,17 @@ export const useSeasonManager = () => {
     }
   }, [fetchSeasons]);
 
-  // Initialize on mount
+  // Initialize on mount - but ONLY if authenticated
   useEffect(() => {
+    // Don't load seasons until user is authenticated
+    if (!isAuthenticated) {
+      console.log('⏸️ [useSeasonManager] Waiting for authentication before loading seasons');
+      setLoading(false); // Set loading to false so app doesn't hang
+      return;
+    }
+
     const initializeSeasons = async () => {
-      console.log('🟢 [useSeasonManager] Starting season initialization...');
+      console.log('🟢 [useSeasonManager] Starting season initialization (user authenticated)...');
 
       // Set timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
@@ -195,9 +202,8 @@ export const useSeasonManager = () => {
       }
     };
 
-    // Start immediately - no need to wait for auth
     initializeSeasons();
-  }, [fetchSeasons]);
+  }, [isAuthenticated, fetchSeasons]);
 
   // Listen for refresh events from other components
   useEffect(() => {
