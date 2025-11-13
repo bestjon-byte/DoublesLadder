@@ -310,6 +310,26 @@ const PlayerMergeModal = ({
       }
       // Score conflicts updated for merged player
 
+      // Step 7a: Update coaching attendance records
+      const { error: coachingAttendanceError } = await supabase
+        .from('coaching_attendance')
+        .update({ player_id: selectedRealUser.id })
+        .eq('player_id', selectedCsvPlayer.id);
+
+      if (coachingAttendanceError) {
+        console.warn('Warning updating coaching attendance:', coachingAttendanceError);
+      }
+
+      // Step 7b: Update coaching payments
+      const { error: coachingPaymentsError } = await supabase
+        .from('coaching_payments')
+        .update({ player_id: selectedRealUser.id })
+        .eq('player_id', selectedCsvPlayer.id);
+
+      if (coachingPaymentsError) {
+        console.warn('Warning updating coaching payments:', coachingPaymentsError);
+      }
+
       // Step 8: Verify all references are updated before attempting delete
       // Checking for any remaining references to old player
       
@@ -588,7 +608,31 @@ const PlayerMergeModal = ({
         toast.info(`Updated ${totalCacheUpdates} player cache reference(s)`);
       }
 
-      // Step 9: Final verification and deletion
+      // Step 9: Update coaching attendance records
+      const { error: coachingAttendanceError, count: coachingAttendanceCount } = await supabase
+        .from('coaching_attendance')
+        .update({ player_id: selectedTargetPlayer.id })
+        .eq('player_id', selectedSourcePlayer.id);
+
+      if (coachingAttendanceError) {
+        console.warn('Warning updating coaching attendance:', coachingAttendanceError);
+      } else if (coachingAttendanceCount > 0) {
+        toast.info(`Updated ${coachingAttendanceCount} coaching attendance record(s)`);
+      }
+
+      // Step 10: Update coaching payments
+      const { error: coachingPaymentsError, count: coachingPaymentsCount } = await supabase
+        .from('coaching_payments')
+        .update({ player_id: selectedTargetPlayer.id })
+        .eq('player_id', selectedSourcePlayer.id);
+
+      if (coachingPaymentsError) {
+        console.warn('Warning updating coaching payments:', coachingPaymentsError);
+      } else if (coachingPaymentsCount > 0) {
+        toast.info(`Updated ${coachingPaymentsCount} coaching payment record(s)`);
+      }
+
+      // Step 11: Final verification and deletion
       const verificationQueries = [
         { table: 'season_players', field: 'player_id' },
         { table: 'availability', field: 'player_id' },
@@ -597,7 +641,9 @@ const PlayerMergeModal = ({
         { table: 'score_conflicts', field: 'conflicting_user_id' },
         { table: 'league_match_rubbers', field: 'cawood_player1_id' },
         { table: 'league_match_rubbers', field: 'cawood_player2_id' },
-        { table: 'player_match_cache', field: 'matched_player_id' }
+        { table: 'player_match_cache', field: 'matched_player_id' },
+        { table: 'coaching_attendance', field: 'player_id' },
+        { table: 'coaching_payments', field: 'player_id' }
       ];
 
       for (const query of verificationQueries) {
