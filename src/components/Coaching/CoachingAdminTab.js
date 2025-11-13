@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, DollarSign, Clock, Settings, Wallet } from 'lucide-react';
+import { Calendar, Banknote, Clock, Settings, Wallet } from 'lucide-react';
 import { useCoaching } from '../../hooks/useCoaching';
 import ScheduleManagement from './Admin/ScheduleManagement';
 import UnifiedSessionManagement from './Admin/UnifiedSessionManagement';
@@ -13,7 +13,7 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
   const sections = [
     { id: 'schedules', name: 'Schedules', icon: Clock, color: 'blue' },
     { id: 'sessions', name: 'Sessions & Attendance', icon: Calendar, color: 'green' },
-    { id: 'payments', name: 'Player Payments', icon: PoundSterling, color: 'orange' },
+    { id: 'payments', name: 'Player Payments', icon: Banknote, color: 'orange' },
     { id: 'coach-payments', name: 'Coach Payments', icon: Wallet, color: 'purple' },
   ];
 
