@@ -15,7 +15,6 @@ const SchedulingOptionsModal = ({
   if (!showModal) return null;
 
   // Debug logging
-  console.log('SchedulingOptionsModal props:', {
     winPercentPreview,
     eloPreview,
     isLoadingPreviews,

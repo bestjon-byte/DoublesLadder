@@ -11,7 +11,6 @@ export const useSeasonManager = (isAuthenticated = false) => {
   // Fetch all seasons (NEW: includes league expansion support)
   const fetchSeasons = useCallback(async () => {
     try {
-      console.log('🔵 [useSeasonManager] Fetching seasons from database...');
       setLoading(true);
       const { data, error } = await supabase
         .from('seasons')
@@ -21,7 +20,6 @@ export const useSeasonManager = (isAuthenticated = false) => {
         `)
         .order('created_at', { ascending: false });
 
-      console.log('🔵 [useSeasonManager] Database query completed. Data:', data?.length, 'seasons');
       if (error) {
         console.error('❌ [useSeasonManager] Database error:', error);
         throw error;
@@ -175,13 +173,11 @@ export const useSeasonManager = (isAuthenticated = false) => {
   useEffect(() => {
     // Don't load seasons until user is authenticated
     if (!isAuthenticated) {
-      console.log('⏸️ [useSeasonManager] Waiting for authentication before loading seasons');
       setLoading(false); // Set loading to false so app doesn't hang
       return;
     }
 
     const initializeSeasons = async () => {
-      console.log('🟢 [useSeasonManager] Starting season initialization (user authenticated)...');
 
       // Set timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
@@ -192,7 +188,6 @@ export const useSeasonManager = (isAuthenticated = false) => {
 
       try {
         await fetchSeasons();
-        console.log('✅ [useSeasonManager] Season initialization completed successfully');
         clearTimeout(timeoutId);
       } catch (error) {
         console.error('❌ [useSeasonManager] Season initialization failed:', error);

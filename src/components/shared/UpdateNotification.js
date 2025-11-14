@@ -11,7 +11,6 @@ const UpdateNotification = () => {
 
   useEffect(() => {
     const handleVersionEvent = (type, data) => {
-      console.log('[UpdateNotification] Version event:', type, data);
       
       if (type === 'updateAvailable') {
         setUpdateInfo(data);
