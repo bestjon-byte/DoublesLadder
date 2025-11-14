@@ -8,6 +8,11 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
 const FROM_EMAIL = 'cawoodtennis@gmail.com'
 const APP_URL = 'https://cawood-tennis.vercel.app' // Production domain
 
+// Debug: Log if API key is present (but not the actual key for security)
+console.log('RESEND_API_KEY present:', !!RESEND_API_KEY && RESEND_API_KEY.length > 0)
+console.log('RESEND_API_KEY length:', RESEND_API_KEY?.length ?? 0)
+console.log('RESEND_API_KEY prefix:', RESEND_API_KEY?.substring(0, 5) ?? 'empty')
+
 // Rate limiting: Resend allows 2 requests per second
 // We'll use 600ms delay to stay safely under that limit (~1.6 emails/sec)
 const EMAIL_SEND_DELAY_MS = 600
