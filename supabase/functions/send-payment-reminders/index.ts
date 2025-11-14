@@ -4,9 +4,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const RESEND_API_KEY = 're_XmpqYGZv_FaXAyDp8n3CDDKWD4qpiC3Qe'
-const FROM_EMAIL = 'cawoodtennis@gmail.com'
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
+const FROM_EMAIL = 'coaching@cawoodtennisclub.co.uk' // Verified custom domain
 const APP_URL = 'https://cawood-tennis.vercel.app' // Production domain
+
+// Debug: Log if API key is present (but not the actual key for security)
+console.log('RESEND_API_KEY present:', !!RESEND_API_KEY && RESEND_API_KEY.length > 0)
+console.log('RESEND_API_KEY length:', RESEND_API_KEY?.length ?? 0)
+console.log('RESEND_API_KEY prefix:', RESEND_API_KEY?.substring(0, 5) ?? 'empty')
 
 // Rate limiting: Resend allows 2 requests per second
 // We'll use 600ms delay to stay safely under that limit (~1.6 emails/sec)
@@ -127,10 +132,10 @@ serve(async (req) => {
 
     // Send email to each player
     for (const payment of payments as Payment[]) {
-      try {
-        // Create payment record from unpaid sessions (if payment_id is temporary)
-        let actualPaymentId = payment.payment_id
+      // Declare actualPaymentId outside try-catch so it's accessible in catch block
+      let actualPaymentId = payment.payment_id
 
+      try {
         // Create payment record from this player's unpaid sessions
         const { data: createdPaymentId, error: createError } = await supabaseClient
           .rpc('create_payment_from_unpaid_sessions', {
