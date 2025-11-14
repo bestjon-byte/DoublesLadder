@@ -1205,7 +1205,6 @@ export const useApp = (userId, selectedSeasonId) => {
 
   const deleteSeason = useCallback(async (seasonId, seasonName) => {
     try {
-      console.log(`Deleting season ${seasonName} with ELO restoration...`);
       
       // ===== PHASE 1: GET SEASON DATA FOR ELO RESTORATION =====
       
@@ -1217,7 +1216,6 @@ export const useApp = (userId, selectedSeasonId) => {
         
       if (seasonPlayersQueryError) throw seasonPlayersQueryError;
       
-      console.log(`Found ${seasonPlayers?.length || 0} season players to process for ELO restoration`);
       
       // ===== PHASE 2: DELETE ELO HISTORY FIRST =====
       
@@ -1225,7 +1223,6 @@ export const useApp = (userId, selectedSeasonId) => {
         const seasonPlayerIds = seasonPlayers.map(sp => sp.id);
         
         // Delete ELO history for this season
-        console.log('Deleting ELO history records...');
         const { error: eloHistoryError } = await supabase
           .from('elo_history')
           .delete()
@@ -1255,7 +1252,6 @@ export const useApp = (userId, selectedSeasonId) => {
           const fixtureIds = fixtures.map(f => f.id);
           
           // Delete score challenges
-          console.log('Deleting score challenges...');
           const { error: challengesError } = await supabase
             .from('score_challenges')
             .delete()
@@ -1263,7 +1259,6 @@ export const useApp = (userId, selectedSeasonId) => {
           if (challengesError) throw challengesError;
           
           // Delete score conflicts
-          console.log('Deleting score conflicts...');
           const { error: conflictsError } = await supabase
             .from('score_conflicts')
             .delete()
@@ -1271,7 +1266,6 @@ export const useApp = (userId, selectedSeasonId) => {
           if (conflictsError) throw conflictsError;
           
           // Delete match results
-          console.log('Deleting match results...');
           const { error: resultsError } = await supabase
             .from('match_results')
             .delete()
@@ -1280,7 +1274,6 @@ export const useApp = (userId, selectedSeasonId) => {
         }
         
         // Delete match fixtures
-        console.log('Deleting match fixtures...');
         const { error: fixturesError } = await supabase
           .from('match_fixtures')
           .delete()
@@ -1290,7 +1283,6 @@ export const useApp = (userId, selectedSeasonId) => {
         // Delete availability records for these match dates
         const matchDates = seasonMatches.map(m => m.match_date);
         if (matchDates.length > 0) {
-          console.log('Deleting availability records...');
           const { error: availabilityError } = await supabase
             .from('availability')
             .delete()
@@ -1299,7 +1291,6 @@ export const useApp = (userId, selectedSeasonId) => {
         }
         
         // Delete matches
-        console.log('Deleting matches...');
         const { error: matchesError } = await supabase
           .from('matches')
           .delete()
@@ -1310,7 +1301,6 @@ export const useApp = (userId, selectedSeasonId) => {
       // ===== PHASE 4: ELO RESTORATION LOGIC =====
       
       if (seasonPlayers && seasonPlayers.length > 0) {
-        console.log('Starting ELO restoration process...');
         
         for (const seasonPlayer of seasonPlayers) {
           const { player_id } = seasonPlayer;
@@ -1325,9 +1315,7 @@ export const useApp = (userId, selectedSeasonId) => {
           if (restoreError) {
             console.warn(`Error restoring ELO for player ${player_id}:`, restoreError);
           } else if (restoredRating !== null) {
-            console.log(`✅ Player ${player_id}: ELO restored to ${restoredRating} in all active seasons`);
           } else {
-            console.log(`ℹ️ Player ${player_id}: No previous ELO history found to restore`);
           }
         }
       }
@@ -1335,7 +1323,6 @@ export const useApp = (userId, selectedSeasonId) => {
       // ===== PHASE 5: DELETE SEASON PLAYERS AND SEASON =====
       
       // Delete season players
-      console.log('Deleting season players...');
       const { error: seasonPlayersError } = await supabase
         .from('season_players')
         .delete()
@@ -1343,7 +1330,6 @@ export const useApp = (userId, selectedSeasonId) => {
       if (seasonPlayersError) throw seasonPlayersError;
       
       // Delete trophy cabinet entries
-      console.log('Deleting trophy cabinet entries...');
       const { error: trophyError } = await supabase
         .from('trophy_cabinet')
         .delete()
@@ -1351,14 +1337,12 @@ export const useApp = (userId, selectedSeasonId) => {
       if (trophyError) throw trophyError;
       
       // Finally, delete the season itself
-      console.log('Deleting season...');
       const { error: seasonError } = await supabase
         .from('seasons')
         .delete()
         .eq('id', seasonId);
       if (seasonError) throw seasonError;
       
-      console.log(`✅ Successfully deleted season "${seasonName}" with ELO restoration`);
       
       // Refresh data
       await Promise.all([
@@ -1653,7 +1637,6 @@ export const useApp = (userId, selectedSeasonId) => {
 
     const loadInitialData = async () => {
       // Loading app data for user
-      console.log('🔵 [useApp] Starting initial data load for user:', userId);
       setLoading('initial', true);
 
       // Set timeout to prevent infinite loading
@@ -1664,20 +1647,12 @@ export const useApp = (userId, selectedSeasonId) => {
       }, 25000); // 25 second timeout for app data - increased for slower connections
 
       try {
-        console.log('🔵 [useApp] Step 1: Fetching users and seasons...');
         await Promise.all([
-          fetchUsers().then(r => { console.log('✅ [useApp] fetchUsers completed'); return r; }),
-          fetchSeasons().then(r => { console.log('✅ [useApp] fetchSeasons completed'); return r; }),
         ]);
 
-        console.log('🔵 [useApp] Step 2: Fetching availability, fixtures, and results...');
         await Promise.all([
-          fetchAvailability().then(r => { console.log('✅ [useApp] fetchAvailability completed'); return r; }),
-          fetchMatchFixtures().then(r => { console.log('✅ [useApp] fetchMatchFixtures completed'); return r; }),
-          fetchMatchResults().then(r => { console.log('✅ [useApp] fetchMatchResults completed'); return r; }),
         ]);
 
-        console.log('✅ [useApp] All initial data loaded successfully');
         clearTimeout(timeoutId);
       } catch (error) {
         console.error('❌ [useApp] Error loading initial data:', error);

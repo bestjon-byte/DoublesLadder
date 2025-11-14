@@ -8,23 +8,58 @@ class VersionManager {
     this.swRegistration = null;
     this.updateAvailable = false;
     this.listeners = new Set();
+    this.preReloadCallbacks = new Set();
+  }
+
+  // Add callback to execute before reload (for saving state)
+  addPreReloadCallback(callback) {
+    this.preReloadCallbacks.add(callback);
+    return () => this.preReloadCallbacks.delete(callback);
+  }
+
+  // Execute all pre-reload callbacks and then reload
+  async gracefulReload(reason = 'update') {
+    // Notify all pre-reload callbacks
+    const promises = [];
+    this.preReloadCallbacks.forEach(callback => {
+      try {
+        const result = callback(reason);
+        if (result instanceof Promise) {
+          promises.push(result);
+        }
+      } catch (error) {
+        console.error('[VM] Pre-reload callback error:', error);
+      }
+    });
+
+    // Wait for all callbacks to complete (with timeout)
+    if (promises.length > 0) {
+      try {
+        await Promise.race([
+          Promise.all(promises),
+          new Promise(resolve => setTimeout(resolve, 1000)) // 1s timeout
+        ]);
+      } catch (error) {
+        console.error('[VM] Pre-reload promises failed:', error);
+      }
+    }
+
+    // Now perform the reload
+    window.location.reload();
   }
 
   // Initialize service worker and version checking
   async init() {
     if ('serviceWorker' in navigator) {
       try {
-        console.log('[VM] Registering service worker...');
         this.swRegistration = await navigator.serviceWorker.register('/sw.js');
         
         // Listen for service worker updates
         this.swRegistration.addEventListener('updatefound', () => {
-          console.log('[VM] New service worker found, installing...');
           const newWorker = this.swRegistration.installing;
           
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[VM] New version available!');
               this.updateAvailable = true;
               this.notifyListeners('updateAvailable', { version: this.currentVersion });
             }
@@ -33,7 +68,6 @@ class VersionManager {
 
         // Listen for service worker messages
         navigator.serviceWorker.addEventListener('message', (event) => {
-          console.log('[VM] Received message from SW:', event.data);
           
           if (event.data.type === 'NEW_VERSION_ACTIVE') {
             this.notifyListeners('newVersionActive', event.data);
@@ -48,7 +82,6 @@ class VersionManager {
         // Initial check
         this.checkForUpdates();
         
-        console.log('[VM] Version manager initialized successfully');
         return true;
       } catch (error) {
         console.error('[VM] Service worker registration failed:', error);
@@ -65,7 +98,6 @@ class VersionManager {
     if (this.swRegistration) {
       try {
         await this.swRegistration.update();
-        console.log('[VM] Checked for updates');
       } catch (error) {
         console.error('[VM] Update check failed:', error);
       }
@@ -77,14 +109,13 @@ class VersionManager {
     if (this.swRegistration && this.updateAvailable) {
       const newWorker = this.swRegistration.waiting;
       if (newWorker) {
-        console.log('[VM] Applying update...');
         newWorker.postMessage({ type: 'SKIP_WAITING' });
-        
-        // Reload page after a short delay
-        setTimeout(() => {
-          window.location.reload();
+
+        // Gracefully reload page after a short delay
+        setTimeout(async () => {
+          await this.gracefulReload('serviceWorkerUpdate');
         }, 500);
-        
+
         return true;
       }
     }
@@ -97,13 +128,12 @@ class VersionManager {
       // Clear service worker cache
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         const messageChannel = new MessageChannel();
-        messageChannel.port1.onmessage = (event) => {
+        messageChannel.port1.onmessage = async (event) => {
           if (event.data.type === 'CACHE_CLEARED') {
-            console.log('[VM] Cache cleared, reloading...');
-            window.location.reload();
+            await this.gracefulReload('cacheCleared');
           }
         };
-        
+
         navigator.serviceWorker.controller.postMessage(
           { type: 'CLEAR_CACHE' },
           [messageChannel.port2]
@@ -114,12 +144,12 @@ class VersionManager {
           const cacheNames = await caches.keys();
           await Promise.all(cacheNames.map(name => caches.delete(name)));
         }
-        window.location.reload();
+        await this.gracefulReload('cacheClearedFallback');
       }
     } catch (error) {
       console.error('[VM] Failed to clear cache:', error);
-      // Force reload anyway
-      window.location.reload();
+      // Gracefully reload anyway
+      await this.gracefulReload('cacheClearError');
     }
   }
 

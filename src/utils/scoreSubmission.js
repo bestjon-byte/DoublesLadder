@@ -110,7 +110,6 @@ export const submitScoreWithConflictHandling = async (fixtureId, pair1Score, pai
         pair2_score: parseInt(pair2Score)
       });
       
-      console.log('✅ ELO update result:', eloResult);
     } catch (eloError) {
       console.warn('⚠️ ELO update failed (non-critical):', eloError);
       // Don't fail the score submission if ELO update fails

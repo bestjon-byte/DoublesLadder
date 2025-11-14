@@ -303,6 +303,5 @@ Selby 2    9.5    2.5    Cawood 2
 69    39`;
 
   const result = parseLeagueMatchFromText(testText);
-  console.log('Text Parse Result:', JSON.stringify(result, null, 2));
   return result;
 };

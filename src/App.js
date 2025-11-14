@@ -82,6 +82,17 @@ const CawoodTennisApp = () => {
 
   // Show error state if any hook has an error (but not if still loading)
   if (!authLoading && !seasonLoading && !dataLoading?.initial && (error || seasonData?.error || authData?.error)) {
+    const handleRetry = async () => {
+      // Retry connection by refetching all data
+      if (refetch?.all) {
+        try {
+          await refetch.all();
+        } catch (error) {
+          // Error will be handled by hooks
+        }
+      }
+    };
+
     return (
       <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
@@ -90,10 +101,10 @@ const CawoodTennisApp = () => {
             There was a problem connecting to the server. This may be temporary.
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={handleRetry}
             className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
           >
-            Refresh Page
+            Retry Connection
           </button>
         </div>
       </div>
@@ -170,10 +181,10 @@ const CawoodTennisApp = () => {
 
   // Loading state with manual override after timeout
   if (authLoading || seasonLoading || dataLoading?.initial) {
-    const loadingMessage = authLoading ? 'Authenticating...' : 
-                          seasonLoading ? 'Loading seasons...' : 
+    const loadingMessage = authLoading ? 'Authenticating...' :
+                          seasonLoading ? 'Loading seasons...' :
                           'Loading app data...';
-    return <LoadingScreen message={loadingMessage} />;
+    return <LoadingScreen message={loadingMessage} onRetry={refetch?.all} />;
   }
 
   // Main app - MOVED ToastProvider to wrap everything

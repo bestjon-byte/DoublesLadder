@@ -14,15 +14,6 @@ const SchedulingOptionsModal = ({
 }) => {
   if (!showModal) return null;
 
-  // Debug logging
-  console.log('SchedulingOptionsModal props:', {
-    winPercentPreview,
-    eloPreview,
-    isLoadingPreviews,
-    availablePlayersCount,
-    seasonEloEnabled
-  });
-
   const handleOptionSelect = (option) => {
     onMethodSelect(option);  // Trigger next modal instead of confirming
     // Don't close this modal yet - parent will handle transition

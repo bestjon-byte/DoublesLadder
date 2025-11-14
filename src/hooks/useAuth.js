@@ -18,7 +18,6 @@ export const useAuth = () => {
 
   // Load user profile with timeout and retry logic
   const loadUserProfile = useCallback(async (userId) => {
-    console.log('🔵 [useAuth] Loading profile for user:', userId);
 
     // Create timeout promise
     const timeoutPromise = new Promise((_, reject) => {
@@ -44,7 +43,6 @@ export const useAuth = () => {
         return null;
       }
 
-      console.log('✅ [useAuth] Profile loaded successfully:', profile?.name, '(', profile?.role, ')');
       setUser(profile);
       return profile;
     } catch (error) {
@@ -209,12 +207,10 @@ export const useAuth = () => {
     
     const initializeAuth = async () => {
       try {
-        console.log('🟢 [useAuth] Starting auth initialization...');
 
         // Check for password reset mode first
         const isPasswordReset = checkForPasswordReset();
         if (isPasswordReset) {
-          console.log('🔵 [useAuth] Password reset mode detected');
           if (isActive) {
             setAuthMode('reset');
             setLoading(false);
@@ -222,11 +218,9 @@ export const useAuth = () => {
           return;
         }
 
-        console.log('🔵 [useAuth] Getting current session...');
         // Get current session with timeout protection
         const { data: { session }, error } = await supabase.auth.getSession();
 
-        console.log('🔵 [useAuth] Session retrieved:', session ? 'User logged in' : 'No session');
 
         if (!isActive) return; // Component unmounted
 
