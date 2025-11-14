@@ -4,7 +4,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const RESEND_API_KEY = 're_XmpqYGZv_FaXAyDp8n3CDDKWD4qpiC3Qe'
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') ?? ''
 const FROM_EMAIL = 'cawoodtennis@gmail.com'
 const APP_URL = 'https://cawood-tennis.vercel.app' // Production domain
 
