@@ -1648,9 +1648,14 @@ export const useApp = (userId, selectedSeasonId) => {
 
       try {
         await Promise.all([
+          fetchUsers(),
+          fetchSeasons()
         ]);
 
         await Promise.all([
+          fetchAvailability(),
+          fetchMatchFixtures(),
+          fetchMatchResults()
         ]);
 
         clearTimeout(timeoutId);
