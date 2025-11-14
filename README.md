@@ -1,261 +1,352 @@
-# Tennis Ladder App Documentation
+# Cawood Tennis Club Management System
 
-## 📚 Complete Documentation Suite
-
-This documentation package provides comprehensive information for developers, administrators, and maintainers of the Tennis Ladder application. All documentation has been generated through systematic analysis of the codebase and is current as of the project cleanup effort.
-
----
-
-## 📖 Documentation Index
-
-### **1. [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md)**
-- **Purpose**: High-level project description and technology stack
-- **Audience**: New developers, stakeholders, project managers
-- **Contents**: Core features, architecture, browser support, development status
-
-### **2. [COMPONENTS_REFERENCE.md](./COMPONENTS_REFERENCE.md)**  
-- **Purpose**: Detailed component documentation and data flow
-- **Audience**: Frontend developers, UI/UX designers
-- **Contents**: Component purposes, props, dependencies, usage patterns
-
-### **3. [HOOKS_AND_UTILITIES.md](./HOOKS_AND_UTILITIES.md)**
-- **Purpose**: Custom hooks and utility functions documentation
-- **Audience**: React developers, backend integration developers
-- **Contents**: Hook APIs, state management, utility functions, performance considerations
-
-### **4. [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)**
-- **Purpose**: Complete database structure and relationships
-- **Audience**: Database administrators, backend developers
-- **Contents**: Table structures, relationships, constraints, security policies
-
-### **5. [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)**
-- **Purpose**: Deployment processes and configuration management
-- **Audience**: DevOps engineers, deployment managers
-- **Contents**: Deployment methods, environment setup, monitoring, troubleshooting
-
-### **6. [CLEANUP_RECOMMENDATIONS.md](./CLEANUP_RECOMMENDATIONS.md)**
-- **Purpose**: Technical debt reduction and optimization strategies
-- **Audience**: Development team leads, code reviewers
-- **Contents**: Unused code identification, refactoring opportunities, implementation strategy
+**Version:** 1.0.175
+**Status:** ✅ Live in Production
+**Last Updated:** 2025-11-13
 
 ---
 
-## 🚀 Quick Start Guide
+## 🎾 Quick Links
 
-### For New Developers
-1. Start with **PROJECT_OVERVIEW.md** to understand the application
-2. Review **COMPONENTS_REFERENCE.md** for UI component structure
-3. Study **HOOKS_AND_UTILITIES.md** for business logic
-4. Reference **DATABASE_SCHEMA.md** for data relationships
-
-### For Deployment/DevOps
-1. Review **DEPLOYMENT_GUIDE.md** for deployment processes
-2. Check **DATABASE_SCHEMA.md** for infrastructure requirements
-3. Use **CLEANUP_RECOMMENDATIONS.md** for optimization opportunities
-
-### For Code Maintenance
-1. Follow **CLEANUP_RECOMMENDATIONS.md** for technical debt reduction
-2. Use **COMPONENTS_REFERENCE.md** for component modifications
-3. Reference **HOOKS_AND_UTILITIES.md** for business logic changes
+- **Production App:** [https://cawood-tennis.vercel.app](https://cawood-tennis.vercel.app)
+- **Supabase Dashboard:** [https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv](https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv)
+- **GitHub Repository:** [https://github.com/bestjon-byte/DoublesLadder](https://github.com/bestjon-byte/DoublesLadder)
+- **Vercel Dashboard:** [https://vercel.com/jons-projects-9634d9db/ladder](https://vercel.com/jons-projects-9634d9db/ladder)
 
 ---
 
-## 📊 Project Statistics
+## 📖 What Is This?
 
-### **Codebase Overview**
-- **Frontend Framework**: React 18.2.0
-- **Total Components**: 32 components across 7 feature areas
-- **Custom Hooks**: 4 major hooks managing application state
-- **Utility Functions**: 10 utility modules for specialized operations
-- **Database Tables**: 14 tables supporting multi-season functionality
+A comprehensive web application for managing tennis ladder competitions, coaching sessions, payments, and player rankings at Cawood Tennis Club.
 
-### **Code Quality Metrics**
-- **Documentation Coverage**: 100% (post-analysis)
-- **Component Documentation**: Complete with props and usage
-- **API Documentation**: Comprehensive hook and utility docs
-- **Database Documentation**: Full schema with relationships
-
-### **Cleanup Opportunities Identified**
-- **Unused Code**: 1,016 lines identified for removal
-- **Redundant Files**: 4 files safe for deletion
-- **Legacy Tables**: 3 database tables for cleanup
-- **Optimization Potential**: Large hook refactoring opportunities
+**Core Features:**
+- 🎯 **Multi-Season Ladder** - Track player rankings with ELO ratings across multiple seasons
+- 🎾 **Match Management** - Schedule matches, submit scores, handle conflicts
+- 👨‍🏫 **Coaching System** - Session scheduling, attendance tracking, payment management
+- 💰 **Payment Reminders** - Automated email reminders with secure payment confirmation
+- 🏆 **Trophy Cabinet** - Award system for achievements
+- 📱 **WhatsApp Export** - Generate match results and league tables for sharing
 
 ---
 
-## 🏗️ Application Architecture
+## 🚀 Quick Start (Local Development)
 
-### **Frontend Architecture**
-```
-src/
-├── components/          # React components (32 files)
-│   ├── Admin/          # Administrative functionality
-│   ├── Auth/           # Authentication flows  
-│   ├── Availability/   # Player availability management
-│   ├── Ladder/         # Ranking and ladder display
-│   ├── Layout/         # Navigation and structure
-│   ├── Matches/        # Match management
-│   ├── Modals/         # Dialog interfaces
-│   ├── Notifications/  # Push notification settings
-│   ├── Profile/        # User profile management
-│   ├── Season/         # Season selection
-│   └── shared/         # Reusable UI components
-├── hooks/              # Custom React hooks (4 files)
-├── utils/              # Utility functions (10 files)
-├── contexts/           # React context providers
-└── App.js             # Main application orchestrator
-```
+### Prerequisites
+- Node.js 16+ installed
+- npm or yarn
 
-### **Database Architecture**
-```
-Core Tables:
-├── profiles           # User management (31 users)
-├── seasons           # Multi-season support (3 seasons)
-├── season_players    # Season participation (49 records)
-├── matches           # Match scheduling (35 matches)
-├── match_fixtures    # Player pairings (82 fixtures)
-├── match_results     # Score submissions (56 results)
-├── availability      # Player availability (9 records)
-└── League Tables:
-    ├── external_players     # Opponent club players (123 players)
-    ├── league_match_rubbers # League match details (243 rubbers)
-    └── Score Management:
-        ├── score_challenges # Score dispute system
-        └── score_conflicts  # Automatic conflict detection
-```
-
-### **Technology Stack**
-- **Frontend**: React, Lucide Icons, CSS
-- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
-- **Build**: Create React App
-- **Deployment**: Automated with Vercel
-- **Development**: Claude Code integration with MCP
-
----
-
-## 🔧 Development Workflow
-
-### **Local Development**
+### Setup
 ```bash
-# Setup
+# 1. Clone repository
+git clone https://github.com/bestjon-byte/DoublesLadder.git
+cd DoublesLadder
+
+# 2. Install dependencies
 npm install
+
+# 3. Create environment file
+cp .env.example .env.local
+
+# 4. Add your Supabase credentials to .env.local
+# REACT_APP_SUPABASE_URL=https://hwpjrkmplydqaxiikupv.supabase.co
+# REACT_APP_SUPABASE_ANON_KEY=[get from Supabase dashboard]
+
+# 5. Start development server
 npm start
 
-# Testing
-npm run build
-npm test (if configured)
-
-# Deployment
-./deploy "Description of changes"
+# App runs at http://localhost:3000
 ```
 
-### **Feature Development Process**
-1. **Plan**: Review relevant documentation
-2. **Develop**: Follow component and hook patterns
-3. **Test**: Local testing and build verification
-4. **Deploy**: Use automated deployment scripts
-5. **Monitor**: Verify production functionality
+---
 
-### **Code Review Checklist**
-- [ ] Components documented with purpose and props
-- [ ] Custom hooks follow established patterns
-- [ ] Database changes documented in schema
-- [ ] No unused imports or variables
-- [ ] Mobile responsive design maintained
-- [ ] Authentication and authorization respected
+## 🏗️ Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React 18.2.0 (Create React App) |
+| **UI Components** | Custom components + Lucide React icons |
+| **Styling** | Tailwind CSS utility classes |
+| **Backend** | Supabase (PostgreSQL + Auth + Real-time) |
+| **Database** | PostgreSQL 15 (via Supabase) |
+| **Authentication** | Supabase Auth (email/password) |
+| **Edge Functions** | Supabase Edge Functions (Deno) |
+| **Email** | Resend API (payment reminders) |
+| **Deployment** | Vercel (auto-deploy from main branch) |
+| **Version Control** | GitHub |
+
+**Dependencies (Minimal!):**
+```json
+{
+  "@supabase/supabase-js": "^2.39.0",
+  "lucide-react": "^0.263.1",
+  "react": "^18.2.0",
+  "react-dom": "^18.2.0",
+  "react-scripts": "5.0.1",
+  "web-vitals": "^2.1.4"
+}
+```
 
 ---
 
-## 📋 Maintenance Priorities
+## 📁 Project Structure
 
-### **Immediate Actions** (Week 1)
-1. **Remove Unused Code**: Follow CLEANUP_RECOMMENDATIONS.md
-2. **Verify Documentation**: Ensure all components are documented
-3. **Test Deployment**: Verify automated deployment works
-
-### **Short-term Improvements** (Month 1)
-1. **Database Optimization**: Remove legacy tables per cleanup guide
-2. **Hook Refactoring**: Break down large useApp.js hook
-3. **Performance Testing**: Baseline performance metrics
-
-### **Long-term Enhancements** (Quarter 1)
-1. **Testing Framework**: Add unit and integration tests
-2. **Monitoring Setup**: Add error tracking and analytics
-3. **Security Audit**: Review authentication and data access
-
----
-
-## 🎯 Key Success Metrics
-
-### **Code Quality**
-- Zero unused components or utilities
-- Comprehensive documentation coverage
-- Consistent component patterns
-- Optimized database queries
-
-### **Developer Experience**
-- Clear documentation for all features
-- Automated deployment processes
-- Consistent coding patterns
-- Easy local development setup
-
-### **Application Performance**
-- Fast build times (<2 minutes)
-- Optimized bundle sizes
-- Real-time functionality
-- Mobile responsiveness
-
----
-
-## 🤝 Handover Information
-
-### **What's Included**
-- ✅ Complete codebase analysis
-- ✅ Comprehensive component documentation
-- ✅ Database schema documentation
-- ✅ Deployment automation documentation
-- ✅ Technical debt identification and cleanup plan
-- ✅ Best practices and patterns documentation
-
-### **Ready for Production**
-- Automated deployment pipeline
-- Comprehensive error handling
-- Mobile-optimized responsive design
-- Multi-season support with league integration
-- Advanced scoring system with conflict resolution
-- Real-time updates and push notifications
-
-### **Support Resources**
-- **Documentation**: This complete documentation suite
-- **Deployment**: Automated scripts with AI-generated commit messages
-- **Database**: Direct access through MCP integration
-- **Development**: Claude Code integration for ongoing development
+```
+├── public/                  # Static assets
+├── scripts/                 # Build and deployment scripts
+│   ├── inject-version.js    # Auto-inject version into build
+│   ├── deploy.sh            # Manual deployment script
+│   └── utilities/           # Utility scripts (ELO, migrations, etc.)
+├── src/
+│   ├── components/          # React components (organized by feature)
+│   │   ├── Admin/           # Admin management features
+│   │   ├── Auth/            # Authentication screens
+│   │   ├── Availability/    # Player availability management
+│   │   ├── Coaching/        # Coaching system (sessions, payments)
+│   │   ├── Ladder/          # Ranking/ladder display
+│   │   ├── Layout/          # Header, navigation
+│   │   ├── Matches/         # Match scheduling and results
+│   │   ├── Modals/          # Shared modal dialogs
+│   │   ├── Profile/         # Player profile and stats
+│   │   ├── Season/          # Season selection
+│   │   ├── TrophyCabinet/   # Trophy system
+│   │   ├── WhatsApp/        # WhatsApp export features
+│   │   └── shared/          # Reusable UI components
+│   ├── contexts/            # React Context providers
+│   │   └── ToastContext.js  # Toast notification system
+│   ├── hooks/               # Custom React hooks
+│   │   ├── useApp.js        # Main app data management
+│   │   ├── useAuth.js       # Authentication logic
+│   │   ├── useCoaching.js   # Coaching system logic
+│   │   ├── useSeasonManager.js  # Season management
+│   │   └── useProfileStats.js   # Player statistics
+│   ├── utils/               # Utility functions
+│   │   ├── helpers.js       # Ranking calculations
+│   │   ├── eloCalculator.js # ELO rating system
+│   │   ├── scoreSubmission.js  # Score handling
+│   │   └── versionManager.js   # Service worker updates
+│   ├── App.js               # Main app component
+│   ├── index.js             # React entry point
+│   └── supabaseClient.js    # Supabase connection
+├── supabase/
+│   ├── functions/           # Edge Functions
+│   │   └── send-payment-reminders/  # Payment reminder emails
+│   └── migrations/          # Database migrations
+│       └── applied/         # Applied migrations (archive)
+├── .claude/                 # Claude Code integration
+│   ├── supabase-query.sh    # Query database from CLI
+│   ├── supabase-rpc.sh      # Call RPC functions from CLI
+│   └── generate-schema.sh   # Auto-generate SUPABASE_SCHEMA.md
+├── .env.local               # Environment variables (NOT in git)
+├── .gitignore
+├── package.json
+├── CLAUDE.md                # Claude Code integration guide
+├── SUPABASE_SCHEMA.md       # Auto-generated database schema
+└── README.md                # This file
+```
 
 ---
 
-## 📞 Support and Maintenance
+## 🔧 Common Tasks
 
-### **For Technical Issues**
-1. Check relevant documentation section
-2. Review DEPLOYMENT_GUIDE.md for common issues
-3. Use Claude Code integration for assistance
-4. Reference git history for change context
+### Local Development
+```bash
+npm start          # Start dev server (localhost:3000)
+npm run build      # Production build
+npm test           # Run tests (when available)
+```
 
-### **For Feature Requests**
-1. Review PROJECT_OVERVIEW.md for current capabilities
-2. Check COMPONENTS_REFERENCE.md for extension points
-3. Consider database schema impacts
-4. Plan using established patterns
+### Deployment
+```bash
+# Automatic (recommended)
+git add .
+git commit -m "Description of changes"
+git push origin main
+# Vercel auto-deploys from main branch
 
-### **For Performance Issues**
-1. Review CLEANUP_RECOMMENDATIONS.md for optimizations
-2. Check database query patterns
-3. Analyze bundle size and loading times
-4. Consider caching strategies
+# Manual (using helper script)
+./deploy "commit message"
+```
+
+### Database Operations
+
+**Query database via CLI:**
+```bash
+# Get all profiles
+./.claude/supabase-query.sh 'profiles?select=name,email,role&limit=10'
+
+# Check payment summary
+./.claude/supabase-rpc.sh get_all_players_payment_summary
+
+# Get specific player data
+./.claude/supabase-query.sh 'profiles?select=*&name=eq.John Doe'
+```
+
+**Access Supabase Dashboard:**
+```
+https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv
+```
+
+### Deploy Edge Function
+```bash
+# Set access token (first time only)
+export SUPABASE_ACCESS_TOKEN=sbp_1e915da665c3573755dfef9874ab1c93211c1247
+
+# Deploy function
+supabase functions deploy send-payment-reminders --project-ref hwpjrkmplydqaxiikupv
+```
+
+**Note:** Edge Functions deploy from your LOCAL filesystem, not from git! Pull latest code before deploying.
 
 ---
 
-**Documentation Generated**: 2025-09-13  
-**Codebase Version**: 1.0.49  
-**Analysis Scope**: Complete application and database  
-**Next Review**: After implementing cleanup recommendations
+## 💾 Database Schema
+
+**Auto-generated documentation:** See `SUPABASE_SCHEMA.md`
+
+**Key Tables:**
+- `profiles` - User accounts (linked to auth.users)
+- `seasons` - Tennis seasons (ladder, league, singles championship)
+- `season_players` - Player rankings per season (ELO ratings)
+- `matches` - Match scheduling
+- `match_fixtures` - Player pairings
+- `match_results` - Score submissions
+- `availability` - Player availability
+- `coaching_sessions` - Scheduled coaching sessions
+- `coaching_attendance` - Session attendance (includes payment status)
+- `coaching_schedules` - Recurring schedule templates
+- `coaching_payments` - Payment aggregation
+- `payment_reminder_tokens` - Tokenized payment confirmation links
+
+**Important RPC Functions:**
+- `generate_coaching_sessions()` - Auto-generate sessions from schedules
+- `get_all_players_payment_summary()` - Payment overview for all players
+- `validate_payment_token()` - Validate and mark sessions as paid
+- `get_player_attendance_stats_by_type()` - Attendance statistics
+
+**Payment Flow:**
+```
+coaching_attendance.payment_status:
+  'unpaid' → 'pending_confirmation' → 'paid'
+```
+
+---
+
+## 🔐 Environment Variables
+
+Create `.env.local` in root directory (NOT committed to git):
+
+```env
+REACT_APP_SUPABASE_URL=https://hwpjrkmplydqaxiikupv.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=[get from Supabase dashboard]
+```
+
+**Where to find:**
+- Supabase Dashboard → Project Settings → API
+- URL: Project URL
+- Anon Key: Project API keys → anon/public
+
+---
+
+## 🚨 Troubleshooting
+
+### "Can't connect to database"
+- Check `.env.local` exists and has correct values
+- Verify Supabase project is active
+- Check internet connection
+
+### "Build fails"
+```bash
+# Clear node modules and reinstall
+rm -rf node_modules package-lock.json
+npm install
+npm run build
+```
+
+### "Edge Function not updating"
+```bash
+# Edge Functions deploy from LOCAL files, not git
+git pull origin main
+supabase functions deploy send-payment-reminders --project-ref hwpjrkmplydqaxiikupv
+```
+
+### "Payment emails going to wrong domain"
+Check `APP_URL` in `supabase/functions/send-payment-reminders/index.ts`
+Should be: `https://cawood-tennis.vercel.app`
+
+---
+
+## 📚 Additional Documentation
+
+- **CLAUDE.md** - Claude Code integration guide (for AI-assisted development)
+- **SUPABASE_SCHEMA.md** - Auto-generated database schema (updated on startup)
+- **CODEBASE_AUDIT_2025-11-13.md** - Comprehensive code audit and cleanup plan
+- **CLEANUP_ACTION_PLAN.md** - Step-by-step cleanup execution plan
+
+---
+
+## 🤝 Development Workflow
+
+### Making Changes
+1. Create feature branch: `git checkout -b feature/my-feature`
+2. Make changes
+3. Test locally: `npm start`
+4. Commit frequently: `git commit -m "Clear description"`
+5. Push to GitHub: `git push origin feature/my-feature`
+6. Vercel creates preview deployment automatically
+7. Test preview deployment
+8. Merge to main when ready (triggers production deploy)
+
+### Code Quality Guidelines
+- Keep components under 300 lines
+- Keep hooks under 400 lines
+- No console.log in production code (use console.error for critical failures only)
+- Use React.memo for expensive components
+- Use useMemo for expensive calculations
+- Prefer Context API over props drilling (3+ levels deep)
+
+---
+
+## 🐛 Known Issues
+
+- None currently (2025-11-13)
+
+See `CODEBASE_AUDIT_2025-11-13.md` for technical debt items and improvement opportunities.
+
+---
+
+## 📞 Support
+
+### For Production Issues
+1. Check Vercel deployment logs
+2. Check Supabase logs (Dashboard → Logs)
+3. Check browser console for errors
+
+### For Development Questions
+1. Review this README
+2. Check CLAUDE.md for Claude Code integration
+3. Review codebase audit for architecture details
+
+---
+
+## 📝 Version History
+
+See git commit history for detailed changes:
+```bash
+git log --oneline -20
+```
+
+**Recent versions:**
+- v1.0.175 (2025-11-13) - Current version
+- v1.0.164 - Smart attendance sorting
+- v1.0.161 - Flexible session generation
+- v1.0.49 - League integration
+
+---
+
+## 📄 License
+
+MIT License - See LICENSE file
+
+---
+
+**Built with ❤️ for Cawood Tennis Club**
