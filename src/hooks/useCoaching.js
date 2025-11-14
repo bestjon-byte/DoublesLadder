@@ -952,7 +952,7 @@ export const useCoaching = (userId, isAdmin = false) => {
       } else {
         // Regular users fetch what they need
         fetchSchedules();
-        fetchSessions({ status: 'scheduled' }); // Only upcoming sessions
+        fetchSessions(); // Fetch all sessions so users can see their full attendance history
         fetchAttendance({ playerId: userId }); // Only their attendance
         fetchPayments({ playerId: userId }); // Only their payments
       }
