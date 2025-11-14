@@ -127,10 +127,10 @@ serve(async (req) => {
 
     // Send email to each player
     for (const payment of payments as Payment[]) {
-      try {
-        // Create payment record from unpaid sessions (if payment_id is temporary)
-        let actualPaymentId = payment.payment_id
+      // Declare actualPaymentId outside try-catch so it's accessible in catch block
+      let actualPaymentId = payment.payment_id
 
+      try {
         // Create payment record from this player's unpaid sessions
         const { data: createdPaymentId, error: createError } = await supabaseClient
           .rpc('create_payment_from_unpaid_sessions', {
