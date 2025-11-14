@@ -55,10 +55,10 @@ const EnhancedScoreModal = ({
       
       if (latestScore && !existingScore) {
         // Someone else submitted while we had the modal open
-        toast.warning(`Someone already submitted a different score: ${latestScore.pair1_score}-${latestScore.pair2_score}. Page will refresh to show current score.`, 6000);
-        
-        // Refresh the data and close modal
-        setTimeout(() => window.location.reload(), 2000);
+        toast.warning(`Someone already submitted a different score: ${latestScore.pair1_score}-${latestScore.pair2_score}. Closing modal to show current score.`, 6000);
+
+        // Close modal and let React re-render with fresh data
+        setTimeout(() => closeModal(), 2000);
         return;
       }
       
@@ -67,7 +67,7 @@ const EnhancedScoreModal = ({
       if (result?.conflict) {
         // Handle the conflict case
         toast.warning(`Score conflict! Winning score: ${result.winningScore.pair1_score}-${result.winningScore.pair2_score}. You can challenge this score if needed.`, 6000);
-        setTimeout(() => window.location.reload(), 2000);
+        setTimeout(() => closeModal(), 2000);
       } else if (result?.success) {
         // Success case
         haptics.success(); // Success haptic feedback

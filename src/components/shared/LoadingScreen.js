@@ -1,17 +1,36 @@
 // src/components/shared/LoadingScreen.js
 import React, { useState, useEffect } from 'react';
 
-const LoadingScreen = ({ message = 'Loading...' }) => {
+const LoadingScreen = ({ message = 'Loading...', onRetry }) => {
   const [showOverride, setShowOverride] = useState(false);
-  
+  const [retrying, setRetrying] = useState(false);
+
   // Show manual override after 15 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowOverride(true);
     }, 15000);
-    
+
     return () => clearTimeout(timer);
   }, []);
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    setShowOverride(false);
+
+    try {
+      if (onRetry) {
+        await onRetry();
+      } else {
+        // Fallback to reload if no retry function provided
+        window.location.reload();
+      }
+    } catch (error) {
+      // If retry fails, show override again
+      setRetrying(false);
+      setShowOverride(true);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#5D1F1F] to-[#8B3A3A] flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full mx-4">
@@ -117,15 +136,22 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
           </div>
           
           {/* Manual override button after timeout */}
-          {showOverride && (
+          {showOverride && !retrying && (
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-500 mb-3">Taking longer than expected?</p>
               <button
-                onClick={() => window.location.reload()}
+                onClick={handleRetry}
                 className="bg-[#5D1F1F] text-white px-4 py-2 rounded text-sm hover:bg-[#4A1818] transition-colors"
               >
-                Refresh Page
+                Retry Connection
               </button>
+            </div>
+          )}
+
+          {/* Retrying indicator */}
+          {retrying && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">Retrying connection...</p>
             </div>
           )}
         </div>
