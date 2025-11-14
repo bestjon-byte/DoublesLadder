@@ -76,17 +76,15 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
         setLoading(false);
       } else {
         // Password updated successfully
-        
-        // Nuclear option - just reload the page after password update
+
         alert('Password updated successfully! You can now sign in with your new password.');
-        
-        // Sign out and force reload
+
+        // Sign out and navigate to login
         await supabase.auth.signOut();
-        
-        // Force a complete page reload to clear everything
+
+        // Navigate to root (this will reload the app automatically)
         setTimeout(() => {
           window.location.href = '/';
-          window.location.reload(true);
         }, 100);
       }
     } catch (err) {

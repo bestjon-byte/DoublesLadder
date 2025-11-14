@@ -19,10 +19,8 @@ const UpdateNotification = () => {
       }
       
       if (type === 'newVersionActive') {
-        // New version is active, might need to reload
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // New version is active - versionManager handles reload
+        // No manual reload needed here (handled by versionManager.applyUpdate)
       }
     };
 
@@ -51,8 +49,8 @@ const UpdateNotification = () => {
       }
     } catch (error) {
       console.error('[UpdateNotification] Update failed:', error);
-      // Force reload as last resort
-      window.location.reload();
+      // Graceful reload as last resort
+      await versionManager.gracefulReload('updateError');
     }
   };
 

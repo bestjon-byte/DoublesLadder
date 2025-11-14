@@ -1,6 +1,7 @@
 // src/components/shared/ErrorBoundary.js
 import React from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { versionManager } from '../../utils/versionManager';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -44,8 +45,8 @@ class ErrorBoundary extends React.Component {
     });
   };
 
-  handleFullRefresh = () => {
-    window.location.reload();
+  handleFullRefresh = async () => {
+    await versionManager.gracefulReload('errorRecovery');
   };
 
   handleGoHome = () => {
