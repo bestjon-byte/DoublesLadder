@@ -8,6 +8,13 @@ const RESEND_API_KEY = 're_XmpqYGZv_FaXAyDp8n3CDDKWD4qpiC3Qe'
 const FROM_EMAIL = 'cawoodtennis@gmail.com'
 const APP_URL = 'https://cawood-tennis.vercel.app' // Production domain
 
+// Rate limiting: Resend allows 2 requests per second
+// We'll use 600ms delay to stay safely under that limit (~1.6 emails/sec)
+const EMAIL_SEND_DELAY_MS = 600
+
+// Helper function to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
 interface Payment {
   payment_id: string
   player_id: string
@@ -289,6 +296,12 @@ serve(async (req) => {
         } catch (recordError) {
           console.error('Failed to record error:', recordError)
         }
+      }
+
+      // Rate limiting: Add delay between email sends to respect Resend's 2 req/sec limit
+      // Skip delay after the last email
+      if (payments.indexOf(payment) < payments.length - 1) {
+        await delay(EMAIL_SEND_DELAY_MS)
       }
     }
 
