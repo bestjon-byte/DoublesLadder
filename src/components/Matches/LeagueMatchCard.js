@@ -7,20 +7,7 @@ const LeagueMatchCard = ({ match, fixture, supabase }) => {
   const [rubberDetails, setRubberDetails] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch rubber details on component mount for immediate score display
-  useEffect(() => {
-    if (!rubberDetails.length) {
-      fetchRubberDetails();
-    }
-  }, [fetchRubberDetails, rubberDetails.length]);
-
-  // Additional fetch when expanded if needed
-  useEffect(() => {
-    if (expanded && !rubberDetails.length) {
-      fetchRubberDetails();
-    }
-  }, [expanded, fetchRubberDetails, rubberDetails.length]);
-
+  // MOVED UP: Define fetchRubberDetails BEFORE using it in useEffects
   const fetchRubberDetails = useCallback(async () => {
     if (!supabase || !fixture?.id) return;
 
@@ -46,6 +33,20 @@ const LeagueMatchCard = ({ match, fixture, supabase }) => {
       setLoading(false);
     }
   }, [supabase, fixture?.id]);
+
+  // Fetch rubber details on component mount for immediate score display
+  useEffect(() => {
+    if (!rubberDetails.length) {
+      fetchRubberDetails();
+    }
+  }, [fetchRubberDetails, rubberDetails.length]);
+
+  // Additional fetch when expanded if needed
+  useEffect(() => {
+    if (expanded && !rubberDetails.length) {
+      fetchRubberDetails();
+    }
+  }, [expanded, fetchRubberDetails, rubberDetails.length]);
 
   const formatMatchDate = (dateString) => {
     const date = new Date(dateString);
