@@ -142,30 +142,8 @@ export const useAuth = () => {
     }
   }, []);
 
-  // Password reset request
-  const requestPasswordReset = useCallback(async (email) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) {
-        setError(error);
-        return { success: false, error };
-      }
-
-      return { success: true };
-    } catch (error) {
-      console.error('💥 Unexpected error:', error);
-      setError(error);
-      return { success: false, error };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Password reset is now handled by custom edge function via PasswordReset component
+  // Old Supabase resetPasswordForEmail method removed to avoid confusion
 
   // Update password
   const updatePassword = useCallback(async (newPassword) => {
@@ -342,7 +320,7 @@ export const useAuth = () => {
       signIn,
       signUp,
       signOut,
-      requestPasswordReset,
+      // requestPasswordReset removed - now handled by PasswordReset component
       updatePassword,
       setAuthMode,
     }
