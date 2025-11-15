@@ -1,4 +1,4 @@
-// src/components/Auth/PasswordUpdate.js - FIXED
+// src/components/Auth/PasswordUpdate.js - Custom Token-Based Reset
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { Eye, EyeOff } from 'lucide-react';
@@ -10,82 +10,99 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isValidSession, setIsValidSession] = useState(false);
+  const [isValidToken, setIsValidToken] = useState(false);
+  const [tokenData, setTokenData] = useState(null);
+  const [checkingToken, setCheckingToken] = useState(true);
 
   useEffect(() => {
-    // Check if we have a valid recovery session
-    const checkRecoverySession = async () => {
-      // Checking for valid recovery session from password reset link
-      
+    // Check if we have a valid password reset token
+    const checkResetToken = async () => {
+      // Extracting token from URL query parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      if (!token) {
+        setError('No reset token found. Please request a new password reset.');
+        setCheckingToken(false);
+        return;
+      }
+
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        // Validate the token using our custom function
+        const { data, error } = await supabase
+          .rpc('validate_password_reset_token', {
+            p_token: token,
+          });
+
         if (error) {
-          console.error('❌ Error checking session:', error);
+          console.error('❌ Error validating token:', error);
           setError('Invalid or expired reset link. Please request a new password reset.');
+          setCheckingToken(false);
           return;
         }
-        
-        if (session) {
-          // Valid recovery session found
-          setIsValidSession(true);
+
+        if (data && data.length > 0 && data[0].valid) {
+          // Valid token found
+          setIsValidToken(true);
+          setTokenData(data[0]);
         } else {
-          // No valid session available
+          // Invalid or expired token
           setError('Invalid or expired reset link. Please request a new password reset.');
         }
       } catch (err) {
         console.error('Unexpected error:', err);
         setError('An error occurred. Please try again.');
+      } finally {
+        setCheckingToken(false);
       }
     };
-    
-    checkRecoverySession();
+
+    checkResetToken();
   }, []);
 
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
-    
-    if (!isValidSession) {
-      setError('Invalid session. Please request a new password reset.');
+
+    if (!isValidToken || !tokenData) {
+      setError('Invalid token. Please request a new password reset.');
       return;
     }
-    
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-    
+
     if (password.length < 6) {
       setError('Password must be at least 6 characters long');
       return;
     }
-    
+
     setLoading(true);
     setError('');
 
     try {
-      // Attempting to update user password
-      
-      const { error } = await supabase.auth.updateUser({
-        password: password
+      // Update password using secure RPC function
+      const { data: result, error: updateError } = await supabase.rpc('update_password_with_token', {
+        p_user_id: tokenData.user_id,
+        p_new_password: password,
       });
 
-      if (error) {
-        console.error('❌ Password update error:', error);
-        setError(`Failed to update password: ${error.message}`);
+      if (updateError) {
+        console.error('❌ Password update error:', updateError);
+        setError(`Failed to update password: ${updateError.message}`);
         setLoading(false);
-      } else {
+      } else if (result && result.success) {
         // Password updated successfully
-
         alert('Password updated successfully! You can now sign in with your new password.');
 
-        // Sign out and navigate to login
-        await supabase.auth.signOut();
-
-        // Navigate to root (this will reload the app automatically)
+        // Navigate to root (login page)
         setTimeout(() => {
           window.location.href = '/';
         }, 100);
+      } else {
+        setError('Failed to update password. Please try again.');
+        setLoading(false);
       }
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -120,7 +137,11 @@ const PasswordUpdate = ({ onPasswordUpdated }) => {
           </div>
         )}
 
-        {isValidSession ? (
+        {checkingToken ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600">Validating reset link...</p>
+          </div>
+        ) : isValidToken ? (
           <form onSubmit={handlePasswordUpdate} className="space-y-4">
             <div className="relative">
               <input

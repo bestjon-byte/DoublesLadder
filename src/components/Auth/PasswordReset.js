@@ -16,20 +16,32 @@ const PasswordReset = ({ onBackToLogin }) => {
     setError('');
 
     try {
-      // Initiating password reset process for user email
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+      // Initiating custom password reset process via Resend email
 
-      // Password reset request processed
+      // Get the current session to pass auth header
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (error) {
-        console.error('Password reset error:', error);
-        setError(`Password reset failed: ${error.message}`);
+      // Call our custom edge function
+      const response = await fetch(
+        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/send-password-reset`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Password reset error:', data);
+        setError(data.error || 'Password reset failed. Please try again.');
       } else {
-        // Password reset email sent successfully to user
-        setMessage('Password reset email sent! Check your inbox and spam folder.');
+        // Custom branded password reset email sent via Resend
+        setMessage('If an account exists with that email, a password reset link has been sent. Please check your inbox and spam folder.');
         setEmail('');
       }
     } catch (err) {
