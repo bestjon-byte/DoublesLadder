@@ -7,6 +7,7 @@ import { submitScoreWithConflictHandling, submitScoreChallenge } from './utils/s
 
 // Components
 import AuthScreen from './components/Auth/AuthScreen';
+import PasswordUpdate from './components/Auth/PasswordUpdate';
 import Navigation from './components/Layout/Navigation';
 import LeagueTab from './components/Ladder/LadderTab'; // RENAMED: Will be moved to League/LeagueTab later
 import MatchesTab from './components/Matches/MatchesTab';
@@ -111,10 +112,17 @@ const CawoodTennisApp = () => {
     );
   }
 
-  // Check for payment confirmation token (public access - no auth required)
+  // Check for password reset token (path-based, public access)
   const urlParams = new URLSearchParams(window.location.search);
-  const paymentToken = urlParams.get('token');
-  if (paymentToken) {
+  const token = urlParams.get('token');
+  const isPasswordResetPath = window.location.pathname === '/reset-password';
+
+  if (isPasswordResetPath && token) {
+    return <PasswordUpdate onPasswordUpdated={() => window.location.href = '/'} />;
+  }
+
+  // Check for payment confirmation token (public access - no auth required)
+  if (token && !isPasswordResetPath) {
     return <PaymentConfirmation />;
   }
 
