@@ -418,7 +418,12 @@ const AdminTab = ({
         allUsers={users}
         currentUser={currentUser}
         activeSeason={activeSeason}
-        onDataRefresh={fetchUsers}
+        onDataRefresh={async () => {
+          await fetchUsers();
+          if (refetch?.seasonPlayers) {
+            await refetch.seasonPlayers();
+          }
+        }}
       />
 
       <AddToLadderModal
