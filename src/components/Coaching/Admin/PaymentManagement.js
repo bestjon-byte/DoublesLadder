@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Banknote, User, Mail, Check, ChevronRight, Search } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import PlayerPaymentModal from '../Modals/PlayerPaymentModal';
-import SendReminderModal from '../Modals/SendReminderModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 
 const PaymentManagement = ({ loading, actions }) => {
@@ -12,7 +11,8 @@ const PaymentManagement = ({ loading, actions }) => {
   const [viewingPlayer, setViewingPlayer] = useState(null);
   const [filter, setFilter] = useState('all'); // 'all', 'owe_money', 'awaiting_confirmation', 'paid_up'
   const [searchQuery, setSearchQuery] = useState('');
-  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [selectedPlayers, setSelectedPlayers] = useState(new Set());
+  const [sendingReminders, setSendingReminders] = useState(false);
 
   // Load all players payment summary
   useEffect(() => {
@@ -27,8 +27,73 @@ const PaymentManagement = ({ loading, actions }) => {
     loadSummary();
   }, [actions]);
 
-  const handleSendReminders = () => {
-    setShowReminderModal(true);
+  const handleTogglePlayer = (playerId) => {
+    const newSelected = new Set(selectedPlayers);
+    if (newSelected.has(playerId)) {
+      newSelected.delete(playerId);
+    } else {
+      newSelected.add(playerId);
+    }
+    setSelectedPlayers(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    const playersToSelect = filteredPlayers
+      .filter(p => parseFloat(p.amount_owed) > 0)
+      .map(p => p.player_id);
+    setSelectedPlayers(new Set(playersToSelect));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedPlayers(new Set());
+  };
+
+  const handleSendReminders = async () => {
+    if (selectedPlayers.size === 0) {
+      error('Please select at least one player to send reminders to');
+      return;
+    }
+
+    const confirmMsg = `Send payment reminders to ${selectedPlayers.size} selected player(s)?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setSendingReminders(true);
+    try {
+      // Get full player data for selected players
+      const selectedPayments = playersSummary
+        .filter(p => selectedPlayers.has(p.player_id))
+        .map(p => ({
+          player_id: p.player_id,
+          player_name: p.player_name,
+          player_email: p.player_email,
+          amount_due: p.amount_owed,
+          total_sessions: p.unpaid_sessions,
+        }));
+
+      const result = await actions.sendPaymentReminders(null, null, selectedPayments);
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      success(`Successfully sent ${result.data.sent} reminder(s)`);
+
+      if (result.data.failed > 0) {
+        const errorDetails = result.data.errors && result.data.errors.length > 0
+          ? result.data.errors.map(e => `${e.player}: ${e.error}`).join('\n')
+          : 'Unknown error';
+        error(`${result.data.failed} email(s) failed to send:\n\n${errorDetails}`);
+      }
+
+      // Clear selection and refresh
+      setSelectedPlayers(new Set());
+      await handleRefresh();
+    } catch (err) {
+      console.error('Error sending reminders:', err);
+      error('Failed to send reminders: ' + err.message);
+    } finally {
+      setSendingReminders(false);
+    }
   };
 
   const handleRefresh = async () => {
@@ -162,14 +227,53 @@ const PaymentManagement = ({ loading, actions }) => {
           </button>
           <button
             onClick={handleSendReminders}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
+            disabled={sendingReminders || selectedPlayers.size === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             <Mail className="w-4 h-4" />
-            <span className="hidden sm:inline">Send Payment Reminders</span>
-            <span className="sm:hidden">Send Reminders</span>
+            {sendingReminders ? (
+              <span>Sending...</span>
+            ) : (
+              <>
+                <span className="hidden sm:inline">
+                  Send Reminders {selectedPlayers.size > 0 ? `(${selectedPlayers.size})` : ''}
+                </span>
+                <span className="sm:hidden">
+                  Send {selectedPlayers.size > 0 ? `(${selectedPlayers.size})` : ''}
+                </span>
+              </>
+            )}
           </button>
         </div>
       </div>
+
+      {/* Selection Controls */}
+      {filteredPlayers.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-md border border-gray-200">
+          <span className="text-sm text-gray-600 font-medium">Select:</span>
+          <button
+            onClick={handleSelectAll}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            All Owing ({filteredPlayers.filter(p => parseFloat(p.amount_owed) > 0).length})
+          </button>
+          <span className="text-gray-300">|</span>
+          <button
+            onClick={handleDeselectAll}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            None
+          </button>
+          {selectedPlayers.size > 0 && (
+            <>
+              <span className="text-gray-300">|</span>
+              <span className="text-sm text-gray-700">
+                <strong>{selectedPlayers.size}</strong> selected
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Players List */}
       {filteredPlayers.length === 0 ? (
@@ -190,27 +294,42 @@ const PaymentManagement = ({ loading, actions }) => {
               const owedAmount = parseFloat(player.amount_owed || 0);
               const pendingAmount = parseFloat(player.amount_pending_confirmation || 0);
               const paidAmount = parseFloat(player.amount_paid || 0);
+              const canSelect = owedAmount > 0;
 
               return (
                 <div
                   key={player.player_id}
-                  onClick={() => setViewingPlayer(player)}
-                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{player.player_name}</h3>
-                      <p className="text-sm text-gray-500">{player.player_email}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {player.total_sessions} sessions ({player.unpaid_sessions} unpaid • {player.pending_confirmation_sessions} pending • {player.paid_sessions} paid)
-                      </p>
+                    <div className="flex gap-3 flex-1">
+                      {canSelect ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedPlayers.has(player.player_id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleTogglePlayer(player.player_id);
+                          }}
+                          className="w-5 h-5 cursor-pointer mt-1 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-5"></div>
+                      )}
+                      <div className="flex-1" onClick={() => setViewingPlayer(player)}>
+                        <h3 className="font-medium text-gray-900">{player.player_name}</h3>
+                        <p className="text-sm text-gray-500">{player.player_email}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {player.total_sessions} sessions ({player.unpaid_sessions} unpaid • {player.pending_confirmation_sessions} pending • {player.paid_sessions} paid)
+                        </p>
+                      </div>
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setViewingPlayer(player);
                       }}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-blue-600 hover:text-blue-800 flex-shrink-0"
                     >
                       <ChevronRight className="w-5 h-5" />
                     </button>
@@ -245,6 +364,18 @@ const PaymentManagement = ({ loading, actions }) => {
             <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                  <input
+                    type="checkbox"
+                    checked={
+                      filteredPlayers.filter(p => parseFloat(p.amount_owed) > 0).length > 0 &&
+                      filteredPlayers.filter(p => parseFloat(p.amount_owed) > 0).every(p => selectedPlayers.has(p.player_id))
+                    }
+                    onChange={(e) => e.target.checked ? handleSelectAll() : handleDeselectAll()}
+                    className="w-4 h-4 cursor-pointer"
+                    title="Select/Deselect all players who owe money"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Player
                 </th>
@@ -270,20 +401,35 @@ const PaymentManagement = ({ loading, actions }) => {
                 const owedAmount = parseFloat(player.amount_owed || 0);
                 const pendingAmount = parseFloat(player.amount_pending_confirmation || 0);
                 const paidAmount = parseFloat(player.amount_paid || 0);
+                const canSelect = owedAmount > 0;
 
                 return (
                   <tr
                     key={player.player_id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => setViewingPlayer(player)}
+                    className="hover:bg-gray-50"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 text-center">
+                      {canSelect ? (
+                        <input
+                          type="checkbox"
+                          checked={selectedPlayers.has(player.player_id)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleTogglePlayer(player.player_id);
+                          }}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => setViewingPlayer(player)}>
                       <div>
                         <div className="text-sm font-medium text-gray-900">{player.player_name}</div>
                         <div className="text-sm text-gray-500">{player.player_email}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => setViewingPlayer(player)}>
                       <div>
                         <div>{player.total_sessions} total</div>
                         <div className="text-xs text-gray-500">
@@ -291,17 +437,17 @@ const PaymentManagement = ({ loading, actions }) => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-right cursor-pointer" onClick={() => setViewingPlayer(player)}>
                       <span className={`text-sm font-semibold ${owedAmount > 0 ? 'text-yellow-700' : 'text-gray-400'}`}>
                         £{owedAmount.toFixed(2)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-right cursor-pointer" onClick={() => setViewingPlayer(player)}>
                       <span className={`text-sm font-semibold ${pendingAmount > 0 ? 'text-blue-700' : 'text-gray-400'}`}>
                         £{pendingAmount.toFixed(2)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-right cursor-pointer" onClick={() => setViewingPlayer(player)}>
                       <span className="text-sm font-semibold text-green-700">
                         £{paidAmount.toFixed(2)}
                       </span>
@@ -337,16 +483,6 @@ const PaymentManagement = ({ loading, actions }) => {
           onSuccess={handleRefresh}
         />
       )}
-
-      {/* Send Reminder Modal */}
-      <SendReminderModal
-        isOpen={showReminderModal}
-        onClose={() => {
-          setShowReminderModal(false);
-          handleRefresh();
-        }}
-        actions={actions}
-      />
     </div>
   );
 };

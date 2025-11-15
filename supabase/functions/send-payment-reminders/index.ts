@@ -34,9 +34,9 @@ interface Payment {
 }
 
 interface ReminderRequest {
-  filterType: 'all' | 'amount_threshold' | 'age_threshold'
-  threshold?: number
-  selectedPayments?: Payment[] // Optional: manually selected payments from UI
+  filterType?: 'all' | 'amount_threshold' | 'age_threshold' | null
+  threshold?: number | null
+  selectedPayments: Payment[] // Required: selected payments from UI
 }
 
 // CORS headers to include in all responses
@@ -92,37 +92,19 @@ serve(async (req) => {
     // Parse request body
     const { filterType, threshold, selectedPayments }: ReminderRequest = await req.json()
 
-    // Use selectedPayments if provided, otherwise query database
-    let payments: Payment[]
-
-    if (selectedPayments && selectedPayments.length > 0) {
-      // Use manually selected payments from UI
-      payments = selectedPayments
-    } else {
-      // Get payments matching filter criteria from database
-      const { data, error: paymentsError } = await supabaseClient
-        .rpc('get_payments_for_reminder', {
-          p_filter_type: filterType,
-          p_threshold: threshold || null,
-        })
-
-      if (paymentsError) {
-        throw paymentsError
-      }
-
-      payments = data || []
-    }
-
-    if (!payments || payments.length === 0) {
+    // Validate that we have payments to process
+    if (!selectedPayments || selectedPayments.length === 0) {
       return new Response(JSON.stringify({
         success: true,
-        message: 'No payments match the filter criteria',
+        message: 'No payments selected',
         sent: 0,
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    const payments = selectedPayments
 
     const results = {
       sent: 0,

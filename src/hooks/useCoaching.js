@@ -843,25 +843,6 @@ export const useCoaching = (userId, isAdmin = false) => {
   // ==========================================================================
 
   /**
-   * Get payments eligible for reminders based on filter criteria
-   */
-  const getPaymentsForReminder = useCallback(async (filterType, threshold = null) => {
-    try {
-      const { data, error } = await supabase
-        .rpc('get_payments_for_reminder', {
-          p_filter_type: filterType,
-          p_threshold: threshold,
-        });
-
-      if (error) throw error;
-      return { data, error: null };
-    } catch (error) {
-      console.error('Error getting payments for reminder:', error);
-      return { data: null, error };
-    }
-  }, []);
-
-  /**
    * Send payment reminders via Edge Function
    */
   const sendPaymentReminders = useCallback(async (filterType, threshold = null, selectedPayments = null) => {
@@ -1023,7 +1004,6 @@ export const useCoaching = (userId, isAdmin = false) => {
       updateSessionCoachPaymentStatus,
 
       // Payment Reminder System
-      getPaymentsForReminder,
       sendPaymentReminders,
       getReminderHistory,
       validatePaymentToken,
