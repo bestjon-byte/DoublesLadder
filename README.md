@@ -188,14 +188,15 @@ https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv
 
 ### Deploy Edge Function
 ```bash
-# Set access token (first time only)
-export SUPABASE_ACCESS_TOKEN=sbp_1e915da665c3573755dfef9874ab1c93211c1247
+# Set access token (stored in .mcp.json)
+export SUPABASE_ACCESS_TOKEN=sbp_e11296817ca547c235805e3a19b09af84fee13d1
 
 # Deploy function
 supabase functions deploy send-payment-reminders --project-ref hwpjrkmplydqaxiikupv
 ```
 
 **Note:** Edge Functions deploy from your LOCAL filesystem, not from git! Pull latest code before deploying.
+**Token Info:** The valid access token is stored in `.mcp.json` for both MCP access and CLI deployments.
 
 ---
 

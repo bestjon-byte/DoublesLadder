@@ -150,14 +150,15 @@ Located in: `supabase/functions/`
 # Install Supabase CLI first (if not installed)
 brew install supabase/tap/supabase
 
-# Set access token
-export SUPABASE_ACCESS_TOKEN=sbp_1e915da665c3573755dfef9874ab1c93211c1247
+# Set access token (valid token stored in .mcp.json)
+export SUPABASE_ACCESS_TOKEN=sbp_e11296817ca547c235805e3a19b09af84fee13d1
 
 # Deploy
 supabase functions deploy send-payment-reminders --project-ref hwpjrkmplydqaxiikupv
 ```
 
 **Important**: Edge Functions deploy from your LOCAL Mac filesystem, not from git!
+**Note**: The access token is also stored in `.mcp.json` for MCP server access.
 
 ---
 

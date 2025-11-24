@@ -1,15 +1,20 @@
 # Supabase Edge Function Deployment Instructions
 
 ## Prerequisites
-1. Install Supabase CLI: `npm install -g supabase`
-2. Login to Supabase: `supabase login`
+1. Install Supabase CLI: `npm install -g supabase` or `brew install supabase/tap/supabase`
+2. Set access token: `export SUPABASE_ACCESS_TOKEN=sbp_e11296817ca547c235805e3a19b09af84fee13d1`
+   - Token is stored in `.mcp.json` at project root
 3. Link your project: `supabase link --project-ref hwpjrkmplydqaxiikupv`
 
 ## Deploy the Edge Function
 
-### Option 1: Deploy via CLI
+### Option 1: Deploy via CLI (Recommended)
 ```bash
-supabase functions deploy send-payment-reminders
+# Set access token (from .mcp.json)
+export SUPABASE_ACCESS_TOKEN=sbp_e11296817ca547c235805e3a19b09af84fee13d1
+
+# Deploy
+supabase functions deploy send-payment-reminders --project-ref hwpjrkmplydqaxiikupv
 ```
 
 ### Option 2: Deploy via Supabase Dashboard

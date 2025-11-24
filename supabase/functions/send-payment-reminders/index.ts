@@ -149,17 +149,41 @@ serve(async (req) => {
         const confirmationUrl = `${APP_URL}/?token=${token}`
         const loginUrl = `${APP_URL}/`
 
-        // Format dates
-        const periodStart = new Date(payment.billing_period_start).toLocaleDateString('en-GB', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        })
-        const periodEnd = new Date(payment.billing_period_end).toLocaleDateString('en-GB', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        })
+        // Get unpaid sessions to determine date range
+        const { data: sessionsData, error: sessionsError } = await supabaseClient
+          .rpc('get_player_sessions_by_payment_status', {
+            p_player_id: payment.player_id,
+          })
+
+        if (sessionsError) {
+          throw new Error(`Failed to get session dates: ${sessionsError.message}`)
+        }
+
+        // Filter for unpaid sessions and find date range
+        const unpaidSessions = sessionsData?.filter((s: any) => s.payment_status === 'unpaid') || []
+
+        let periodStart = 'N/A'
+        let periodEnd = 'N/A'
+
+        if (unpaidSessions.length > 0) {
+          const sessionDates = unpaidSessions
+            .map((s: any) => new Date(s.session_date))
+            .sort((a, b) => a.getTime() - b.getTime())
+
+          const earliestDate = sessionDates[0]
+          const latestDate = sessionDates[sessionDates.length - 1]
+
+          periodStart = earliestDate.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+          periodEnd = latestDate.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        }
 
         // Prepare email HTML
         const emailHtml = `
