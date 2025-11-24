@@ -265,12 +265,50 @@ export const useApp = (userId, selectedSeasonId) => {
   // Business logic functions
   const approveUser = useCallback(async (userIdToApprove) => {
     try {
+      // First, get user details
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email, name')
+        .eq('id', userIdToApprove)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Update user status to approved
       const { error } = await supabase
         .from('profiles')
         .update({ status: 'approved' })
         .eq('id', userIdToApprove);
 
       if (error) throw error;
+
+      // Send approval notification email
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          await fetch(
+            `${supabase.supabaseUrl}/functions/v1/notify-user-approved`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                user_id: userIdToApprove,
+                email: userProfile.email,
+                name: userProfile.name,
+              }),
+            }
+          );
+          // Note: We don't throw on email failure - approval still succeeds
+        }
+      } catch (emailError) {
+        console.warn('Failed to send approval email:', emailError);
+        // Continue despite email failure
+      }
+
       await fetchUsers();
       return { success: true };
     } catch (error) {

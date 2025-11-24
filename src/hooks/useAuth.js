@@ -95,9 +95,9 @@ export const useAuth = () => {
   const signUp = useCallback(async (email, password, name) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -105,12 +105,36 @@ export const useAuth = () => {
           data: { name }
         }
       });
-      
+
       if (error) {
         setError(error);
         return { success: false, error };
       }
-      
+
+      // Send admin notification email about new user
+      if (data.user) {
+        try {
+          await fetch(
+            `${supabase.supabaseUrl}/functions/v1/notify-new-user-signup`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                user_id: data.user.id,
+                email: email,
+                name: name,
+              }),
+            }
+          );
+          // Note: We don't throw on email failure - signup still succeeds
+        } catch (emailError) {
+          console.warn('Failed to send admin notification:', emailError);
+          // Continue despite email failure
+        }
+      }
+
       return { success: true, needsApproval: true };
     } catch (error) {
       setError(error);
