@@ -614,8 +614,51 @@ export const useCoaching = (userId, isAdmin = false) => {
         });
 
       if (error) throw error;
+
+      // Send thank you email to player
+      const resultData = data?.[0];
+      if (resultData && resultData.sessions_confirmed > 0) {
+        try {
+          // Get player profile for email
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email, name')
+            .eq('id', playerId)
+            .single();
+
+          if (profile) {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (session) {
+              await fetch(
+                `${supabase.supabaseUrl}/functions/v1/notify-payment-confirmed`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    player_id: playerId,
+                    email: profile.email,
+                    name: profile.name,
+                    amount: resultData.amount_allocated || amount,
+                    sessions_count: resultData.sessions_confirmed || 0,
+                    reference: reference || undefined,
+                  }),
+                }
+              );
+              // Note: We don't throw on email failure - payment confirmation still succeeds
+            }
+          }
+        } catch (emailError) {
+          console.warn('Failed to send payment confirmation email:', emailError);
+          // Continue despite email failure
+        }
+      }
+
       await fetchAttendance();
-      return { data: data?.[0] || null, error: null };
+      return { data: resultData || null, error: null };
     } catch (error) {
       console.error('Error confirming payment:', error);
       return { data: null, error };

@@ -114,12 +114,17 @@ export const useAuth = () => {
       // Send admin notification email about new user
       if (data.user) {
         try {
+          // Get anon key for edge function authorization
+          const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
           await fetch(
             `${supabase.supabaseUrl}/functions/v1/notify-new-user-signup`,
             {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                'apikey': anonKey,
+                'Authorization': `Bearer ${anonKey}`,
               },
               body: JSON.stringify({
                 user_id: data.user.id,
