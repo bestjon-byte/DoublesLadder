@@ -1,6 +1,6 @@
 // src/hooks/useApp.js - ENHANCED FOR MULTI-SEASON
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase, supabaseUrl } from '../supabaseClient';
 import { applyCourtLayout, generateCourtLayoutPermutations } from '../utils/courtLayoutUtils';
 
 export const useApp = (userId, selectedSeasonId) => {
@@ -288,7 +288,7 @@ export const useApp = (userId, selectedSeasonId) => {
 
         if (session) {
           await fetch(
-            `${supabase.supabaseUrl}/functions/v1/notify-user-approved`,
+            `${supabaseUrl}/functions/v1/notify-user-approved`,
             {
               method: 'POST',
               headers: {

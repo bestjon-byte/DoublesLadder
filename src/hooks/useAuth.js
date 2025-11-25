@@ -2,7 +2,7 @@
 // Handles all authentication logic
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase, supabaseUrl } from '../supabaseClient';
 
 export const useAuth = () => {
   const [user, setUser] = useState(null);
@@ -118,7 +118,7 @@ export const useAuth = () => {
           const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
           await fetch(
-            `${supabase.supabaseUrl}/functions/v1/notify-new-user-signup`,
+            `${supabaseUrl}/functions/v1/notify-new-user-signup`,
             {
               method: 'POST',
               headers: {

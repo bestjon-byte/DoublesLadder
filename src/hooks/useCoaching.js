@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase, supabaseUrl } from '../supabaseClient';
 
 /**
  * Custom hook for managing coaching sessions, schedules, attendance, and payments
@@ -631,7 +631,7 @@ export const useCoaching = (userId, isAdmin = false) => {
 
             if (session) {
               await fetch(
-                `${supabase.supabaseUrl}/functions/v1/notify-payment-confirmed`,
+                `${supabaseUrl}/functions/v1/notify-payment-confirmed`,
                 {
                   method: 'POST',
                   headers: {
@@ -897,7 +897,7 @@ export const useCoaching = (userId, isAdmin = false) => {
       }
 
       const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/send-payment-reminders`,
+        `${supabaseUrl}/functions/v1/send-payment-reminders`,
         {
           method: 'POST',
           headers: {
