@@ -47,15 +47,9 @@ export const useAuth = () => {
       return profile;
     } catch (error) {
       if (error.message === 'Profile query timeout') {
-        console.warn('⚠️ [useAuth] Profile query timeout - using fallback data');
-        // Try to continue without profile data
-        return {
-          id: userId,
-          name: 'Loading...',
-          email: 'loading@example.com',
-          status: 'approved',
-          role: 'player'
-        };
+        console.warn('⚠️ [useAuth] Profile query timeout - returning null to trigger retry');
+        // Return null to trigger retry logic instead of using bad fallback data
+        return null;
       } else {
         console.error('❌ [useAuth] Unexpected profile error:', error);
         return null;
@@ -241,40 +235,30 @@ export const useAuth = () => {
         if (session?.user) {
           // Try to load profile with fallback to auth data
           let profile = await loadUserProfile(session.user.id);
-          
+
           if (!isActive) return; // Component unmounted
-          
-          // If profile loading failed or timed out, use auth data as fallback
+
+          // If profile loading failed or timed out, retry once before giving up
           if (!profile) {
-            profile = {
-              id: session.user.id,
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-              email: session.user.email,
-              status: 'approved', // Assume approved if they can login
-              role: 'player'
-            };
-            setUser(profile);
-            
-            // Try to sync with database in background (non-blocking)
-            setTimeout(async () => {
-              try {
-                const { error: syncError } = await supabase
-                  .from('profiles')
-                  .upsert({
-                    id: session.user.id,
-                    name: profile.name,
-                    email: profile.email,
-                    status: 'approved',
-                    role: 'player'
-                  });
-                
-                if (syncError) {
-                  // Background sync failed - not critical
-                }
-              } catch (syncError) {
-                // Background sync error - not critical
-              }
-            }, 1000);
+            // Wait a bit and try one more time
+            await new Promise(resolve => setTimeout(resolve, 500));
+            profile = await loadUserProfile(session.user.id);
+
+            if (!isActive) return; // Component unmounted
+
+            // If still no profile, use minimal fallback WITHOUT setting role
+            // (role will be fetched when profile eventually loads)
+            if (!profile) {
+              profile = {
+                id: session.user.id,
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                email: session.user.email,
+                status: 'pending', // Don't assume approved
+                role: null // Don't assume role - will be set when profile loads
+              };
+              setUser(profile);
+              // DO NOT upsert to database - that would overwrite existing data!
+            }
           }
         }
       } catch (error) {
