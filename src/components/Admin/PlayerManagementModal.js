@@ -364,7 +364,31 @@ const PlayerManagementModal = ({
       await supabase.from('score_conflicts').update({ conflicting_user_id: mergeTargetId }).eq('conflicting_user_id', selectedPlayer.id);
       await supabase.from('score_conflicts').update({ resolved_by: mergeTargetId }).eq('resolved_by', selectedPlayer.id);
 
-      // Step 9: Delete source profile
+      // Step 9: Transfer ELO rating to target profile (use higher rating)
+      const { data: sourceProfile } = await supabase
+        .from('profiles')
+        .select('elo_rating')
+        .eq('id', selectedPlayer.id)
+        .single();
+
+      const { data: targetProfile } = await supabase
+        .from('profiles')
+        .select('elo_rating')
+        .eq('id', mergeTargetId)
+        .single();
+
+      const sourceElo = sourceProfile?.elo_rating || 1050;
+      const targetElo = targetProfile?.elo_rating || 1050;
+
+      // Use the higher ELO (the one that reflects actual play history)
+      if (sourceElo > targetElo) {
+        await supabase
+          .from('profiles')
+          .update({ elo_rating: sourceElo })
+          .eq('id', mergeTargetId);
+      }
+
+      // Step 10: Delete source profile
       const { error: deleteError } = await supabase
         .from('profiles')
         .delete()
