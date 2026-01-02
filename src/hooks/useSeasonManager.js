@@ -118,8 +118,8 @@ export const useSeasonManager = (isAuthenticated = false) => {
             games_played: 0,
             games_won: 0,
             previous_rank: null,
-            // NEW: Set ELO rating based on new season settings
-            elo_rating: newSeason.elo_enabled ? (player.elo_rating || newSeason.elo_initial_rating) : null
+            // ELO rating persists forever - always carry over from previous season
+            elo_rating: player.elo_rating || 1050
           }));
 
           const { error: insertError } = await supabase
