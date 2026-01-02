@@ -358,21 +358,22 @@ export const useApp = (userId, selectedSeasonId) => {
         return { success: false };
       }
 
-      // Get season info to check if ELO is enabled
-      const { data: season } = await supabase
-        .from('seasons')
-        .select('elo_enabled, elo_initial_rating')
-        .eq('id', selectedSeasonId)
+      // Get player's global ELO from their profile
+      const { data: playerProfile } = await supabase
+        .from('profiles')
+        .select('elo_rating')
+        .eq('id', userIdToAdd)
         .single();
 
-      // Add player to season
+      // Add player to season with their global ELO rating
       const { error } = await supabase
         .from('season_players')
         .insert({
           season_id: selectedSeasonId,
           player_id: userIdToAdd,
           rank: parseInt(rank) || null,
-          elo_rating: season?.elo_enabled ? (season.elo_initial_rating || 1200) : null
+          // Use player's global ELO from profile (persists forever), default 1050 for new players
+          elo_rating: playerProfile?.elo_rating || 1050
         });
 
       if (error) throw error;
@@ -761,10 +762,17 @@ export const useApp = (userId, selectedSeasonId) => {
 
       const existingPlayerIds = new Set(existingSeasonPlayers.map(p => p.player_id));
 
-      // Add missing Cawood players to season_players
+      // Add missing Cawood players to season_players with their global ELO
       const playersToAdd = [];
-      cawoodPlayerIds.forEach(playerId => {
+      for (const playerId of cawoodPlayerIds) {
         if (!existingPlayerIds.has(playerId)) {
+          // Get player's global ELO from their profile
+          const { data: playerProfile } = await supabase
+            .from('profiles')
+            .select('elo_rating')
+            .eq('id', playerId)
+            .single();
+
           playersToAdd.push({
             season_id: selectedSeasonId,
             player_id: playerId,
@@ -772,10 +780,11 @@ export const useApp = (userId, selectedSeasonId) => {
             matches_played: 0,
             matches_won: 0,
             games_played: 0,
-            games_won: 0
+            games_won: 0,
+            elo_rating: playerProfile?.elo_rating || 1050
           });
         }
-      });
+      }
 
       if (playersToAdd.length > 0) {
         const { error: insertError } = await supabase

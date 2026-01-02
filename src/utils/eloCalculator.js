@@ -140,8 +140,20 @@ export const updateMatchElos = async (matchFixtureId, matchResult) => {
         .from('season_players')
         .update({ elo_rating: update.elo_rating })
         .eq('id', update.id);
-      
+
       if (updateError) throw updateError;
+    }
+
+    // Also sync ELO to profiles table (global/permanent player rating)
+    // This ensures ELO persists across all seasons
+    for (const update of updates) {
+      const seasonPlayer = [...pair1Players, ...pair2Players].find(p => p.id === update.id);
+      if (seasonPlayer) {
+        await supabase
+          .from('profiles')
+          .update({ elo_rating: update.elo_rating })
+          .eq('id', seasonPlayer.player_id);
+      }
     }
 
     const { error: historyError } = await supabase
@@ -222,6 +234,21 @@ export const recalculateSeasonElos = async (seasonId, fromDate = null) => {
           pair1_score: match.pair1_score[0].pair1_score,
           pair2_score: match.pair2_score[0].pair2_score
         });
+      }
+    }
+
+    // After recalculation, sync all season player ratings to profiles
+    const { data: finalRatings } = await supabase
+      .from('season_players')
+      .select('player_id, elo_rating')
+      .eq('season_id', seasonId);
+
+    if (finalRatings) {
+      for (const sp of finalRatings) {
+        await supabase
+          .from('profiles')
+          .update({ elo_rating: sp.elo_rating })
+          .eq('id', sp.player_id);
       }
     }
 

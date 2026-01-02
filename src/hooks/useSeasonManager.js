@@ -100,9 +100,16 @@ export const useSeasonManager = (isAuthenticated = false) => {
 
       // Copy players from previous season if requested (only for ladder seasons)
       if (seasonData.carryOverPlayers && seasonData.season_type === 'ladder' && activeSeason) {
+        // Get previous season players with their profile ELO (global rating)
         const { data: previousPlayers, error: playersError } = await supabase
           .from('season_players')
-          .select('*')
+          .select(`
+            *,
+            profile:player_id (
+              id,
+              elo_rating
+            )
+          `)
           .eq('season_id', activeSeason.id)
           .order('rank', { ascending: true });
 
@@ -118,8 +125,8 @@ export const useSeasonManager = (isAuthenticated = false) => {
             games_played: 0,
             games_won: 0,
             previous_rank: null,
-            // ELO rating persists forever - always carry over from previous season
-            elo_rating: player.elo_rating || 1050
+            // Use global ELO from profiles (player's permanent rating)
+            elo_rating: player.profile?.elo_rating || 1050
           }));
 
           const { error: insertError } = await supabase

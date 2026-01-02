@@ -230,12 +230,19 @@ const PlayerManagementModal = ({
 
     setLoading(true);
     try {
+      // Update season_players for current season
       const { error } = await supabase
         .from('season_players')
         .update({ elo_rating: rating })
         .eq('id', playerSeasonData.id);
 
       if (error) throw error;
+
+      // Also update profiles table (global/permanent ELO)
+      await supabase
+        .from('profiles')
+        .update({ elo_rating: rating })
+        .eq('id', selectedPlayer.id);
 
       toast.success(`ELO rating updated to ${rating}`);
       setPlayerSeasonData({ ...playerSeasonData, elo_rating: rating });
