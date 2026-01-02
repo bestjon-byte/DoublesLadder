@@ -1,0 +1,75 @@
+COACHING ANALYSIS RAW DATA - Cawood Tennis Club
+Generated: 2 January 2026
+Data Period: July 2025 - November 2025
+
+=== SUMMARY METRICS ===
+Metric,Value
+Total Sessions Delivered,27
+Adults Sessions,16
+Beginners Sessions,11
+Total Unique Attendees,40
+Total Attendance Records,202
+Average Attendance Per Session,4.1
+Revenue Collected (£),516.00
+Revenue Outstanding (£),224.00
+Revenue Pending Confirmation (£),68.00
+Total Expected Revenue (£),808.00
+Collection Rate (%),63.9
+Coach Cost Per Session (£),20.00
+Total Coach Costs Adults+Beginners (£),540.00
+
+=== SESSIONS BY MONTH ===
+Month,Adults,Beginners,Total
+2025-07,4,0,4
+2025-08,4,3,7
+2025-09,2,2,4
+2025-10,3,3,6
+2025-11,3,3,6
+
+=== PLAYER PAYMENT DATA ===
+Player Name,Email,Total Sessions,Paid Sessions,Unpaid Sessions,Pending Sessions,Amount Paid (£),Amount Owed (£),Amount Pending (£)
+Julie Speight,juliemespeight@icloud.com,9,2,7,0,8.00,28.00,0.00
+Monty H,monty.h@coaching-import.example.com,8,2,6,0,8.00,24.00,0.00
+Oxy,oxy.abc931be@example.com,8,3,5,0,12.00,20.00,0.00
+Sal Ramzan,salramzan@yahoo.co.uk,7,2,5,0,8.00,20.00,0.00
+Bev,bev.2447e434@example.com,6,2,4,0,8.00,16.00,0.00
+Edward F,edward.f@coaching-import.example.com,6,2,4,0,8.00,16.00,0.00
+Liv W,liv.w@coaching-import.example.com,6,2,4,0,8.00,16.00,0.00
+Rich Donaldson,rich@example.com,3,0,3,0,0.00,12.00,0.00
+Karen,karen@coaching-import.example.com,3,1,2,0,4.00,8.00,0.00
+Mark Amy,markamy@lineone.net,12,10,2,0,40.00,8.00,0.00
+Mark B,markus727@hotmail.co.uk,6,4,2,0,16.00,8.00,0.00
+Nader,nader@example.com,2,0,2,0,0.00,8.00,0.00
+Charlie Meacham,cpmeach@gmail.com,9,8,1,0,32.00,4.00,0.00
+Chris Abbott,achrisjo@aol.com,2,1,1,0,4.00,4.00,0.00
+Honor R,honor.r@coaching-import.example.com,3,2,1,0,8.00,4.00,0.00
+Jock McIlvenny,jockmcilvenny@yahoo.com,6,5,1,0,20.00,4.00,0.00
+Jon Best,best.jon@gmail.com,7,6,1,0,24.00,4.00,0.00
+Michael Brennan,mickbrennan6@yahoo.com,12,11,1,0,44.00,4.00,0.00
+Sarah Nutbrown,sarahnutbrown@yahoo.co.uk,5,4,1,0,16.00,4.00,0.00
+Shani,shani@coaching-import.example.com,3,2,1,0,8.00,4.00,0.00
+Stephen Parkin,stephen.parkin@sjpfs.uk.com,2,1,1,0,4.00,4.00,0.00
+Tom,tom@coaching-import.example.com,3,2,1,0,8.00,4.00,0.00
+Aidan,flyinbukta@gmail.com,11,3,0,8,12.00,0.00,32.00
+Alexa Kilmartin,alexaxx12@hotmail.com,2,2,0,0,8.00,0.00,0.00
+Andrew Bromley,arbromley@hotmail.com,6,6,0,0,24.00,0.00,0.00
+Andrew D,andrew.d@coaching-import.example.com,1,1,0,0,4.00,0.00,0.00
+Ben Drummond,bendrummond470@gmail.com,4,4,0,0,16.00,0.00,0.00
+David Myers,davey.myers@gmail.com,4,4,0,0,16.00,0.00,0.00
+Diane Ramzan,dianeramzan@yahoo.co.uk,7,7,0,0,28.00,0.00,0.00
+Diccon,diccon@coaching-import.example.com,1,1,0,0,4.00,0.00,0.00
+Emily F,emily.f@coaching-import.example.com,2,2,0,0,8.00,0.00,0.00
+Holly Langdale,hollyrlangdale@outlook.com,10,9,0,1,36.00,0.00,4.00
+James Murphy,jamesmurph117@gmail.com,2,2,0,0,8.00,0.00,0.00
+Joanne Abbott,joanneabbott19@gmail.com,1,1,0,0,4.00,0.00,0.00
+Liz,lizlangdale@hotmail.com,8,3,0,5,12.00,0.00,20.00
+Liz Myers,liz.5e53d15f@example.com,1,1,0,0,4.00,0.00,0.00
+Peter Vickers,peterv81@me.com,4,4,0,0,16.00,0.00,0.00
+Samuel Best,swb12@icloud.com,2,2,0,0,8.00,0.00,0.00
+Sarah,sarah@coaching-import.example.com,3,3,0,0,12.00,0.00,0.00
+Sarah Burt,sarahburt17@gmail.com,5,2,0,3,8.00,0.00,12.00
+
+=== NOTES ===
+- Juniors sessions not tracked (club-funded)
+- Cancelled sessions data not available in system
+- @coaching-import.example.com emails are imported legacy accounts
