@@ -69,15 +69,15 @@ serve(async (req) => {
       })}</p>
     </div>
 
-    <div style="background-color: #e6f3ff; border: 2px solid #3182ce; border-radius: 8px; padding: 20px; margin: 25px 0;">
-      <h4 style="color: #1a365d; margin-top: 0;">Action Required</h4>
-      <p style="margin: 8px 0;">This user account requires approval before they can access the system.</p>
-      <p style="margin: 8px 0;">Please review and approve this user through the admin panel.</p>
+    <div style="background-color: #d4edda; border: 2px solid #28a745; border-radius: 8px; padding: 20px; margin: 25px 0;">
+      <h4 style="color: #155724; margin-top: 0;">Account Auto-Approved</h4>
+      <p style="margin: 8px 0;">This user has been automatically approved and can now access the system.</p>
+      <p style="margin: 8px 0;"><strong>Check if they have a ghost account</strong> (e.g. from coaching imports) that needs to be merged.</p>
     </div>
 
     <div style="margin: 30px 0; text-align: center;">
-      <a href="${APP_URL}/admin" style="display: inline-block; background-color: #3182ce; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
-        Go to Admin Panel
+      <a href="${APP_URL}" style="display: inline-block; background-color: #3182ce; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+        Check Player Management
       </a>
     </div>
 

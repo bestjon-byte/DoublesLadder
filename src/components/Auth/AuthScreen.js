@@ -1,6 +1,6 @@
 // src/components/Auth/AuthScreen.js - SIMPLIFIED AND FIXED
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
+import { supabase, supabaseUrl } from '../../supabaseClient';
 import PasswordReset from './PasswordReset';
 import PasswordUpdate from './PasswordUpdate';
 import { useAppToast } from '../../contexts/ToastContext';
@@ -78,6 +78,29 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
 
           if (profileError) {
             console.error('Profile creation error:', profileError);
+          }
+
+          // Send admin notification email about new user
+          try {
+            const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+            await fetch(
+              `${supabaseUrl}/functions/v1/notify-new-user-signup`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': anonKey,
+                  'Authorization': `Bearer ${anonKey}`,
+                },
+                body: JSON.stringify({
+                  user_id: data.user.id,
+                  email: authForm.email,
+                  name: authForm.name,
+                }),
+              }
+            );
+          } catch (emailError) {
+            console.warn('Failed to send admin notification:', emailError);
           }
 
           // Registration successful - user can log in after email confirmation
