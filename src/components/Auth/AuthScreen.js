@@ -50,8 +50,8 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
         }
       } else if (authMode === 'register') {
         // Attempting user registration with provided details
-        
-        const { error } = await supabase.auth.signUp({
+
+        const { data, error } = await supabase.auth.signUp({
           email: authForm.email,
           password: authForm.password,
           options: {
@@ -60,13 +60,28 @@ const AuthScreen = ({ onAuthChange, isPasswordReset = false, onPasswordResetComp
             }
           }
         });
-        
+
         if (error) {
           console.error('❌ Registration error:', error);
           toast.error(`Registration failed: ${error.message}`);
-        } else {
-          // Registration successful - user awaiting approval
-          toast.success('Registration successful! Please wait for admin approval.');
+        } else if (data.user) {
+          // Auto-create profile with approved status
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              name: authForm.name,
+              email: authForm.email,
+              role: 'player',
+              status: 'approved'
+            }, { onConflict: 'id' });
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+          }
+
+          // Registration successful - user can log in after email confirmation
+          toast.success('Registration successful! Check your email to confirm, then sign in.');
           setAuthMode('login');
           setAuthForm({ email: '', password: '', name: '' });
         }

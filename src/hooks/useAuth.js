@@ -85,13 +85,12 @@ export const useAuth = () => {
     }
   }, [loadUserProfile]);
 
-  // Sign up
+  // Sign up - Auto-creates approved profile immediately
   const signUp = useCallback(async (email, password, name) => {
     setLoading(true);
     setError(null);
 
     try {
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -105,12 +104,26 @@ export const useAuth = () => {
         return { success: false, error };
       }
 
-      // Send admin notification email about new user
+      // Auto-create profile with approved status
       if (data.user) {
-        try {
-          // Get anon key for edge function authorization
-          const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            name: name,
+            email: email,
+            role: 'player',
+            status: 'approved'
+          }, { onConflict: 'id' });
 
+        if (profileError) {
+          console.error('Failed to create profile:', profileError);
+          // Continue - user can still be approved later if profile creation fails
+        }
+
+        // Send admin notification email about new user (optional - just FYI)
+        try {
+          const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
           await fetch(
             `${supabaseUrl}/functions/v1/notify-new-user-signup`,
             {
@@ -127,14 +140,12 @@ export const useAuth = () => {
               }),
             }
           );
-          // Note: We don't throw on email failure - signup still succeeds
         } catch (emailError) {
           console.warn('Failed to send admin notification:', emailError);
-          // Continue despite email failure
         }
       }
 
-      return { success: true, needsApproval: true };
+      return { success: true, needsApproval: false };
     } catch (error) {
       setError(error);
       return { success: false, error };
