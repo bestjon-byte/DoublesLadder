@@ -1,11 +1,16 @@
 // Add External Player Modal - Create skeleton users for storing results
+// Extended to support junior players with parent contact details
 import React, { useState } from 'react';
-import { X, UserPlus, User, Mail, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, UserPlus, User, Mail, AlertCircle, CheckCircle, Phone, Users } from 'lucide-react';
 
 const AddExternalPlayerModal = ({ isOpen, onClose, supabase, onPlayerAdded }) => {
   const [loading, setLoading] = useState(false);
   const [playerName, setPlayerName] = useState('');
   const [playerEmail, setPlayerEmail] = useState('');
+  const [isJunior, setIsJunior] = useState(false);
+  const [parentName, setParentName] = useState('');
+  const [parentEmail, setParentEmail] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [createdPlayer, setCreatedPlayer] = useState(null);
@@ -13,6 +18,10 @@ const AddExternalPlayerModal = ({ isOpen, onClose, supabase, onPlayerAdded }) =>
   const handleReset = () => {
     setPlayerName('');
     setPlayerEmail('');
+    setIsJunior(false);
+    setParentName('');
+    setParentEmail('');
+    setParentPhone('');
     setError('');
     setSuccess(false);
     setCreatedPlayer(null);
@@ -92,15 +101,25 @@ const AddExternalPlayerModal = ({ isOpen, onClose, supabase, onPlayerAdded }) =>
         return;
       }
 
-      // Create the skeleton user
+      // Create the skeleton user (with optional junior fields)
+      const profileData = {
+        name: name,
+        email: email,
+        status: 'approved', // Skeleton users are auto-approved
+        role: 'player',
+        is_junior: isJunior,
+      };
+
+      // Add parent fields if this is a junior
+      if (isJunior) {
+        if (parentName.trim()) profileData.parent_name = parentName.trim();
+        if (parentEmail.trim()) profileData.parent_email = parentEmail.trim();
+        if (parentPhone.trim()) profileData.parent_phone = parentPhone.trim();
+      }
+
       const { data: newUser, error: createError } = await supabase
         .from('profiles')
-        .insert({
-          name: name,
-          email: email,
-          status: 'approved', // Skeleton users are auto-approved
-          role: 'player'
-        })
+        .insert(profileData)
         .select()
         .single();
 
@@ -195,9 +214,25 @@ const AddExternalPlayerModal = ({ isOpen, onClose, supabase, onPlayerAdded }) =>
                 <ul className="text-blue-700 text-sm space-y-1">
                   <li>• Players who haven't signed up to the app</li>
                   <li>• External opponents from other clubs</li>
-                  <li>• Allows storing match results against them</li>
+                  <li>• Junior players for coaching attendance</li>
                   <li>• They won't be able to log in or see the app</li>
                 </ul>
+              </div>
+
+              {/* Junior Player Toggle */}
+              <div className="flex items-center space-x-3 p-3 bg-purple-50 border border-purple-200 rounded-md">
+                <input
+                  type="checkbox"
+                  id="isJunior"
+                  checked={isJunior}
+                  onChange={(e) => setIsJunior(e.target.checked)}
+                  disabled={loading}
+                  className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                />
+                <label htmlFor="isJunior" className="flex items-center cursor-pointer">
+                  <Users className="w-4 h-4 mr-2 text-purple-600" />
+                  <span className="font-medium text-purple-800">This is a Junior Player</span>
+                </label>
               </div>
 
               {/* Player Name */}
@@ -235,14 +270,81 @@ const AddExternalPlayerModal = ({ isOpen, onClose, supabase, onPlayerAdded }) =>
                 </p>
               </div>
 
+              {/* Parent/Guardian Details (for juniors) */}
+              {isJunior && (
+                <div className="space-y-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <h4 className="font-medium text-yellow-800 flex items-center">
+                    <Users className="w-4 h-4 mr-2" />
+                    Parent/Guardian Details
+                  </h4>
+
+                  {/* Parent Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <User className="w-4 h-4 inline mr-1" />
+                      Parent Name
+                    </label>
+                    <input
+                      type="text"
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                      disabled={loading}
+                      placeholder="e.g., Sarah Smith"
+                      className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Parent Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Mail className="w-4 h-4 inline mr-1" />
+                      Parent Email
+                    </label>
+                    <input
+                      type="email"
+                      value={parentEmail}
+                      onChange={(e) => setParentEmail(e.target.value)}
+                      disabled={loading}
+                      placeholder="e.g., sarah.smith@email.com"
+                      className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Parent Phone */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Phone className="w-4 h-4 inline mr-1" />
+                      Parent Phone
+                    </label>
+                    <input
+                      type="tel"
+                      value={parentPhone}
+                      onChange={(e) => setParentPhone(e.target.value)}
+                      disabled={loading}
+                      placeholder="e.g., 07700 900123"
+                      className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Preview */}
               {playerName.trim() && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <h4 className="font-medium text-gray-800 mb-2">Player Preview:</h4>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 space-y-1">
                     <p><strong>Name:</strong> {playerName.trim()}</p>
                     <p><strong>Email:</strong> {playerEmail.trim() || 'Auto-generated skeleton email'}</p>
-                    <p><strong>Status:</strong> External Player (Auto-approved)</p>
+                    <p><strong>Type:</strong> {isJunior ? 'Junior Player' : 'External Player'} (Auto-approved)</p>
+                    {isJunior && parentName.trim() && (
+                      <p><strong>Parent:</strong> {parentName.trim()}</p>
+                    )}
+                    {isJunior && parentEmail.trim() && (
+                      <p><strong>Parent Email:</strong> {parentEmail.trim()}</p>
+                    )}
+                    {isJunior && parentPhone.trim() && (
+                      <p><strong>Parent Phone:</strong> {parentPhone.trim()}</p>
+                    )}
                   </div>
                 </div>
               )}

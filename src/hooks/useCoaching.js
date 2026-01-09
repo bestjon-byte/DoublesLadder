@@ -35,6 +35,130 @@ export const useCoaching = (userId, isAdmin = false) => {
   }, []);
 
   // ==========================================================================
+  // ENROLLMENT MANAGEMENT
+  // ==========================================================================
+
+  /**
+   * Fetch enrolled players for a schedule
+   */
+  const getScheduleEnrollments = useCallback(async (scheduleId) => {
+    try {
+      const { data, error } = await supabase
+        .from('coaching_schedule_enrollments')
+        .select(`
+          *,
+          player:profiles!coaching_schedule_enrollments_player_id_fkey(id, name, email, is_junior, parent_name, parent_phone)
+        `)
+        .eq('schedule_id', scheduleId)
+        .eq('is_active', true)
+        .order('enrolled_at', { ascending: true });
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Error fetching schedule enrollments:', error);
+      return { data: [], error };
+    }
+  }, []);
+
+  /**
+   * Enroll a player in a schedule
+   */
+  const enrollPlayer = useCallback(async (scheduleId, playerId) => {
+    try {
+      const { data, error } = await supabase
+        .from('coaching_schedule_enrollments')
+        .upsert({
+          schedule_id: scheduleId,
+          player_id: playerId,
+          enrolled_by: userId,
+          is_active: true,
+        }, {
+          onConflict: 'schedule_id,player_id',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error enrolling player:', error);
+      return { data: null, error };
+    }
+  }, [userId]);
+
+  /**
+   * Unenroll a player from a schedule
+   */
+  const unenrollPlayer = useCallback(async (scheduleId, playerId) => {
+    try {
+      const { error } = await supabase
+        .from('coaching_schedule_enrollments')
+        .update({ is_active: false })
+        .eq('schedule_id', scheduleId)
+        .eq('player_id', playerId);
+
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      console.error('Error unenrolling player:', error);
+      return { error };
+    }
+  }, []);
+
+  /**
+   * Get enrolled players for a session (via its schedule)
+   */
+  const getSessionEnrolledPlayers = useCallback(async (sessionId) => {
+    try {
+      // First get the schedule_id for this session
+      const { data: session, error: sessionError } = await supabase
+        .from('coaching_sessions')
+        .select('schedule_id')
+        .eq('id', sessionId)
+        .single();
+
+      if (sessionError) throw sessionError;
+      if (!session.schedule_id) {
+        return { data: [], error: null }; // Manual session with no schedule
+      }
+
+      // Get enrolled players
+      const { data: enrollments, error: enrollError } = await supabase
+        .from('coaching_schedule_enrollments')
+        .select(`
+          *,
+          player:profiles!coaching_schedule_enrollments_player_id_fkey(id, name, email, is_junior)
+        `)
+        .eq('schedule_id', session.schedule_id)
+        .eq('is_active', true);
+
+      if (enrollError) throw enrollError;
+
+      // Get attendance for this session to mark who has already attended
+      const { data: attendance, error: attendError } = await supabase
+        .from('coaching_attendance')
+        .select('player_id')
+        .eq('session_id', sessionId);
+
+      if (attendError) throw attendError;
+
+      const attendedPlayerIds = new Set((attendance || []).map(a => a.player_id));
+
+      // Combine data
+      const playersWithAttendance = (enrollments || []).map(e => ({
+        ...e.player,
+        has_attended: attendedPlayerIds.has(e.player.id),
+      }));
+
+      return { data: playersWithAttendance, error: null };
+    } catch (error) {
+      console.error('Error fetching session enrolled players:', error);
+      return { data: [], error };
+    }
+  }, []);
+
+  // ==========================================================================
   // SCHEDULES MANAGEMENT
   // ==========================================================================
 
@@ -998,6 +1122,12 @@ export const useCoaching = (userId, isAdmin = false) => {
 
     // Actions
     actions: {
+      // Enrollment
+      getScheduleEnrollments,
+      enrollPlayer,
+      unenrollPlayer,
+      getSessionEnrolledPlayers,
+
       // Schedules
       fetchSchedules,
       createSchedule,
