@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, PoundSterling } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 
 const DAY_OPTIONS = [
@@ -18,19 +18,36 @@ const ScheduleModal = ({ isOpen, onClose, schedule, onSuccess, actions }) => {
   const { success, error } = useAppToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    schedule_name: '',
     session_type: 'Adults',
     day_of_week: 3, // Wednesday
     session_time: '18:00',
+    session_cost: '4.00',
+    is_junior_session: false,
     notes: '',
   });
 
   useEffect(() => {
     if (schedule) {
       setFormData({
+        schedule_name: schedule.schedule_name || '',
         session_type: schedule.session_type || 'Adults',
         day_of_week: schedule.day_of_week || 3,
         session_time: schedule.session_time || '18:00',
+        session_cost: schedule.session_cost?.toString() || '4.00',
+        is_junior_session: schedule.is_junior_session || false,
         notes: schedule.notes || '',
+      });
+    } else {
+      // Reset to defaults for new schedule
+      setFormData({
+        schedule_name: '',
+        session_type: 'Adults',
+        day_of_week: 3,
+        session_time: '18:00',
+        session_cost: '4.00',
+        is_junior_session: false,
+        notes: '',
       });
     }
   }, [schedule]);
@@ -40,13 +57,21 @@ const ScheduleModal = ({ isOpen, onClose, schedule, onSuccess, actions }) => {
     setLoading(true);
 
     try {
+      // Prepare data with proper types
+      const submitData = {
+        ...formData,
+        session_cost: parseFloat(formData.session_cost) || 0,
+        // Set is_junior_session automatically based on session_type
+        is_junior_session: formData.session_type === 'Juniors',
+      };
+
       let result;
       if (schedule) {
         // Update existing schedule
-        result = await actions.updateSchedule(schedule.id, formData);
+        result = await actions.updateSchedule(schedule.id, submitData);
       } else {
         // Create new schedule
-        result = await actions.createSchedule(formData);
+        result = await actions.createSchedule(submitData);
       }
 
       if (result.error) {
@@ -82,6 +107,23 @@ const ScheduleModal = ({ isOpen, onClose, schedule, onSuccess, actions }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Schedule Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Schedule Name
+            </label>
+            <input
+              type="text"
+              value={formData.schedule_name}
+              onChange={(e) => setFormData({ ...formData, schedule_name: e.target.value })}
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+              placeholder="e.g., Under 10s, Adult Improvers"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Optional: Give this schedule a friendly name
+            </p>
+          </div>
+
           {/* Session Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -89,7 +131,15 @@ const ScheduleModal = ({ isOpen, onClose, schedule, onSuccess, actions }) => {
             </label>
             <select
               value={formData.session_type}
-              onChange={(e) => setFormData({ ...formData, session_type: e.target.value })}
+              onChange={(e) => {
+                const newType = e.target.value;
+                setFormData({
+                  ...formData,
+                  session_type: newType,
+                  // Auto-set cost to 0 for Juniors
+                  session_cost: newType === 'Juniors' ? '0.00' : formData.session_cost
+                });
+              }}
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
               required
             >
@@ -132,6 +182,30 @@ const ScheduleModal = ({ isOpen, onClose, schedule, onSuccess, actions }) => {
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
               required
             />
+          </div>
+
+          {/* Session Cost */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Session Cost (£)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">£</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.session_cost}
+                onChange={(e) => setFormData({ ...formData, session_cost: e.target.value })}
+                className="w-full p-3 pl-8 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#5D1F1F] focus:border-transparent"
+                placeholder="4.00"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.session_type === 'Juniors'
+                ? 'Junior sessions are typically free (£0.00)'
+                : 'Standard cost per session (e.g., £4.00)'}
+            </p>
           </div>
 
           {/* Notes */}
