@@ -198,60 +198,64 @@ const CoachPaymentsView = ({ currentUser }) => {
         </div>
       )}
 
-      {/* Sessions Awaiting Payment */}
-      <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-orange-500" />
-          Sessions Awaiting Payment ({sessionsToPay.length})
-        </h3>
-        {sessionsToPay.length === 0 ? (
-          <div className="bg-green-50 rounded-lg p-6 text-center">
-            <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
-            <p className="text-green-700 font-medium">All caught up!</p>
-            <p className="text-green-600 text-sm">No sessions awaiting payment</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="divide-y divide-gray-100">
-              {sessionsToPay.slice(0, 10).map((session) => (
-                <div key={session.session_id} className="p-3 flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-gray-900 text-sm">
-                      {formatDateShort(session.session_date)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {session.session_type}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold text-gray-900">
-                      {formatCurrency(session.amount_owed)}
-                    </div>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      session.status === 'completed'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {session.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {sessionsToPay.length > 10 && (
-                <div className="p-3 text-center text-sm text-gray-500">
-                  + {sessionsToPay.length - 10} more sessions
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Sessions Delivered - only show past/completed sessions */}
+      {(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const deliveredSessions = sessionsToPay.filter(s => {
+          const sessionDate = new Date(s.session_date);
+          return sessionDate <= today || s.status === 'completed';
+        });
 
-      {/* Recent Payments */}
+        return (
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              Sessions Delivered
+            </h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Sessions you've run that will be paid from your credit balance
+            </p>
+            {deliveredSessions.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-6 text-center">
+                <Calendar className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-600">No sessions delivered yet</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                  {deliveredSessions.map((session) => (
+                    <div key={session.session_id} className="p-3 flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">
+                          {formatDateShort(session.session_date)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {session.session_type}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-gray-900">
+                          {formatCurrency(session.amount_owed)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-2 bg-gray-50 border-t text-center text-xs text-gray-500">
+                  {deliveredSessions.length} session{deliveredSessions.length !== 1 ? 's' : ''} • {formatCurrency(deliveredSessions.reduce((sum, s) => sum + (s.amount_owed || 0), 0))} total
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Payments Received */}
       <div>
         <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 text-green-500" />
-          Recent Payments ({paymentHistory.length})
+          <PoundSterling className="w-4 h-4 text-green-500" />
+          Payments Received
         </h3>
         {paymentHistory.length === 0 ? (
           <div className="bg-gray-50 rounded-lg p-6 text-center">
@@ -260,8 +264,8 @@ const CoachPaymentsView = ({ currentUser }) => {
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="divide-y divide-gray-100">
-              {paymentHistory.slice(0, 5).map((payment) => (
+            <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+              {paymentHistory.map((payment) => (
                 <div key={payment.payment_id} className="p-3 flex items-center justify-between">
                   <div>
                     <div className="font-medium text-gray-900 text-sm">
@@ -275,23 +279,12 @@ const CoachPaymentsView = ({ currentUser }) => {
                     <div className="font-semibold text-green-600">
                       +{formatCurrency(payment.amount)}
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      payment.payment_type === 'regular'
-                        ? 'bg-blue-100 text-blue-700'
-                        : payment.payment_type === 'goodwill'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {payment.payment_type}
-                    </span>
                   </div>
                 </div>
               ))}
-              {paymentHistory.length > 5 && (
-                <div className="p-3 text-center text-sm text-gray-500">
-                  + {paymentHistory.length - 5} older payments
-                </div>
-              )}
+            </div>
+            <div className="p-2 bg-gray-50 border-t text-center text-xs text-gray-500">
+              {paymentHistory.length} payment{paymentHistory.length !== 1 ? 's' : ''} • {formatCurrency(paymentHistory.reduce((sum, p) => sum + (p.amount || 0), 0))} total
             </div>
           </div>
         )}
