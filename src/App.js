@@ -26,6 +26,7 @@ import UpdateNotification from './components/shared/UpdateNotification';
 import VersionDisplay from './components/shared/VersionDisplay';
 import SeasonSelector from './components/Season/SeasonSelector';
 import PaymentConfirmation from './components/Public/PaymentConfirmation';
+import PasswordUpdate from './components/Auth/PasswordUpdate';
 import { ToastProvider } from './contexts/ToastContext';
 import './components/TrophyCabinet/TrophyCabinet.css';
 
@@ -119,10 +120,18 @@ const CawoodTennisApp = () => {
     );
   }
 
-  // Check for payment confirmation token (public access - no auth required)
+  // Check URL for public pages (no auth required)
   const urlParams = new URLSearchParams(window.location.search);
-  const paymentToken = urlParams.get('token');
-  if (paymentToken) {
+  const token = urlParams.get('token');
+  const path = window.location.pathname;
+
+  // Password reset page - /reset-password?token=UUID
+  if (path === '/reset-password' && token) {
+    return <PasswordUpdate />;
+  }
+
+  // Payment confirmation page - /?token=UUID (root path with token)
+  if (token && path === '/') {
     return <PaymentConfirmation />;
   }
 
