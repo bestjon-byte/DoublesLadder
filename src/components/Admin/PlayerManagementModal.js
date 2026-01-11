@@ -533,7 +533,8 @@ const PlayerManagementModal = ({
                               <p className="text-sm text-gray-600">{player.email}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                  player.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+                                  player.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                  player.role === 'coach' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
                                 }`}>
                                   {player.role || 'player'}
                                 </span>
@@ -694,6 +695,7 @@ const PlayerManagementModal = ({
                             className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
                           >
                             <option value="player">Player</option>
+                            <option value="coach">Coach</option>
                             <option value="admin">Admin</option>
                           </select>
                           {selectedPlayer.id === currentUser?.id && (
