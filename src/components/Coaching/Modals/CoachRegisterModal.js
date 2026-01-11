@@ -70,13 +70,13 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
       // Fetch recent attendance history for smart sorting (last 4 sessions of same type)
       const recentAttendanceMap = {};
       if (players.length > 0 && session.session_type) {
-        // Get last 4 sessions of this type (excluding current)
+        // Get last 4 sessions of this type (excluding current) - include completed sessions
         const { data: recentSessions, error: recentError } = await supabase
           .from('coaching_sessions')
           .select('id, session_date')
           .eq('session_type', session.session_type)
           .neq('id', session.id)
-          .eq('status', 'scheduled')
+          .in('status', ['scheduled', 'completed'])
           .order('session_date', { ascending: false })
           .limit(4);
 
@@ -158,15 +158,65 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
   };
 
   const [justToggled, setJustToggled] = useState(null);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const [swipingPlayer, setSwipingPlayer] = useState(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
 
-  const toggleAttendance = (playerId) => {
+  // Minimum swipe distance to trigger action (in px)
+  const minSwipeDistance = 50;
+
+  const toggleAttendance = (playerId, forceValue = null) => {
     setAttendance(prev => ({
       ...prev,
-      [playerId]: !prev[playerId]
+      [playerId]: forceValue !== null ? forceValue : !prev[playerId]
     }));
     // Brief visual feedback
     setJustToggled(playerId);
     setTimeout(() => setJustToggled(null), 200);
+  };
+
+  const onTouchStart = (e, playerId) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setSwipingPlayer(playerId);
+  };
+
+  const onTouchMove = (e, playerId) => {
+    if (!touchStart || swipingPlayer !== playerId) return;
+    const currentTouch = e.targetTouches[0].clientX;
+    const diff = currentTouch - touchStart;
+    // Limit the swipe offset visually
+    setSwipeOffset(Math.max(-80, Math.min(80, diff)));
+    setTouchEnd(currentTouch);
+  };
+
+  const onTouchEnd = (playerId) => {
+    if (!touchStart || !touchEnd) {
+      resetSwipe();
+      return;
+    }
+
+    const distance = touchEnd - touchStart;
+    const isRightSwipe = distance > minSwipeDistance;
+    const isLeftSwipe = distance < -minSwipeDistance;
+
+    if (isRightSwipe) {
+      // Swipe right = mark present
+      toggleAttendance(playerId, true);
+    } else if (isLeftSwipe) {
+      // Swipe left = mark absent
+      toggleAttendance(playerId, false);
+    }
+
+    resetSwipe();
+  };
+
+  const resetSwipe = () => {
+    setTouchStart(null);
+    setTouchEnd(null);
+    setSwipingPlayer(null);
+    setSwipeOffset(0);
   };
 
   const handleSave = async () => {
@@ -304,48 +354,66 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
                 {sortedPlayers.map(player => {
                   const isAttending = attendance[player.id] || false;
                   const indicator = getAttendanceIndicator(player.id);
+                  const isCurrentlySwiping = swipingPlayer === player.id;
+                  const currentOffset = isCurrentlySwiping ? swipeOffset : 0;
 
                   return (
-                    <button
-                      key={player.id}
-                      onClick={() => toggleAttendance(player.id)}
-                      className={`w-full flex items-center gap-4 px-4 py-4 sm:py-3 transition-all active:scale-[0.98] ${
-                        justToggled === player.id
-                          ? 'bg-green-100'
-                          : isAttending
-                            ? 'bg-green-50'
-                            : 'bg-white'
-                      }`}
-                    >
-                      {/* Checkbox - larger for touch */}
-                      <div className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                        isAttending
-                          ? 'border-green-500 bg-green-500 text-white scale-110'
-                          : 'border-gray-300 bg-white'
-                      }`}>
-                        {isAttending && <Check className="w-4 h-4" strokeWidth={3} />}
+                    <div key={player.id} className="relative overflow-hidden">
+                      {/* Swipe background indicators */}
+                      <div className="absolute inset-y-0 left-0 w-20 bg-green-500 flex items-center justify-start pl-4">
+                        <Check className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="absolute inset-y-0 right-0 w-20 bg-red-400 flex items-center justify-end pr-4">
+                        <X className="w-6 h-6 text-white" />
                       </div>
 
-                      {/* Player info */}
-                      <div className="flex-1 text-left min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-medium truncate ${isAttending ? 'text-green-900' : 'text-gray-900'}`}>
-                            {player.name}
-                          </span>
-                          {player.is_junior && (
-                            <span className="flex-shrink-0 bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs font-medium">
-                              Jr
-                            </span>
-                          )}
+                      {/* Main row - swipeable */}
+                      <button
+                        onClick={() => !isCurrentlySwiping && toggleAttendance(player.id)}
+                        onTouchStart={(e) => onTouchStart(e, player.id)}
+                        onTouchMove={(e) => onTouchMove(e, player.id)}
+                        onTouchEnd={() => onTouchEnd(player.id)}
+                        style={{ transform: `translateX(${currentOffset}px)` }}
+                        className={`relative w-full flex items-center gap-4 px-4 py-4 sm:py-3 transition-colors ${
+                          isCurrentlySwiping ? '' : 'transition-transform'
+                        } active:scale-[0.99] ${
+                          justToggled === player.id
+                            ? 'bg-green-100'
+                            : isAttending
+                              ? 'bg-green-50'
+                              : 'bg-white'
+                        }`}
+                      >
+                        {/* Checkbox - larger for touch */}
+                        <div className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isAttending
+                            ? 'border-green-500 bg-green-500 text-white scale-110'
+                            : 'border-gray-300 bg-white'
+                        }`}>
+                          {isAttending && <Check className="w-4 h-4" strokeWidth={3} />}
                         </div>
-                      </div>
 
-                      {/* Attendance indicator dot */}
-                      <div className="flex-shrink-0 flex items-center gap-1.5" title={indicator.label}>
-                        <span className={`w-2.5 h-2.5 rounded-full ${indicator.color}`}></span>
-                        <span className="text-xs text-gray-400 hidden sm:inline">{indicator.label}</span>
-                      </div>
-                    </button>
+                        {/* Player info */}
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium truncate ${isAttending ? 'text-green-900' : 'text-gray-900'}`}>
+                              {player.name}
+                            </span>
+                            {player.is_junior && (
+                              <span className="flex-shrink-0 bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs font-medium">
+                                Jr
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Attendance indicator dot */}
+                        <div className="flex-shrink-0 flex items-center gap-1.5" title={indicator.label}>
+                          <span className={`w-2.5 h-2.5 rounded-full ${indicator.color}`}></span>
+                          <span className="text-xs text-gray-400 hidden sm:inline">{indicator.label}</span>
+                        </div>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
