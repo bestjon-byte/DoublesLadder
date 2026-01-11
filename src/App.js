@@ -17,6 +17,7 @@ import AdminTab from './components/Admin/AdminTab';
 import CoachingAdminTab from './components/Coaching/CoachingAdminTab';
 import CoachingUserTab from './components/Coaching/CoachingUserTab';
 import CoachDashboard from './components/Coaching/CoachDashboard';
+import CoachPaymentsView from './components/Coaching/CoachPaymentsView';
 import ScheduleModal from './components/Modals/ScheduleModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import PlayersGuideModal from './components/Modals/PlayersGuideModal';
@@ -414,6 +415,12 @@ const CawoodTennisApp = () => {
                 currentUser={user}
               />
             )
+          )}
+
+          {activeTab === 'coach-payments' && user?.role === 'coach' && (
+            <CoachPaymentsView
+              currentUser={user}
+            />
           )}
         </main>
 
