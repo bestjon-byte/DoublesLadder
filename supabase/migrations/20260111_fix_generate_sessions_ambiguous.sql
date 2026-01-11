@@ -2,6 +2,9 @@
 -- FIX: Ambiguous column reference in generate_coaching_sessions
 -- ============================================================================
 
+-- Must drop first because return type is changing
+DROP FUNCTION IF EXISTS generate_coaching_sessions(integer, date, uuid[]);
+
 CREATE OR REPLACE FUNCTION generate_coaching_sessions(
   weeks_ahead INTEGER DEFAULT 4,
   start_from_date DATE DEFAULT NULL,
