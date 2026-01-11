@@ -343,27 +343,10 @@ CREATE POLICY coaching_schedules_coach_select ON coaching_schedules
     )
   );
 
--- Coaches can view profiles (needed to see player names in register)
--- Note: This may already exist, using IF NOT EXISTS pattern
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE policyname = 'profiles_coach_select'
-    AND tablename = 'profiles'
-  ) THEN
-    CREATE POLICY profiles_coach_select ON profiles
-      FOR SELECT
-      TO authenticated
-      USING (
-        EXISTS (
-          SELECT 1 FROM profiles p
-          WHERE p.id = auth.uid()
-          AND p.role = 'coach'
-        )
-      );
-  END IF;
-END $$;
+-- NOTE: Coach profile access is handled via existing RLS policies
+-- We cannot add a coach-specific policy on profiles that references profiles
+-- (would cause infinite recursion). Coaches access profiles through
+-- SECURITY DEFINER functions instead.
 
 -- ============================================================================
 -- 9. ATTENDANCE PAYMENT STATUS HANDLING FOR FREE SESSIONS
