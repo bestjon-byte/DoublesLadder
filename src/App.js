@@ -1,5 +1,5 @@
 // src/App.js - PRODUCTION VERSION WITH MULTI-SEASON
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useApp } from './hooks/useApp';
 import { useSeasonManager } from './hooks/useSeasonManager';
@@ -16,6 +16,7 @@ import AvailabilityTab from './components/Availability/AvailabilityTab';
 import AdminTab from './components/Admin/AdminTab';
 import CoachingAdminTab from './components/Coaching/CoachingAdminTab';
 import CoachingUserTab from './components/Coaching/CoachingUserTab';
+import CoachDashboard from './components/Coaching/CoachDashboard';
 import ScheduleModal from './components/Modals/ScheduleModal';
 import EnhancedScoreModal from './components/Modals/EnhancedScoreModal';
 import PlayersGuideModal from './components/Modals/PlayersGuideModal';
@@ -74,6 +75,13 @@ const CawoodTennisApp = () => {
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [newMatchDate, setNewMatchDate] = useState('');
   const [selectedPlayerId, setSelectedPlayerId] = useState(null); // For viewing other players' profiles
+
+  // Set default tab for coaches to coaching
+  useEffect(() => {
+    if (user?.role === 'coach') {
+      setActiveTab('coaching');
+    }
+  }, [user?.role]);
 
   // Check for hook failures
   if (!authData || !seasonData || !appData) {
@@ -387,6 +395,10 @@ const CawoodTennisApp = () => {
               <CoachingAdminTab
                 currentUser={user}
                 allUsers={allUsers}
+              />
+            ) : user?.role === 'coach' ? (
+              <CoachDashboard
+                currentUser={user}
               />
             ) : (
               <CoachingUserTab

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Calendar, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, RefreshCw, Users } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import ScheduleModal from '../Modals/ScheduleModal';
 import GenerateSessionsModal from '../Modals/GenerateSessionsModal';
+import EnrollmentModal from '../Modals/EnrollmentModal';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { formatTime, getSessionTypeColors } from '../../../utils/timeFormatter';
 
@@ -12,8 +13,15 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
   const { success, error } = useAppToast();
   const [showModal, setShowModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
+  const [enrollingSchedule, setEnrollingSchedule] = useState(null);
   const [generating, setGenerating] = useState(false);
+
+  const handleManageEnrollment = (schedule) => {
+    setEnrollingSchedule(schedule);
+    setShowEnrollmentModal(true);
+  };
 
   const handleCreate = () => {
     setEditingSchedule(null);
@@ -113,6 +121,8 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
         <div className="grid gap-4">
           {activeSchedules.map((schedule) => {
             const colors = getSessionTypeColors(schedule.session_type);
+            const displayName = schedule.schedule_name || schedule.session_type;
+            const cost = parseFloat(schedule.session_cost) || 0;
             return (
               <div
                 key={schedule.id}
@@ -124,11 +134,19 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
                       <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${colors.bg} ${colors.text}`}>
                         {schedule.session_type}
                       </span>
+                      {schedule.schedule_name && (
+                        <span className="text-gray-900 font-semibold whitespace-nowrap">
+                          {schedule.schedule_name}
+                        </span>
+                      )}
                       <span className="text-gray-900 font-medium whitespace-nowrap">
                         Every {DAY_NAMES[schedule.day_of_week]}
                       </span>
                       <span className="text-gray-600 whitespace-nowrap">
                         at {formatTime(schedule.session_time)}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${cost === 0 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {cost === 0 ? 'Free' : `£${cost.toFixed(2)}`}
                       </span>
                     </div>
                   {schedule.notes && (
@@ -139,6 +157,13 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
                   </p>
                 </div>
                 <div className="flex gap-2 self-end sm:self-start">
+                  <button
+                    onClick={() => handleManageEnrollment(schedule)}
+                    className="p-2 text-purple-600 hover:bg-purple-50 rounded-md transition-colors flex-shrink-0"
+                    title="Manage enrolled players"
+                  >
+                    <Users className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleEdit(schedule)}
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors flex-shrink-0"
@@ -210,6 +235,18 @@ const ScheduleManagement = ({ schedules, loading, actions, currentUser }) => {
           onClose={() => setShowGenerateModal(false)}
           onGenerate={handleGenerateSessions}
           activeSchedules={activeSchedules}
+        />
+      )}
+
+      {showEnrollmentModal && enrollingSchedule && (
+        <EnrollmentModal
+          isOpen={showEnrollmentModal}
+          onClose={() => {
+            setShowEnrollmentModal(false);
+            setEnrollingSchedule(null);
+          }}
+          schedule={enrollingSchedule}
+          actions={actions}
         />
       )}
     </div>
