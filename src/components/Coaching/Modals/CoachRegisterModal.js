@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Check, Users, Calendar, Clock, Save, AlertCircle } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
@@ -12,6 +12,7 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
   const [enrolledPlayers, setEnrolledPlayers] = useState([]);
   const [attendance, setAttendance] = useState({}); // { playerId: boolean }
   const [initialAttendance, setInitialAttendance] = useState({});
+  const [recentAttendance, setRecentAttendance] = useState({}); // { playerId: { count, attendedLast } }
 
   useEffect(() => {
     if (isOpen && session) {
@@ -66,9 +67,47 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
         }
       }
 
+      // Fetch recent attendance history for smart sorting (last 4 sessions of same type)
+      const recentAttendanceMap = {};
+      if (players.length > 0 && session.session_type) {
+        // Get last 4 sessions of this type (excluding current)
+        const { data: recentSessions, error: recentError } = await supabase
+          .from('coaching_sessions')
+          .select('id, session_date')
+          .eq('session_type', session.session_type)
+          .neq('id', session.id)
+          .eq('status', 'scheduled')
+          .order('session_date', { ascending: false })
+          .limit(4);
+
+        if (!recentError && recentSessions?.length > 0) {
+          const recentSessionIds = recentSessions.map(s => s.id);
+          const lastSessionId = recentSessionIds[0];
+
+          // Get attendance for these sessions
+          const { data: recentAtt, error: recentAttError } = await supabase
+            .from('coaching_attendance')
+            .select('player_id, session_id')
+            .in('session_id', recentSessionIds);
+
+          if (!recentAttError && recentAtt) {
+            // Build attendance stats per player
+            players.forEach(player => {
+              const playerAtt = recentAtt.filter(a => a.player_id === player.id);
+              recentAttendanceMap[player.id] = {
+                count: playerAtt.length,
+                attendedLast: playerAtt.some(a => a.session_id === lastSessionId),
+                total: recentSessions.length
+              };
+            });
+          }
+        }
+      }
+
       setEnrolledPlayers(players);
       setAttendance(attendanceMap);
       setInitialAttendance(attendanceMap);
+      setRecentAttendance(recentAttendanceMap);
     } catch (err) {
       console.error('Error loading register data:', err);
       showError('Failed to load register data');
@@ -77,11 +116,57 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
     }
   };
 
+  // Smart sort: ticked first, then by recent attendance, then alphabetical
+  const sortedPlayers = useMemo(() => {
+    return [...enrolledPlayers].sort((a, b) => {
+      // 1. Currently marked attending - top
+      const aAttending = attendance[a.id] ? 1 : 0;
+      const bAttending = attendance[b.id] ? 1 : 0;
+      if (aAttending !== bAttending) return bAttending - aAttending;
+
+      // 2. Attended last session
+      const aLast = recentAttendance[a.id]?.attendedLast ? 1 : 0;
+      const bLast = recentAttendance[b.id]?.attendedLast ? 1 : 0;
+      if (aLast !== bLast) return bLast - aLast;
+
+      // 3. By recent attendance count
+      const aCount = recentAttendance[a.id]?.count || 0;
+      const bCount = recentAttendance[b.id]?.count || 0;
+      if (aCount !== bCount) return bCount - aCount;
+
+      // 4. Alphabetical
+      return a.name.localeCompare(b.name);
+    });
+  }, [enrolledPlayers, attendance, recentAttendance]);
+
+  // Get attendance indicator for a player
+  const getAttendanceIndicator = (playerId) => {
+    const stats = recentAttendance[playerId];
+    if (!stats) return { color: 'bg-gray-300', label: 'New' };
+
+    if (stats.count === 0) {
+      return { color: 'bg-gray-300', label: 'New' };
+    } else if (stats.attendedLast && stats.count >= 2) {
+      return { color: 'bg-green-500', label: 'Regular' };
+    } else if (stats.attendedLast) {
+      return { color: 'bg-blue-500', label: 'Last week' };
+    } else if (stats.count >= 2) {
+      return { color: 'bg-yellow-500', label: 'Sometimes' };
+    } else {
+      return { color: 'bg-gray-400', label: 'Occasional' };
+    }
+  };
+
+  const [justToggled, setJustToggled] = useState(null);
+
   const toggleAttendance = (playerId) => {
     setAttendance(prev => ({
       ...prev,
       [playerId]: !prev[playerId]
     }));
+    // Brief visual feedback
+    setJustToggled(playerId);
+    setTimeout(() => setJustToggled(null), 200);
   };
 
   const handleSave = async () => {
@@ -158,53 +243,54 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
   const attendedCount = Object.values(attendance).filter(Boolean).length;
   const hasChanges = JSON.stringify(attendance) !== JSON.stringify(initialAttendance);
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Take Register</h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
+  // Format date compactly for mobile
+  const formatCompactDate = (date) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-          {/* Session Info */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}>
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+    return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+      {/* Full-screen on mobile, centered modal on desktop */}
+      <div className="bg-white w-full sm:max-w-lg sm:mx-4 sm:rounded-lg shadow-xl h-full sm:h-auto sm:max-h-[90vh] flex flex-col">
+        {/* Compact Header - optimized for mobile */}
+        <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
                 {session.session_type}
               </span>
               {schedule?.schedule_name && (
-                <span className="font-semibold text-gray-900">{schedule.schedule_name}</span>
+                <span className="font-semibold text-gray-900 truncate">{schedule.schedule_name}</span>
               )}
-            </div>
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {sessionDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {formatTime(session.session_time)}
+              <span className="text-gray-400">•</span>
+              <span className="text-sm text-gray-600 whitespace-nowrap">
+                {formatCompactDate(sessionDate)} {formatTime(session.session_time)}
               </span>
             </div>
+            <button
+              onClick={onClose}
+              className="ml-2 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
-        {/* Content */}
+        {/* Content - scrollable player list */}
         {loading ? (
-          <div className="p-12">
+          <div className="flex-1 flex items-center justify-center p-12">
             <LoadingSpinner />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-6">
-            {enrolledPlayers.length === 0 ? (
-              <div className="text-center py-8">
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            {sortedPlayers.length === 0 ? (
+              <div className="text-center py-12 px-6">
                 <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
                 <h4 className="font-medium text-gray-900 mb-2">No Players Enrolled</h4>
                 <p className="text-sm text-gray-600">
@@ -214,33 +300,50 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {enrolledPlayers.map(player => {
+              <div className="divide-y divide-gray-100">
+                {sortedPlayers.map(player => {
                   const isAttending = attendance[player.id] || false;
+                  const indicator = getAttendanceIndicator(player.id);
+
                   return (
                     <button
                       key={player.id}
                       onClick={() => toggleAttendance(player.id)}
-                      className={`w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
-                        isAttending
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      className={`w-full flex items-center gap-4 px-4 py-4 sm:py-3 transition-all active:scale-[0.98] ${
+                        justToggled === player.id
+                          ? 'bg-green-100'
+                          : isAttending
+                            ? 'bg-green-50'
+                            : 'bg-white'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          isAttending
-                            ? 'border-green-500 bg-green-500 text-white'
-                            : 'border-gray-300'
-                        }`}>
-                          {isAttending && <Check className="w-4 h-4" />}
-                        </div>
-                        <span className="font-medium text-gray-900">{player.name}</span>
-                        {player.is_junior && (
-                          <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">
-                            Junior
+                      {/* Checkbox - larger for touch */}
+                      <div className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                        isAttending
+                          ? 'border-green-500 bg-green-500 text-white scale-110'
+                          : 'border-gray-300 bg-white'
+                      }`}>
+                        {isAttending && <Check className="w-4 h-4" strokeWidth={3} />}
+                      </div>
+
+                      {/* Player info */}
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-medium truncate ${isAttending ? 'text-green-900' : 'text-gray-900'}`}>
+                            {player.name}
                           </span>
-                        )}
+                          {player.is_junior && (
+                            <span className="flex-shrink-0 bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs font-medium">
+                              Jr
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Attendance indicator dot */}
+                      <div className="flex-shrink-0 flex items-center gap-1.5" title={indicator.label}>
+                        <span className={`w-2.5 h-2.5 rounded-full ${indicator.color}`}></span>
+                        <span className="text-xs text-gray-400 hidden sm:inline">{indicator.label}</span>
                       </div>
                     </button>
                   );
@@ -250,38 +353,42 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
           </div>
         )}
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
-              <Users className="w-4 h-4 text-gray-500" />
-              <span className="text-gray-600">
-                Attended: <strong className="text-gray-900">{attendedCount}</strong>
-                {enrolledPlayers.length > 0 && ` / ${enrolledPlayers.length}`}
+        {/* Sticky Footer - always visible */}
+        <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-white safe-area-inset-bottom">
+          <div className="flex items-center justify-between gap-4">
+            {/* Attendance count - prominent */}
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                attendedCount > 0 ? 'bg-green-100' : 'bg-gray-100'
+              }`}>
+                <span className={`text-lg font-bold ${attendedCount > 0 ? 'text-green-700' : 'text-gray-500'}`}>
+                  {attendedCount}
+                </span>
+              </div>
+              <span className="text-sm text-gray-500">
+                / {sortedPlayers.length} present
               </span>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving || enrolledPlayers.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {saving ? (
-                  'Saving...'
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Save Register
-                  </>
-                )}
-              </button>
-            </div>
+
+            {/* Save button - large touch target */}
+            <button
+              onClick={handleSave}
+              disabled={saving || sortedPlayers.length === 0}
+              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+                hasChanges
+                  ? 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+              } disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]`}
+            >
+              {saving ? (
+                <span>Saving...</span>
+              ) : (
+                <>
+                  <Save className="w-5 h-5" />
+                  <span>Save</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
