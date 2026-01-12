@@ -49,26 +49,29 @@ const CoachDashboard = ({ currentUser }) => {
     upcomingSessions.sort(sortByDateTime);
     pastSessions.sort((a, b) => -sortByDateTime(a, b)); // Most recent first
 
-    // Get the most recent past session per schedule (so coach can catch up on each group)
-    // Plus any sessions from the last 7 days
+    // Get the most recent past session per session type+time combo
+    // This ensures coach can catch up on each group (e.g., Juniors 4pm, Juniors 5pm, Adults, Beginners)
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
 
     const recentSessions = [];
-    const seenSchedules = new Set();
+    const seenSessionKeys = new Set();
 
     for (const session of pastSessions) {
       const sessionDate = new Date(session.session_date);
       sessionDate.setHours(0, 0, 0, 0);
 
+      // Create a unique key based on type + time (more reliable than schedule_id)
+      const sessionKey = `${session.session_type}-${session.session_time}`;
+
       // Always include sessions from last 7 days
       if (sessionDate >= lastWeek) {
         recentSessions.push(session);
-        seenSchedules.add(session.schedule_id);
-      } else if (!seenSchedules.has(session.schedule_id)) {
-        // For older sessions, include the most recent one per schedule
+        seenSessionKeys.add(sessionKey);
+      } else if (!seenSessionKeys.has(sessionKey)) {
+        // For older sessions, include only the most recent one per type+time
         recentSessions.push(session);
-        seenSchedules.add(session.schedule_id);
+        seenSessionKeys.add(sessionKey);
       }
     }
 
