@@ -41,10 +41,8 @@ const AdminTab = ({
   const [newSeasonEloEnabled, setNewSeasonEloEnabled] = useState(false);
   const [newSeasonKFactor, setNewSeasonKFactor] = useState(32);
   const [newSeasonInitialRating, setNewSeasonInitialRating] = useState(1200);
-  // Match Fees
-  const [matchFeeLadder, setMatchFeeLadder] = useState(2.00);
-  const [matchFeeLeague, setMatchFeeLeague] = useState(2.00);
-  const [matchFeeSingles, setMatchFeeSingles] = useState(2.00);
+  // Match Fee (single value based on season type)
+  const [matchFee, setMatchFee] = useState(2.00);
 
   // Modals
   const [showPlayerManagement, setShowPlayerManagement] = useState(false);
@@ -74,10 +72,10 @@ const AdminTab = ({
       elo_enabled: newSeasonEloEnabled && newSeasonType === 'ladder',
       elo_k_factor: newSeasonKFactor,
       elo_initial_rating: newSeasonInitialRating,
-      // Match fees
-      match_fee_ladder: matchFeeLadder,
-      match_fee_league: matchFeeLeague,
-      match_fee_singles: matchFeeSingles
+      // Match fee - set for the appropriate type
+      match_fee_ladder: newSeasonType === 'ladder' ? matchFee : 2.00,
+      match_fee_league: newSeasonType === 'league' ? matchFee : 2.00,
+      match_fee_singles: newSeasonType === 'singles_championship' ? matchFee : 2.00
     });
 
     if (result.success) {
@@ -88,9 +86,7 @@ const AdminTab = ({
       setNewSeasonEloEnabled(false);
       setNewSeasonKFactor(32);
       setNewSeasonInitialRating(1200);
-      setMatchFeeLadder(2.00);
-      setMatchFeeLeague(2.00);
-      setMatchFeeSingles(2.00);
+      setMatchFee(2.00);
       alert(`New ${newSeasonType} season "${newSeasonName}" created successfully!`);
     }
     setLoading(false);
@@ -563,52 +559,28 @@ const AdminTab = ({
                 </div>
               )}
 
-              {/* Match Fees Section */}
+              {/* Match Fee Section */}
               <div className="border-t-2 border-gray-200 pt-4 space-y-4">
                 <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-                  <h4 className="text-sm font-bold text-green-800 mb-2">Match Fees</h4>
+                  <h4 className="text-sm font-bold text-green-800 mb-2">Match Fee</h4>
                   <p className="text-sm text-green-700">
-                    Set the fee charged per match day (not per rubber). Players will be charged when scores are submitted.
+                    Fee charged per match day (not per rubber). Players are charged when scores are submitted.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Ladder (£)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="20"
-                      step="0.50"
-                      value={matchFeeLadder}
-                      onChange={(e) => setMatchFeeLadder(parseFloat(e.target.value) || 0)}
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">League (£)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="20"
-                      step="0.50"
-                      value={matchFeeLeague}
-                      onChange={(e) => setMatchFeeLeague(parseFloat(e.target.value) || 0)}
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Singles (£)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="20"
-                      step="0.50"
-                      value={matchFeeSingles}
-                      onChange={(e) => setMatchFeeSingles(parseFloat(e.target.value) || 0)}
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Cost per {newSeasonType === 'ladder' ? 'Ladder' : newSeasonType === 'league' ? 'League' : 'Singles'} Match Day (£)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="20"
+                    step="0.50"
+                    value={matchFee}
+                    onChange={(e) => setMatchFee(parseFloat(e.target.value) || 0)}
+                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
                 </div>
               </div>
             </div>
@@ -629,9 +601,7 @@ const AdminTab = ({
                   setNewSeasonEloEnabled(false);
                   setNewSeasonKFactor(32);
                   setNewSeasonInitialRating(1200);
-                  setMatchFeeLadder(2.00);
-                  setMatchFeeLeague(2.00);
-                  setMatchFeeSingles(2.00);
+                  setMatchFee(2.00);
                 }}
                 disabled={loading}
                 className="flex-1 bg-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-300 disabled:opacity-50 transition-all font-semibold"
