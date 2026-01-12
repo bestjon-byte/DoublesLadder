@@ -832,12 +832,10 @@ export const useCoaching = (userId, isAdmin = false) => {
   /**
    * Get payment summary for all players
    */
-  const getAllPlayersPaymentSummary = useCallback(async (sessionCost = 4.00) => {
+  const getAllPlayersPaymentSummary = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .rpc('get_all_players_payment_summary', {
-          p_session_cost: sessionCost,
-        });
+        .rpc('get_all_players_payment_summary');
 
       if (error) throw error;
       return { data: data || [], error: null };
