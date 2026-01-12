@@ -888,22 +888,9 @@ export const useCoaching = (userId, isAdmin = false) => {
   const getPlayerMatchFees = useCallback(async (playerId) => {
     try {
       const { data, error } = await supabase
-        .from('match_fees')
-        .select(`
-          id,
-          player_id,
-          match_id,
-          season_id,
-          fee_amount,
-          match_type,
-          match_date,
-          payment_status,
-          created_at,
-          updated_at,
-          seasons:season_id (name)
-        `)
-        .eq('player_id', playerId)
-        .order('match_date', { ascending: false });
+        .rpc('get_player_match_fees', {
+          p_player_id: playerId
+        });
 
       if (error) throw error;
       return { data: data || [], error: null };

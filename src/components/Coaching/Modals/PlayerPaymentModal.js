@@ -155,7 +155,7 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
       date: f.match_date,
       time: null,
       sessionType: null,
-      seasonName: f.seasons?.name,
+      seasonName: f.season_name,
       amount: parseFloat(f.fee_amount),
       paymentStatus: f.payment_status,
       userMarkedPaidAt: null,
