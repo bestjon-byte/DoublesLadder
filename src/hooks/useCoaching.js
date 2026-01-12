@@ -882,6 +882,37 @@ export const useCoaching = (userId, isAdmin = false) => {
     }
   }, []);
 
+  /**
+   * Get match fees for a player
+   */
+  const getPlayerMatchFees = useCallback(async (playerId) => {
+    try {
+      const { data, error } = await supabase
+        .from('match_fees')
+        .select(`
+          id,
+          player_id,
+          match_id,
+          season_id,
+          fee_amount,
+          match_type,
+          match_date,
+          payment_status,
+          created_at,
+          updated_at,
+          seasons:season_id (name)
+        `)
+        .eq('player_id', playerId)
+        .order('match_date', { ascending: false });
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Error fetching player match fees:', error);
+      return { data: [], error };
+    }
+  }, []);
+
   // ==========================================================================
   // COACH PAYMENT TRACKING (Club Liability)
   // ==========================================================================
@@ -1165,6 +1196,7 @@ export const useCoaching = (userId, isAdmin = false) => {
       getAllPlayersPaymentSummary,
       getPlayerPaymentSummary,
       getPlayerSessionsByPaymentStatus,
+      getPlayerMatchFees,
 
       // Coach Payment Tracking (Club Liability)
       getCoachPaymentSummary,
