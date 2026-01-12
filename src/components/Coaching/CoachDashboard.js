@@ -18,12 +18,10 @@ const CoachDashboard = ({ currentUser }) => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const nextWeek = new Date(today);
     nextWeek.setDate(nextWeek.getDate() + 7);
-    const lastWeek = new Date(today);
-    lastWeek.setDate(lastWeek.getDate() - 7);
 
     const todaySessions = [];
     const upcomingSessions = [];
-    const recentSessions = [];
+    const pastSessions = []; // All past sessions (not cancelled)
 
     sessions.forEach(session => {
       const sessionDate = new Date(session.session_date);
@@ -35,8 +33,8 @@ const CoachDashboard = ({ currentUser }) => {
         todaySessions.push(session);
       } else if (sessionDate > today && sessionDate <= nextWeek) {
         upcomingSessions.push(session);
-      } else if (sessionDate < today && sessionDate >= lastWeek) {
-        recentSessions.push(session);
+      } else if (sessionDate < today) {
+        pastSessions.push(session);
       }
     });
 
@@ -49,7 +47,30 @@ const CoachDashboard = ({ currentUser }) => {
 
     todaySessions.sort(sortByDateTime);
     upcomingSessions.sort(sortByDateTime);
-    recentSessions.sort((a, b) => -sortByDateTime(a, b)); // Recent first
+    pastSessions.sort((a, b) => -sortByDateTime(a, b)); // Most recent first
+
+    // Get the most recent past session per schedule (so coach can catch up on each group)
+    // Plus any sessions from the last 7 days
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+
+    const recentSessions = [];
+    const seenSchedules = new Set();
+
+    for (const session of pastSessions) {
+      const sessionDate = new Date(session.session_date);
+      sessionDate.setHours(0, 0, 0, 0);
+
+      // Always include sessions from last 7 days
+      if (sessionDate >= lastWeek) {
+        recentSessions.push(session);
+        seenSchedules.add(session.schedule_id);
+      } else if (!seenSchedules.has(session.schedule_id)) {
+        // For older sessions, include the most recent one per schedule
+        recentSessions.push(session);
+        seenSchedules.add(session.schedule_id);
+      }
+    }
 
     return { todaySessions, upcomingSessions, recentSessions };
   }, [sessions]);
@@ -209,15 +230,21 @@ const CoachDashboard = ({ currentUser }) => {
         )}
       </section>
 
-      {/* Recent Sessions */}
+      {/* Recent/Past Sessions */}
       {groupedSessions.recentSessions.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-gray-500" />
-            Recent Sessions
+            Previous Sessions
+            <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-sm font-normal">
+              {groupedSessions.recentSessions.length}
+            </span>
           </h2>
+          <p className="text-sm text-gray-500 mb-3">
+            Missed recording attendance? You can still update these sessions.
+          </p>
           <div className="space-y-3">
-            {groupedSessions.recentSessions.slice(0, 5).map(session => (
+            {groupedSessions.recentSessions.slice(0, 8).map(session => (
               <SessionCard key={session.id} session={session} showDate isRecent />
             ))}
           </div>
