@@ -91,7 +91,11 @@ export const useSeasonManager = (isAuthenticated = false) => {
           // NEW: ELO rating system fields
           elo_enabled: seasonData.elo_enabled || false,
           elo_k_factor: seasonData.elo_k_factor || 32,
-          elo_initial_rating: seasonData.elo_initial_rating || 1200
+          elo_initial_rating: seasonData.elo_initial_rating || 1200,
+          // Match fees
+          match_fee_ladder: seasonData.match_fee_ladder ?? 2.00,
+          match_fee_league: seasonData.match_fee_league ?? 2.00,
+          match_fee_singles: seasonData.match_fee_singles ?? 2.00
         })
         .select()
         .single();

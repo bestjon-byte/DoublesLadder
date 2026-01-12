@@ -149,41 +149,78 @@ serve(async (req) => {
         const confirmationUrl = `${APP_URL}/?token=${token}`
         const loginUrl = `${APP_URL}/`
 
-        // Get unpaid sessions to determine date range
-        const { data: sessionsData, error: sessionsError } = await supabaseClient
-          .rpc('get_player_sessions_by_payment_status', {
+        // Get unpaid items breakdown (coaching + match fees)
+        const { data: unpaidItems, error: itemsError } = await supabaseClient
+          .rpc('get_player_unpaid_items', {
             p_player_id: payment.player_id,
           })
 
-        if (sessionsError) {
-          throw new Error(`Failed to get session dates: ${sessionsError.message}`)
+        if (itemsError) {
+          console.warn(`Failed to get unpaid items breakdown: ${itemsError.message}`)
         }
 
-        // Filter for unpaid sessions and find date range
-        const unpaidSessions = sessionsData?.filter((s: any) => s.payment_status === 'unpaid') || []
-
+        // Build breakdown HTML
+        let breakdownHtml = ''
+        let totalAmount = 0
         let periodStart = 'N/A'
         let periodEnd = 'N/A'
+        let allDates: Date[] = []
 
-        if (unpaidSessions.length > 0) {
-          const sessionDates = unpaidSessions
-            .map((s: any) => new Date(s.session_date))
-            .sort((a, b) => a.getTime() - b.getTime())
-
-          const earliestDate = sessionDates[0]
-          const latestDate = sessionDates[sessionDates.length - 1]
-
-          periodStart = earliestDate.toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })
-          periodEnd = latestDate.toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })
+        const itemTypeLabels: Record<string, string> = {
+          'coaching': 'Coaching Sessions',
+          'ladder': 'Ladder Matches',
+          'league': 'League Matches',
+          'singles': 'Singles Championship'
         }
+
+        if (unpaidItems && unpaidItems.length > 0) {
+          unpaidItems.forEach((item: any) => {
+            const label = itemTypeLabels[item.item_type] || item.item_type
+            const count = parseInt(item.item_count)
+            const amount = parseFloat(item.amount)
+            totalAmount += amount
+
+            breakdownHtml += `
+              <tr>
+                <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">${label}</td>
+                <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: center;">${count}</td>
+                <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">£${amount.toFixed(2)}</td>
+              </tr>
+            `
+
+            // Collect dates for period range
+            if (item.earliest_date) allDates.push(new Date(item.earliest_date))
+            if (item.latest_date) allDates.push(new Date(item.latest_date))
+          })
+
+          // Calculate period from all dates
+          if (allDates.length > 0) {
+            allDates.sort((a, b) => a.getTime() - b.getTime())
+            periodStart = allDates[0].toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })
+            periodEnd = allDates[allDates.length - 1].toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })
+          }
+        } else {
+          // Fallback to old behavior if RPC not available
+          totalAmount = payment.amount_due
+          breakdownHtml = `
+            <tr>
+              <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0;">Sessions</td>
+              <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: center;">${payment.total_sessions}</td>
+              <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">£${payment.amount_due.toFixed(2)}</td>
+            </tr>
+          `
+        }
+
+        // Use calculated total if available, otherwise use payment amount
+        const finalAmount = totalAmount > 0 ? totalAmount : payment.amount_due
 
         // Prepare email HTML
         const emailHtml = `
@@ -197,16 +234,32 @@ serve(async (req) => {
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background-color: #f8f9fa; border-radius: 10px; padding: 30px; margin-bottom: 20px;">
     <h2 style="color: #2c5282; margin-top: 0;">Cawood Tennis Club</h2>
-    <h3 style="color: #1a365d; margin-bottom: 20px;">Payment Reminder - Coaching Sessions</h3>
+    <h3 style="color: #1a365d; margin-bottom: 20px;">Payment Reminder</h3>
 
     <p>Hi ${payment.player_name},</p>
 
-    <p>You have an outstanding payment for coaching sessions:</p>
+    <p>You have an outstanding balance with Cawood Tennis Club:</p>
 
-    <div style="background-color: #fff; border-left: 4px solid #ed8936; padding: 15px; margin: 20px 0;">
-      <p style="margin: 5px 0;"><strong>Amount Due:</strong> £${payment.amount_due.toFixed(2)}</p>
-      <p style="margin: 5px 0;"><strong>Sessions:</strong> ${payment.total_sessions}</p>
-      <p style="margin: 5px 0;"><strong>Period:</strong> ${periodStart} - ${periodEnd}</p>
+    <div style="background-color: #fff; border-radius: 8px; padding: 15px; margin: 20px 0; border: 1px solid #e2e8f0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f7fafc;">
+            <th style="padding: 8px 12px; text-align: left; border-bottom: 2px solid #e2e8f0;">Item</th>
+            <th style="padding: 8px 12px; text-align: center; border-bottom: 2px solid #e2e8f0;">Count</th>
+            <th style="padding: 8px 12px; text-align: right; border-bottom: 2px solid #e2e8f0;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${breakdownHtml}
+        </tbody>
+        <tfoot>
+          <tr style="background-color: #fff5f5;">
+            <td colspan="2" style="padding: 10px 12px; font-weight: bold;">Total Due</td>
+            <td style="padding: 10px 12px; text-align: right; font-weight: bold; font-size: 18px; color: #c53030;">£${finalAmount.toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <p style="margin: 10px 0 0 0; font-size: 13px; color: #666;"><strong>Period:</strong> ${periodStart} - ${periodEnd}</p>
     </div>
 
     <div style="background-color: #e6f3ff; border: 2px solid #3182ce; border-radius: 8px; padding: 20px; margin: 25px 0;">
@@ -214,7 +267,7 @@ serve(async (req) => {
       <p style="margin: 8px 0;"><strong>Bank Transfer to:</strong> Cawood Tennis Club</p>
       <p style="margin: 8px 0;"><strong>Sort Code:</strong> 05-07-62</p>
       <p style="margin: 8px 0;"><strong>Account No:</strong> 25134464</p>
-      <p style="margin: 8px 0;"><strong>Reference:</strong> ${payment.player_name} Coaching</p>
+      <p style="margin: 8px 0;"><strong>Reference:</strong> ${payment.player_name}</p>
     </div>
 
     <div style="margin: 30px 0; text-align: center;">
@@ -256,7 +309,7 @@ serve(async (req) => {
             from: FROM_EMAIL,
             to: [payment.player_email],
             reply_to: FROM_EMAIL,
-            subject: 'Cawood Tennis - Payment Reminder for Coaching Sessions',
+            subject: 'Cawood Tennis - Payment Reminder',
             html: emailHtml,
           }),
         })

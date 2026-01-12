@@ -280,7 +280,7 @@ const PaymentManagement = ({ loading, actions }) => {
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <User className="w-12 h-12 text-gray-400 mx-auto mb-3" />
           <p className="text-gray-600">
-            {filter === 'all' ? 'No players with coaching attendance found' :
+            {filter === 'all' ? 'No players with outstanding items found' :
              filter === 'owe_money' ? 'No players owe money' :
              filter === 'awaiting_confirmation' ? 'No payments awaiting confirmation' :
              'No players are fully paid up'}
@@ -319,9 +319,20 @@ const PaymentManagement = ({ loading, actions }) => {
                       <div className="flex-1" onClick={() => setViewingPlayer(player)}>
                         <h3 className="font-medium text-gray-900">{player.player_name}</h3>
                         <p className="text-sm text-gray-500">{player.player_email}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {player.total_sessions} sessions ({player.unpaid_sessions} unpaid • {player.pending_confirmation_sessions} pending • {player.paid_sessions} paid)
-                        </p>
+                        <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                          {player.unpaid_sessions > 0 && (
+                            <p>{player.unpaid_sessions} coaching session{player.unpaid_sessions !== 1 ? 's' : ''}</p>
+                          )}
+                          {(player.ladder_matches_unpaid || 0) > 0 && (
+                            <p>{player.ladder_matches_unpaid} ladder match{player.ladder_matches_unpaid !== 1 ? 'es' : ''}</p>
+                          )}
+                          {(player.league_matches_unpaid || 0) > 0 && (
+                            <p>{player.league_matches_unpaid} league match{player.league_matches_unpaid !== 1 ? 'es' : ''}</p>
+                          )}
+                          {(player.singles_matches_unpaid || 0) > 0 && (
+                            <p>{player.singles_matches_unpaid} singles match{player.singles_matches_unpaid !== 1 ? 'es' : ''}</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <button
@@ -380,7 +391,7 @@ const PaymentManagement = ({ loading, actions }) => {
                   Player
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sessions
+                  Items
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Owed
@@ -429,12 +440,38 @@ const PaymentManagement = ({ loading, actions }) => {
                         <div className="text-sm text-gray-500">{player.player_email}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 cursor-pointer" onClick={() => setViewingPlayer(player)}>
-                      <div>
-                        <div>{player.total_sessions} total</div>
-                        <div className="text-xs text-gray-500">
-                          {player.unpaid_sessions} unpaid • {player.pending_confirmation_sessions} pending • {player.paid_sessions} paid
-                        </div>
+                    <td className="px-6 py-4 text-sm text-gray-600 cursor-pointer" onClick={() => setViewingPlayer(player)}>
+                      <div className="space-y-0.5">
+                        {player.unpaid_sessions > 0 && (
+                          <div className="text-xs">
+                            <span className="font-medium">{player.unpaid_sessions}</span> coaching
+                            {player.coaching_amount_owed > 0 && <span className="text-gray-400 ml-1">£{parseFloat(player.coaching_amount_owed).toFixed(2)}</span>}
+                          </div>
+                        )}
+                        {(player.ladder_matches_unpaid || 0) > 0 && (
+                          <div className="text-xs">
+                            <span className="font-medium">{player.ladder_matches_unpaid}</span> ladder
+                            {player.ladder_amount_owed > 0 && <span className="text-gray-400 ml-1">£{parseFloat(player.ladder_amount_owed).toFixed(2)}</span>}
+                          </div>
+                        )}
+                        {(player.league_matches_unpaid || 0) > 0 && (
+                          <div className="text-xs">
+                            <span className="font-medium">{player.league_matches_unpaid}</span> league
+                            {player.league_amount_owed > 0 && <span className="text-gray-400 ml-1">£{parseFloat(player.league_amount_owed).toFixed(2)}</span>}
+                          </div>
+                        )}
+                        {(player.singles_matches_unpaid || 0) > 0 && (
+                          <div className="text-xs">
+                            <span className="font-medium">{player.singles_matches_unpaid}</span> singles
+                            {player.singles_amount_owed > 0 && <span className="text-gray-400 ml-1">£{parseFloat(player.singles_amount_owed).toFixed(2)}</span>}
+                          </div>
+                        )}
+                        {player.unpaid_sessions === 0 &&
+                         (player.ladder_matches_unpaid || 0) === 0 &&
+                         (player.league_matches_unpaid || 0) === 0 &&
+                         (player.singles_matches_unpaid || 0) === 0 && (
+                          <div className="text-xs text-gray-400">No unpaid items</div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right cursor-pointer" onClick={() => setViewingPlayer(player)}>

@@ -135,22 +135,59 @@ const PlayerPaymentModal = ({ isOpen, onClose, player, actions, onSuccess }) => 
         </div>
 
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-4 p-6 bg-gray-50 border-b border-gray-200">
-          <div>
-            <p className="text-sm text-gray-600">Owed</p>
-            <p className="text-2xl font-bold text-yellow-700">£{parseFloat(player.amount_owed || 0).toFixed(2)}</p>
-            <p className="text-xs text-gray-500">{player.unpaid_sessions} sessions</p>
+        <div className="p-6 bg-gray-50 border-b border-gray-200">
+          {/* Total Amounts */}
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div>
+              <p className="text-sm text-gray-600">Total Owed</p>
+              <p className="text-2xl font-bold text-yellow-700">£{parseFloat(player.amount_owed || 0).toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">To Confirm</p>
+              <p className="text-2xl font-bold text-blue-700">£{parseFloat(player.amount_pending_confirmation || 0).toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Paid</p>
+              <p className="text-2xl font-bold text-green-700">£{parseFloat(player.amount_paid || 0).toFixed(2)}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">To Confirm</p>
-            <p className="text-2xl font-bold text-blue-700">£{parseFloat(player.amount_pending_confirmation || 0).toFixed(2)}</p>
-            <p className="text-xs text-gray-500">{player.pending_confirmation_sessions} sessions</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Paid</p>
-            <p className="text-2xl font-bold text-green-700">£{parseFloat(player.amount_paid || 0).toFixed(2)}</p>
-            <p className="text-xs text-gray-500">{player.paid_sessions} sessions</p>
-          </div>
+
+          {/* Breakdown */}
+          {parseFloat(player.amount_owed || 0) > 0 && (
+            <div className="border-t border-gray-200 pt-3 text-sm">
+              <p className="text-gray-600 font-medium mb-2">Amount owed breakdown:</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {player.unpaid_sessions > 0 && (
+                  <div className="bg-white rounded px-2 py-1 border border-gray-200">
+                    <span className="font-medium">{player.unpaid_sessions}</span>
+                    <span className="text-gray-500 ml-1">coaching</span>
+                    <span className="text-gray-400 ml-1">£{parseFloat(player.coaching_amount_owed || player.unpaid_sessions * 4).toFixed(2)}</span>
+                  </div>
+                )}
+                {(player.ladder_matches_unpaid || 0) > 0 && (
+                  <div className="bg-white rounded px-2 py-1 border border-gray-200">
+                    <span className="font-medium">{player.ladder_matches_unpaid}</span>
+                    <span className="text-gray-500 ml-1">ladder</span>
+                    <span className="text-gray-400 ml-1">£{parseFloat(player.ladder_amount_owed || 0).toFixed(2)}</span>
+                  </div>
+                )}
+                {(player.league_matches_unpaid || 0) > 0 && (
+                  <div className="bg-white rounded px-2 py-1 border border-gray-200">
+                    <span className="font-medium">{player.league_matches_unpaid}</span>
+                    <span className="text-gray-500 ml-1">league</span>
+                    <span className="text-gray-400 ml-1">£{parseFloat(player.league_amount_owed || 0).toFixed(2)}</span>
+                  </div>
+                )}
+                {(player.singles_matches_unpaid || 0) > 0 && (
+                  <div className="bg-white rounded px-2 py-1 border border-gray-200">
+                    <span className="font-medium">{player.singles_matches_unpaid}</span>
+                    <span className="text-gray-500 ml-1">singles</span>
+                    <span className="text-gray-400 ml-1">£{parseFloat(player.singles_amount_owed || 0).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
