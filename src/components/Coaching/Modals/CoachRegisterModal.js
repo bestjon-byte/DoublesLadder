@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Check, Users, Calendar, Clock, Save, AlertCircle } from 'lucide-react';
+import { X, Check, Users, Calendar, Clock, Save, AlertCircle, UserPlus } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { formatTime, getSessionTypeColors } from '../../../utils/timeFormatter';
-import { supabase } from '../../../supabaseClient';
+import { supabase, supabaseUrl } from '../../../supabaseClient';
 
 const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, currentUser }) => {
   const { success, error: showError } = useAppToast();
@@ -13,6 +13,11 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
   const [attendance, setAttendance] = useState({}); // { playerId: boolean }
   const [initialAttendance, setInitialAttendance] = useState({});
   const [recentAttendance, setRecentAttendance] = useState({}); // { playerId: { count, attendedLast } }
+
+  // New person modal state
+  const [showAddNewPerson, setShowAddNewPerson] = useState(false);
+  const [newPersonName, setNewPersonName] = useState('');
+  const [addingNewPerson, setAddingNewPerson] = useState(false);
 
   useEffect(() => {
     if (isOpen && session) {
@@ -219,6 +224,96 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
     setSwipeOffset(0);
   };
 
+  // Handle adding a new person (skeleton account)
+  const handleAddNewPerson = async () => {
+    if (!newPersonName.trim()) {
+      showError('Please enter a name');
+      return;
+    }
+
+    setAddingNewPerson(true);
+    try {
+      // Create skeleton profile via RPC
+      const { data: newProfileId, error: createError } = await supabase
+        .rpc('create_skeleton_profile', {
+          p_name: newPersonName.trim(),
+          p_created_by: currentUser.id,
+          p_session_id: session.id
+        });
+
+      if (createError) throw createError;
+
+      // Get the session cost for payment status
+      const sessionCost = parseFloat(session.session_cost) || parseFloat(schedule?.session_cost) || 4.00;
+      const paymentStatus = sessionCost === 0 ? 'paid' : 'unpaid';
+
+      // Add attendance record for new person
+      const { error: attendError } = await supabase
+        .from('coaching_attendance')
+        .insert({
+          session_id: session.id,
+          player_id: newProfileId,
+          marked_by: currentUser.id,
+          self_registered: false,
+          payment_status: paymentStatus,
+        });
+
+      if (attendError) throw attendError;
+
+      // Add the new person to our local state
+      const newPlayer = {
+        id: newProfileId,
+        name: newPersonName.trim(),
+        is_junior: false,
+        is_skeleton: true
+      };
+
+      setEnrolledPlayers(prev => [...prev, newPlayer]);
+      setAttendance(prev => ({ ...prev, [newProfileId]: true }));
+      setInitialAttendance(prev => ({ ...prev, [newProfileId]: true }));
+      setRecentAttendance(prev => ({
+        ...prev,
+        [newProfileId]: { count: 0, attendedLast: false, total: 0 }
+      }));
+
+      // Send admin notification email
+      try {
+        const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        await fetch(
+          `${supabaseUrl}/functions/v1/notify-skeleton-account`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': anonKey,
+              'Authorization': `Bearer ${anonKey}`,
+            },
+            body: JSON.stringify({
+              profile_id: newProfileId,
+              name: newPersonName.trim(),
+              session_id: session.id,
+              session_type: session.session_type,
+              session_date: session.session_date,
+              created_by_name: currentUser.name
+            }),
+          }
+        );
+      } catch (emailError) {
+        console.warn('Failed to send admin notification email:', emailError);
+        // Don't fail the whole operation if email fails
+      }
+
+      success(`${newPersonName.trim()} added and marked present`);
+      setNewPersonName('');
+      setShowAddNewPerson(false);
+    } catch (err) {
+      console.error('Error adding new person:', err);
+      showError('Failed to add new person');
+    } finally {
+      setAddingNewPerson(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -339,6 +434,17 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto overscroll-contain">
+            {/* Add New Person Button - Always visible at top */}
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3">
+              <button
+                onClick={() => setShowAddNewPerson(true)}
+                className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold text-lg shadow-md active:scale-[0.98] transition-all"
+              >
+                <UserPlus className="w-6 h-6" />
+                <span>Add New Person</span>
+              </button>
+            </div>
+
             {sortedPlayers.length === 0 ? (
               <div className="text-center py-12 px-6">
                 <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
@@ -346,7 +452,7 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
                 <p className="text-sm text-gray-600">
                   No players are enrolled in this schedule.
                   <br />
-                  Ask an admin to enroll players first.
+                  Use "Add New Person" above to register someone.
                 </p>
               </div>
             ) : (
@@ -402,6 +508,11 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
                             {player.is_junior && (
                               <span className="flex-shrink-0 bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs font-medium">
                                 Jr
+                              </span>
+                            )}
+                            {player.is_skeleton && (
+                              <span className="flex-shrink-0 bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-xs font-medium">
+                                New
                               </span>
                             )}
                           </div>
@@ -460,6 +571,102 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
           </div>
         </div>
       </div>
+
+      {/* Add New Person Modal - Mobile-optimized bottom sheet */}
+      {showAddNewPerson && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-[60]">
+          <div className="bg-white w-full max-w-lg rounded-t-2xl shadow-2xl animate-slide-up">
+            {/* Handle bar for visual affordance */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="px-6 pb-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <UserPlus className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Add New Person</h3>
+                    <p className="text-sm text-gray-500">They'll be marked present</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAddNewPerson(false);
+                    setNewPersonName('');
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="px-6 py-6 space-y-6">
+              {/* Name Input - Large and mobile-friendly */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={newPersonName}
+                  onChange={(e) => setNewPersonName(e.target.value)}
+                  placeholder="Enter their name"
+                  autoFocus
+                  autoComplete="off"
+                  autoCapitalize="words"
+                  className="w-full px-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400"
+                />
+              </div>
+
+              {/* Info message */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-sm text-amber-800">
+                  <strong>Note:</strong> An admin will be notified to add their contact details later.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setShowAddNewPerson(false);
+                    setNewPersonName('');
+                  }}
+                  className="flex-1 px-4 py-4 text-gray-700 bg-gray-100 rounded-xl font-semibold text-lg hover:bg-gray-200 active:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddNewPerson}
+                  disabled={!newPersonName.trim() || addingNewPerson}
+                  className="flex-1 px-4 py-4 bg-green-600 text-white rounded-xl font-semibold text-lg hover:bg-green-700 active:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {addingNewPerson ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Adding...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      <span>Add & Mark Present</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Safe area padding for iPhone */}
+            <div className="h-6 safe-area-inset-bottom" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
