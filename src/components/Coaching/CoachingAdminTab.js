@@ -76,7 +76,7 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
       </div>
 
       {/* Pending New Attendees - Shows notification banner when there are skeleton accounts */}
-      <PendingNewAttendees onRefresh={() => coaching.actions.fetchAllData()} />
+      <PendingNewAttendees />
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">

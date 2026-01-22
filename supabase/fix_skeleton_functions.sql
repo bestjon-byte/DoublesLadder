@@ -1,68 +1,19 @@
--- Migration: Add skeleton account support for new attendees
--- Created: 2026-01-21
--- Purpose: Allow coaches to register new people at sessions with minimal info
+-- Fix for skeleton account functions
+-- Run this in Supabase Dashboard SQL Editor: https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv/sql
 
--- Add skeleton account fields to profiles table
-ALTER TABLE profiles
-ADD COLUMN IF NOT EXISTS is_skeleton BOOLEAN DEFAULT FALSE,
-ADD COLUMN IF NOT EXISTS skeleton_created_by UUID REFERENCES profiles(id),
-ADD COLUMN IF NOT EXISTS skeleton_session_id UUID REFERENCES coaching_sessions(id),
-ADD COLUMN IF NOT EXISTS skeleton_created_at TIMESTAMPTZ;
-
--- Create index for quick lookup of skeleton accounts
-CREATE INDEX IF NOT EXISTS idx_profiles_is_skeleton ON profiles(is_skeleton) WHERE is_skeleton = TRUE;
-
--- Create admin_notifications table for tracking notifications
+-- Ensure admin_notifications table exists
 CREATE TABLE IF NOT EXISTS admin_notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    notification_type TEXT NOT NULL, -- 'skeleton_account', 'payment_confirmed', etc.
+    notification_type TEXT NOT NULL,
     title TEXT NOT NULL,
     message TEXT,
-    related_id UUID, -- ID of related record (e.g., skeleton profile id)
-    related_type TEXT, -- Type of related record ('profile', 'payment', etc.)
+    related_id UUID,
+    related_type TEXT,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     read_at TIMESTAMPTZ,
     read_by UUID REFERENCES profiles(id)
 );
-
--- Create index for unread notifications
-CREATE INDEX IF NOT EXISTS idx_admin_notifications_unread
-ON admin_notifications(is_read, created_at DESC)
-WHERE is_read = FALSE;
-
--- RLS policies for admin_notifications
-ALTER TABLE admin_notifications ENABLE ROW LEVEL SECURITY;
-
--- Admins can view all notifications
-CREATE POLICY admin_notifications_select_policy ON admin_notifications
-    FOR SELECT
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM profiles
-            WHERE profiles.id = auth.uid()
-            AND profiles.role = 'admin'
-        )
-    );
-
--- Admins can update notifications (mark as read)
-CREATE POLICY admin_notifications_update_policy ON admin_notifications
-    FOR UPDATE
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM profiles
-            WHERE profiles.id = auth.uid()
-            AND profiles.role = 'admin'
-        )
-    );
-
--- System can insert notifications (via service role or triggers)
-CREATE POLICY admin_notifications_insert_policy ON admin_notifications
-    FOR INSERT
-    TO authenticated
-    WITH CHECK (TRUE);
 
 -- Function to create a skeleton profile
 CREATE OR REPLACE FUNCTION create_skeleton_profile(
@@ -91,7 +42,7 @@ BEGIN
         v_profile_id,
         p_name,
         'player',
-        'approved', -- Approved so they can be added to attendance
+        'approved',
         TRUE,
         p_created_by,
         p_session_id,
@@ -154,7 +105,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to get skeleton accounts pending completion
+-- Function to get skeleton accounts pending completion (with correct type casts)
 CREATE OR REPLACE FUNCTION get_skeleton_accounts()
 RETURNS TABLE (
     id UUID,
@@ -180,15 +131,6 @@ BEGIN
     ORDER BY p.skeleton_created_at DESC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Add parent fields to profiles if they don't exist
-ALTER TABLE profiles
-ADD COLUMN IF NOT EXISTS parent_name TEXT,
-ADD COLUMN IF NOT EXISTS parent_email TEXT,
-ADD COLUMN IF NOT EXISTS parent_phone TEXT,
-ADD COLUMN IF NOT EXISTS phone TEXT,
-ADD COLUMN IF NOT EXISTS notes TEXT,
-ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
 
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION create_skeleton_profile TO authenticated;
