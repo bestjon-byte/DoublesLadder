@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Check, Users, Calendar, Clock, Save, AlertCircle, UserPlus, Search } from 'lucide-react';
+import { X, Check, Users, Calendar, Clock, Save, AlertCircle, UserPlus, Search, UserMinus } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { formatTime, getSessionTypeColors } from '../../../utils/timeFormatter';
@@ -23,6 +23,9 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
   const [allMembers, setAllMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
+
+  // Unenroll state
+  const [unenrolling, setUnenrolling] = useState(null); // player id being unenrolled
 
   useEffect(() => {
     if (isOpen && session) {
@@ -422,6 +425,50 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
     }
   };
 
+  // Handle unenrolling a player from the schedule
+  const handleUnenroll = async (player) => {
+    if (!session.schedule_id) {
+      showError('Cannot unenroll - no schedule linked');
+      return;
+    }
+
+    if (!window.confirm(`Remove ${player.name} from this group? They won't appear on future registers.`)) {
+      return;
+    }
+
+    setUnenrolling(player.id);
+    try {
+      const { error } = await supabase
+        .from('coaching_schedule_enrollments')
+        .update({ is_active: false })
+        .eq('schedule_id', session.schedule_id)
+        .eq('player_id', player.id);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setEnrolledPlayers(prev => prev.filter(p => p.id !== player.id));
+      // Remove from attendance if they were marked
+      setAttendance(prev => {
+        const next = { ...prev };
+        delete next[player.id];
+        return next;
+      });
+      setInitialAttendance(prev => {
+        const next = { ...prev };
+        delete next[player.id];
+        return next;
+      });
+
+      success(`${player.name} removed from group`);
+    } catch (err) {
+      console.error('Error unenrolling player:', err);
+      showError('Failed to remove from group');
+    } finally {
+      setUnenrolling(null);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -588,7 +635,7 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
                         onTouchMove={(e) => onTouchMove(e, player.id)}
                         onTouchEnd={() => onTouchEnd(player.id)}
                         style={{ transform: `translateX(${currentOffset}px)` }}
-                        className={`relative w-full flex items-center gap-4 px-4 py-4 sm:py-3 transition-colors ${
+                        className={`relative w-full flex items-center gap-4 px-4 ${session.schedule_id ? 'pr-12' : ''} py-4 sm:py-3 transition-colors ${
                           isCurrentlySwiping ? '' : 'transition-transform'
                         } active:scale-[0.99] ${
                           justToggled === player.id
@@ -632,6 +679,25 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
                           <span className="text-xs text-gray-400 hidden sm:inline">{indicator.label}</span>
                         </div>
                       </button>
+
+                      {/* Unenroll button - only show if schedule exists */}
+                      {session.schedule_id && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnenroll(player);
+                          }}
+                          disabled={unenrolling === player.id}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
+                          title="Remove from group"
+                        >
+                          {unenrolling === player.id ? (
+                            <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <UserMinus className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   );
                 })}
