@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Check, Users, Calendar, Clock, Save, AlertCircle } from 'lucide-react';
+import { X, Check, Users, Calendar, Clock, Save, AlertCircle, UserPlus, Search } from 'lucide-react';
 import { useAppToast } from '../../../contexts/ToastContext';
 import { LoadingSpinner } from '../../shared/LoadingSpinner';
 import { formatTime, getSessionTypeColors } from '../../../utils/timeFormatter';
-import { supabase } from '../../../supabaseClient';
+import { supabase, supabaseUrl } from '../../../supabaseClient';
 
 const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, currentUser }) => {
   const { success, error: showError } = useAppToast();
@@ -13,6 +13,16 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
   const [attendance, setAttendance] = useState({}); // { playerId: boolean }
   const [initialAttendance, setInitialAttendance] = useState({});
   const [recentAttendance, setRecentAttendance] = useState({}); // { playerId: { count, attendedLast } }
+
+  // New person modal state
+  const [showAddNewPerson, setShowAddNewPerson] = useState(false);
+  const [newPersonName, setNewPersonName] = useState('');
+  const [addingNewPerson, setAddingNewPerson] = useState(false);
+
+  // Member search state
+  const [allMembers, setAllMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
 
   useEffect(() => {
     if (isOpen && session) {
@@ -219,6 +229,199 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
     setSwipeOffset(0);
   };
 
+  // Load all members when "Add New Person" modal opens
+  const loadAllMembers = async () => {
+    setLoadingMembers(true);
+    try {
+      // Get all approved profiles (excluding those already enrolled)
+      const enrolledIds = enrolledPlayers.map(p => p.id);
+
+      const { data: members, error } = await supabase
+        .from('profiles')
+        .select('id, name, is_junior, email')
+        .eq('status', 'approved')
+        .order('name');
+
+      if (error) throw error;
+
+      // Filter out already enrolled players
+      const availableMembers = (members || []).filter(m => !enrolledIds.includes(m.id));
+      setAllMembers(availableMembers);
+    } catch (err) {
+      console.error('Error loading members:', err);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  // Open the add person modal and load members
+  const openAddPersonModal = () => {
+    setShowAddNewPerson(true);
+    setNewPersonName('');
+    setSelectedMember(null);
+    loadAllMembers();
+  };
+
+  // Filter members based on search input
+  const filteredMembers = useMemo(() => {
+    if (!newPersonName.trim() || newPersonName.length < 2) return [];
+
+    const searchTerm = newPersonName.toLowerCase().trim();
+    return allMembers
+      .filter(m => m.name?.toLowerCase().includes(searchTerm))
+      .slice(0, 8); // Limit to 8 results for performance
+  }, [newPersonName, allMembers]);
+
+  // Handle enrolling an existing member
+  const handleEnrollExistingMember = async (member) => {
+    setAddingNewPerson(true);
+    setSelectedMember(member);
+    try {
+      // Enroll the member in this schedule (if there's a schedule)
+      if (session.schedule_id) {
+        const { error: enrollError } = await supabase
+          .from('coaching_schedule_enrollments')
+          .insert({
+            schedule_id: session.schedule_id,
+            player_id: member.id,
+            is_active: true
+          });
+
+        // Ignore duplicate errors (might already be enrolled from another path)
+        if (enrollError && !enrollError.message.includes('duplicate')) {
+          throw enrollError;
+        }
+      }
+
+      // Get the session cost for payment status
+      const sessionCost = parseFloat(session.session_cost) || parseFloat(schedule?.session_cost) || 4.00;
+      const paymentStatus = sessionCost === 0 ? 'paid' : 'unpaid';
+
+      // Add attendance record
+      const { error: attendError } = await supabase
+        .from('coaching_attendance')
+        .insert({
+          session_id: session.id,
+          player_id: member.id,
+          marked_by: currentUser.id,
+          self_registered: false,
+          payment_status: paymentStatus,
+        });
+
+      if (attendError) throw attendError;
+
+      // Add to local state
+      setEnrolledPlayers(prev => [...prev, member]);
+      setAttendance(prev => ({ ...prev, [member.id]: true }));
+      setInitialAttendance(prev => ({ ...prev, [member.id]: true }));
+      setRecentAttendance(prev => ({
+        ...prev,
+        [member.id]: { count: 0, attendedLast: false, total: 0 }
+      }));
+
+      success(`${member.name} enrolled and marked present`);
+      setNewPersonName('');
+      setSelectedMember(null);
+      setShowAddNewPerson(false);
+    } catch (err) {
+      console.error('Error enrolling member:', err);
+      showError('Failed to enroll member');
+    } finally {
+      setAddingNewPerson(false);
+      setSelectedMember(null);
+    }
+  };
+
+  // Handle adding a new person (skeleton account)
+  const handleAddNewPerson = async () => {
+    if (!newPersonName.trim()) {
+      showError('Please enter a name');
+      return;
+    }
+
+    setAddingNewPerson(true);
+    try {
+      // Create skeleton profile via RPC
+      const { data: newProfileId, error: createError } = await supabase
+        .rpc('create_skeleton_profile', {
+          p_name: newPersonName.trim(),
+          p_created_by: currentUser.id,
+          p_session_id: session.id
+        });
+
+      if (createError) throw createError;
+
+      // Get the session cost for payment status
+      const sessionCost = parseFloat(session.session_cost) || parseFloat(schedule?.session_cost) || 4.00;
+      const paymentStatus = sessionCost === 0 ? 'paid' : 'unpaid';
+
+      // Add attendance record for new person
+      const { error: attendError } = await supabase
+        .from('coaching_attendance')
+        .insert({
+          session_id: session.id,
+          player_id: newProfileId,
+          marked_by: currentUser.id,
+          self_registered: false,
+          payment_status: paymentStatus,
+        });
+
+      if (attendError) throw attendError;
+
+      // Add the new person to our local state
+      const newPlayer = {
+        id: newProfileId,
+        name: newPersonName.trim(),
+        is_junior: false,
+        is_skeleton: true
+      };
+
+      setEnrolledPlayers(prev => [...prev, newPlayer]);
+      setAttendance(prev => ({ ...prev, [newProfileId]: true }));
+      setInitialAttendance(prev => ({ ...prev, [newProfileId]: true }));
+      setRecentAttendance(prev => ({
+        ...prev,
+        [newProfileId]: { count: 0, attendedLast: false, total: 0 }
+      }));
+
+      // Send admin notification email
+      try {
+        const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        await fetch(
+          `${supabaseUrl}/functions/v1/notify-skeleton-account`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': anonKey,
+              'Authorization': `Bearer ${anonKey}`,
+            },
+            body: JSON.stringify({
+              profile_id: newProfileId,
+              name: newPersonName.trim(),
+              session_id: session.id,
+              session_type: session.session_type,
+              session_date: session.session_date,
+              created_by_name: currentUser.name
+            }),
+          }
+        );
+      } catch (emailError) {
+        console.warn('Failed to send admin notification email:', emailError);
+        // Don't fail the whole operation if email fails
+      }
+
+      success(`${newPersonName.trim()} added and marked present`);
+      setNewPersonName('');
+      setShowAddNewPerson(false);
+    } catch (err) {
+      console.error('Error adding new person:', err);
+      showError('Failed to add new person');
+    } finally {
+      setAddingNewPerson(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -339,6 +542,17 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto overscroll-contain">
+            {/* Add New Person Button - Always visible at top */}
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3">
+              <button
+                onClick={openAddPersonModal}
+                className="w-full flex items-center justify-center gap-3 px-4 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold text-lg shadow-md active:scale-[0.98] transition-all"
+              >
+                <UserPlus className="w-6 h-6" />
+                <span>Add Someone</span>
+              </button>
+            </div>
+
             {sortedPlayers.length === 0 ? (
               <div className="text-center py-12 px-6">
                 <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
@@ -346,7 +560,7 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
                 <p className="text-sm text-gray-600">
                   No players are enrolled in this schedule.
                   <br />
-                  Ask an admin to enroll players first.
+                  Use "Add New Person" above to register someone.
                 </p>
               </div>
             ) : (
@@ -402,6 +616,11 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
                             {player.is_junior && (
                               <span className="flex-shrink-0 bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs font-medium">
                                 Jr
+                              </span>
+                            )}
+                            {player.is_skeleton && (
+                              <span className="flex-shrink-0 bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-xs font-medium">
+                                New
                               </span>
                             )}
                           </div>
@@ -460,6 +679,180 @@ const CoachRegisterModal = ({ isOpen, onClose, session, schedule, actions, curre
           </div>
         </div>
       </div>
+
+      {/* Add Person Modal - Mobile-optimized bottom sheet with member search */}
+      {showAddNewPerson && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-[60]">
+          <div className="bg-white w-full max-w-lg rounded-t-2xl shadow-2xl animate-slide-up max-h-[85vh] flex flex-col">
+            {/* Handle bar for visual affordance */}
+            <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="px-6 pb-4 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <UserPlus className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Add Someone</h3>
+                    <p className="text-sm text-gray-500">Search members or add new</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAddNewPerson(false);
+                    setNewPersonName('');
+                    setSelectedMember(null);
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Search Input */}
+            <div className="px-6 pt-4 flex-shrink-0">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={newPersonName}
+                  onChange={(e) => setNewPersonName(e.target.value)}
+                  placeholder="Type a name to search..."
+                  autoFocus
+                  autoComplete="off"
+                  autoCapitalize="words"
+                  className="w-full pl-12 pr-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400"
+                />
+              </div>
+            </div>
+
+            {/* Content area - scrollable */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {loadingMembers ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <>
+                  {/* Matching members list */}
+                  {filteredMembers.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      <p className="text-sm font-medium text-gray-600 mb-3">
+                        Existing members matching "{newPersonName}":
+                      </p>
+                      {filteredMembers.map(member => (
+                        <button
+                          key={member.id}
+                          onClick={() => handleEnrollExistingMember(member)}
+                          disabled={addingNewPerson}
+                          className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${
+                            selectedMember?.id === member.id
+                              ? 'border-green-500 bg-green-50'
+                              : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 active:bg-blue-100'
+                          } ${addingNewPerson ? 'opacity-50' : ''}`}
+                        >
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-blue-600 font-bold text-lg">
+                              {member.name?.charAt(0)?.toUpperCase() || '?'}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">{member.name}</p>
+                            <p className="text-sm text-gray-500 truncate">
+                              {member.is_junior ? 'Junior' : 'Adult'}
+                              {member.email && ` • ${member.email}`}
+                            </p>
+                          </div>
+                          {selectedMember?.id === member.id && addingNewPerson ? (
+                            <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <div className="flex-shrink-0 bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium">
+                              Enrol
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Divider when there are results */}
+                  {filteredMembers.length > 0 && newPersonName.trim().length >= 2 && (
+                    <div className="flex items-center gap-3 my-4">
+                      <div className="flex-1 h-px bg-gray-200" />
+                      <span className="text-sm text-gray-400">or</span>
+                      <div className="flex-1 h-px bg-gray-200" />
+                    </div>
+                  )}
+
+                  {/* No results message */}
+                  {newPersonName.trim().length >= 2 && filteredMembers.length === 0 && (
+                    <div className="text-center py-4 mb-4">
+                      <p className="text-gray-500 text-sm">
+                        No existing members found matching "{newPersonName}"
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Create new person option - shown when there's text input */}
+                  {newPersonName.trim().length >= 2 && (
+                    <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+                      <p className="text-sm text-amber-800 mb-3">
+                        <strong>Not a member?</strong> Add them as a new person. Admin will be notified to complete their details.
+                      </p>
+                      <button
+                        onClick={handleAddNewPerson}
+                        disabled={addingNewPerson && !selectedMember}
+                        className="w-full px-4 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        {addingNewPerson && !selectedMember ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Adding...</span>
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-5 h-5" />
+                            <span>Add "{newPersonName.trim()}" as New Person</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Hint when not enough characters */}
+                  {newPersonName.trim().length < 2 && (
+                    <div className="text-center py-8">
+                      <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">
+                        Type at least 2 characters to search
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Footer with Cancel */}
+            <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0 safe-area-inset-bottom">
+              <button
+                onClick={() => {
+                  setShowAddNewPerson(false);
+                  setNewPersonName('');
+                  setSelectedMember(null);
+                }}
+                className="w-full px-4 py-3 text-gray-700 bg-gray-100 rounded-xl font-semibold hover:bg-gray-200 active:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

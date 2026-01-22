@@ -5,6 +5,7 @@ import ScheduleManagement from './Admin/ScheduleManagement';
 import UnifiedSessionManagement from './Admin/UnifiedSessionManagement';
 import PaymentManagement from './Admin/PaymentManagement';
 import CoachPaymentTracking from './Admin/CoachPaymentTracking';
+import PendingNewAttendees from './Admin/PendingNewAttendees';
 
 const CoachingAdminTab = ({ currentUser, allUsers }) => {
   const [activeSection, setActiveSection] = useState('schedules');
@@ -73,6 +74,9 @@ const CoachingAdminTab = ({ currentUser, allUsers }) => {
           Manage coaching schedules, sessions, attendance, and payments
         </p>
       </div>
+
+      {/* Pending New Attendees - Shows notification banner when there are skeleton accounts */}
+      <PendingNewAttendees onRefresh={() => coaching.actions.fetchAllData()} />
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
