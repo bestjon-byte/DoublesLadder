@@ -10,9 +10,8 @@ const CoachDashboard = ({ currentUser }) => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  // Get next session and recent past sessions
-  const { nextSession, recentSessions } = useMemo(() => {
-    const now = new Date();
+  // Get all sessions for the next coaching day, and recent past sessions
+  const { nextDaySessions, nextDate, recentSessions } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -32,7 +31,7 @@ const CoachDashboard = ({ currentUser }) => {
       }
     });
 
-    // Sort future sessions by date/time to get the next one
+    // Sort by date/time
     const sortByDateTime = (a, b) => {
       const dateCompare = new Date(a.session_date) - new Date(b.session_date);
       if (dateCompare !== 0) return dateCompare;
@@ -41,6 +40,19 @@ const CoachDashboard = ({ currentUser }) => {
 
     futureSessions.sort(sortByDateTime);
     pastSessions.sort((a, b) => -sortByDateTime(a, b)); // Most recent first
+
+    // Find the next date that has sessions and get ALL sessions for that date
+    let nextDateStr = null;
+    const nextDaySessionsList = [];
+
+    if (futureSessions.length > 0) {
+      nextDateStr = futureSessions[0].session_date;
+      futureSessions.forEach(session => {
+        if (session.session_date === nextDateStr) {
+          nextDaySessionsList.push(session);
+        }
+      });
+    }
 
     // Get recent past sessions (last 7 days only)
     const lastWeek = new Date(today);
@@ -53,7 +65,8 @@ const CoachDashboard = ({ currentUser }) => {
     });
 
     return {
-      nextSession: futureSessions[0] || null,
+      nextDaySessions: nextDaySessionsList,
+      nextDate: nextDateStr,
       recentSessions: recent
     };
   }, [sessions]);
@@ -164,19 +177,28 @@ const CoachDashboard = ({ currentUser }) => {
         </p>
       </div>
 
-      {/* Next Session */}
+      {/* Next Coaching Day */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-blue-600" />
-          Next Session
+          {nextDate ? formatSessionDate(nextDate) : 'Upcoming'}
+          {nextDaySessions.length > 0 && (
+            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-sm">
+              {nextDaySessions.length} session{nextDaySessions.length !== 1 ? 's' : ''}
+            </span>
+          )}
         </h2>
-        {!nextSession ? (
+        {nextDaySessions.length === 0 ? (
           <div className="bg-gray-50 rounded-lg p-8 text-center">
             <Calendar className="w-10 h-10 text-gray-400 mx-auto mb-2" />
             <p className="text-gray-600">No upcoming sessions</p>
           </div>
         ) : (
-          <SessionCard session={nextSession} showDate />
+          <div className="space-y-3">
+            {nextDaySessions.map(session => (
+              <SessionCard key={session.id} session={session} />
+            ))}
+          </div>
         )}
       </section>
 
