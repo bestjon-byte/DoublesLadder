@@ -1,6 +1,6 @@
 // Version Manager - Handles automatic updates and cache busting
 // Version is auto-injected from package.json during build
-export const APP_VERSION = '1.0.194'; // Auto-updated by build script
+export const APP_VERSION = '1.0.195'; // Auto-updated by build script
 
 class VersionManager {
   constructor() {

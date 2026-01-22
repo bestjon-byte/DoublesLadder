@@ -14,14 +14,10 @@ const CoachDashboard = ({ currentUser }) => {
   const groupedSessions = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
 
     const todaySessions = [];
     const upcomingSessions = [];
-    const pastSessions = []; // All past sessions (not cancelled)
+    const pastSessions = [];
 
     sessions.forEach(session => {
       const sessionDate = new Date(session.session_date);
@@ -31,7 +27,7 @@ const CoachDashboard = ({ currentUser }) => {
 
       if (sessionDate.getTime() === today.getTime()) {
         todaySessions.push(session);
-      } else if (sessionDate > today && sessionDate <= nextWeek) {
+      } else if (sessionDate > today) {
         upcomingSessions.push(session);
       } else if (sessionDate < today) {
         pastSessions.push(session);
@@ -49,31 +45,15 @@ const CoachDashboard = ({ currentUser }) => {
     upcomingSessions.sort(sortByDateTime);
     pastSessions.sort((a, b) => -sortByDateTime(a, b)); // Most recent first
 
-    // Get the most recent past session per session type+time combo
-    // This ensures coach can catch up on each group (e.g., Juniors 4pm, Juniors 5pm, Adults, Beginners)
+    // Get recent past sessions (last 7 days only)
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
 
-    const recentSessions = [];
-    const seenSessionKeys = new Set();
-
-    for (const session of pastSessions) {
+    const recentSessions = pastSessions.filter(session => {
       const sessionDate = new Date(session.session_date);
       sessionDate.setHours(0, 0, 0, 0);
-
-      // Create a unique key based on type + time (more reliable than schedule_id)
-      const sessionKey = `${session.session_type}-${session.session_time}`;
-
-      // Always include sessions from last 7 days
-      if (sessionDate >= lastWeek) {
-        recentSessions.push(session);
-        seenSessionKeys.add(sessionKey);
-      } else if (!seenSessionKeys.has(sessionKey)) {
-        // For older sessions, include only the most recent one per type+time
-        recentSessions.push(session);
-        seenSessionKeys.add(sessionKey);
-      }
-    }
+      return sessionDate >= lastWeek;
+    });
 
     return { todaySessions, upcomingSessions, recentSessions };
   }, [sessions]);
@@ -213,7 +193,7 @@ const CoachDashboard = ({ currentUser }) => {
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <Clock className="w-5 h-5 text-green-600" />
-          Upcoming This Week
+          Upcoming
           {groupedSessions.upcomingSessions.length > 0 && (
             <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-sm">
               {groupedSessions.upcomingSessions.length}
@@ -222,7 +202,7 @@ const CoachDashboard = ({ currentUser }) => {
         </h2>
         {groupedSessions.upcomingSessions.length === 0 ? (
           <div className="bg-gray-50 rounded-lg p-6 text-center">
-            <p className="text-gray-600">No upcoming sessions this week</p>
+            <p className="text-gray-600">No upcoming sessions</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -238,16 +218,13 @@ const CoachDashboard = ({ currentUser }) => {
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-gray-500" />
-            Previous Sessions
+            Last 7 Days
             <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-sm font-normal">
               {groupedSessions.recentSessions.length}
             </span>
           </h2>
-          <p className="text-sm text-gray-500 mb-3">
-            Missed recording attendance? You can still update these sessions.
-          </p>
           <div className="space-y-3">
-            {groupedSessions.recentSessions.slice(0, 8).map(session => (
+            {groupedSessions.recentSessions.map(session => (
               <SessionCard key={session.id} session={session} showDate isRecent />
             ))}
           </div>
