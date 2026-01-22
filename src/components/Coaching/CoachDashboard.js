@@ -10,52 +10,52 @@ const CoachDashboard = ({ currentUser }) => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  // Group sessions by date category
-  const groupedSessions = useMemo(() => {
+  // Get next session and recent past sessions
+  const { nextSession, recentSessions } = useMemo(() => {
+    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todaySessions = [];
-    const upcomingSessions = [];
+    const futureSessions = [];
     const pastSessions = [];
 
     sessions.forEach(session => {
+      if (session.status === 'cancelled') return;
+
       const sessionDate = new Date(session.session_date);
       sessionDate.setHours(0, 0, 0, 0);
 
-      if (session.status === 'cancelled') return;
-
-      if (sessionDate.getTime() === today.getTime()) {
-        todaySessions.push(session);
-      } else if (sessionDate > today) {
-        upcomingSessions.push(session);
-      } else if (sessionDate < today) {
+      if (sessionDate >= today) {
+        futureSessions.push(session);
+      } else {
         pastSessions.push(session);
       }
     });
 
-    // Sort by date/time
+    // Sort future sessions by date/time to get the next one
     const sortByDateTime = (a, b) => {
       const dateCompare = new Date(a.session_date) - new Date(b.session_date);
       if (dateCompare !== 0) return dateCompare;
       return a.session_time.localeCompare(b.session_time);
     };
 
-    todaySessions.sort(sortByDateTime);
-    upcomingSessions.sort(sortByDateTime);
+    futureSessions.sort(sortByDateTime);
     pastSessions.sort((a, b) => -sortByDateTime(a, b)); // Most recent first
 
     // Get recent past sessions (last 7 days only)
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
 
-    const recentSessions = pastSessions.filter(session => {
+    const recent = pastSessions.filter(session => {
       const sessionDate = new Date(session.session_date);
       sessionDate.setHours(0, 0, 0, 0);
       return sessionDate >= lastWeek;
     });
 
-    return { todaySessions, upcomingSessions, recentSessions };
+    return {
+      nextSession: futureSessions[0] || null,
+      recentSessions: recent
+    };
   }, [sessions]);
 
   const handleOpenRegister = (session) => {
@@ -164,67 +164,34 @@ const CoachDashboard = ({ currentUser }) => {
         </p>
       </div>
 
-      {/* Today's Sessions */}
+      {/* Next Session */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-blue-600" />
-          Today
-          {groupedSessions.todaySessions.length > 0 && (
-            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-sm">
-              {groupedSessions.todaySessions.length}
-            </span>
-          )}
+          Next Session
         </h2>
-        {groupedSessions.todaySessions.length === 0 ? (
+        {!nextSession ? (
           <div className="bg-gray-50 rounded-lg p-8 text-center">
             <Calendar className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-600">No sessions scheduled for today</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {groupedSessions.todaySessions.map(session => (
-              <SessionCard key={session.id} session={session} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Upcoming Sessions */}
-      <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-green-600" />
-          Upcoming
-          {groupedSessions.upcomingSessions.length > 0 && (
-            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-sm">
-              {groupedSessions.upcomingSessions.length}
-            </span>
-          )}
-        </h2>
-        {groupedSessions.upcomingSessions.length === 0 ? (
-          <div className="bg-gray-50 rounded-lg p-6 text-center">
             <p className="text-gray-600">No upcoming sessions</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {groupedSessions.upcomingSessions.map(session => (
-              <SessionCard key={session.id} session={session} showDate />
-            ))}
-          </div>
+          <SessionCard session={nextSession} showDate />
         )}
       </section>
 
       {/* Recent/Past Sessions */}
-      {groupedSessions.recentSessions.length > 0 && (
+      {recentSessions.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-gray-500" />
             Last 7 Days
             <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-sm font-normal">
-              {groupedSessions.recentSessions.length}
+              {recentSessions.length}
             </span>
           </h2>
           <div className="space-y-3">
-            {groupedSessions.recentSessions.map(session => (
+            {recentSessions.map(session => (
               <SessionCard key={session.id} session={session} showDate isRecent />
             ))}
           </div>
