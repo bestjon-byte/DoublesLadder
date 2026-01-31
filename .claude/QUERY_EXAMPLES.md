@@ -1,69 +1,65 @@
-# Supabase Query Examples
-*Reliable alternatives to MCP - using direct PostgREST API*
+# Supabase Admin Query Examples
+*Full CRUD access using secret key*
 
-## Quick Reference
+## Admin Scripts (Full Access)
 
-### Query Tables (supabase-query.sh)
-
-**Basic queries:**
+### Read Data
 ```bash
 # Get all profiles
-./.claude/supabase-query.sh profiles
+./.claude/supabase-admin.sh GET 'profiles'
 
 # Select specific columns
-./.claude/supabase-query.sh 'profiles?select=name,email,role'
+./.claude/supabase-admin.sh GET 'profiles?select=name,email,role'
 
 # Filter by role
-./.claude/supabase-query.sh 'profiles?role=eq.admin'
+./.claude/supabase-admin.sh GET 'profiles?role=eq.admin'
 
 # Limit results
-./.claude/supabase-query.sh 'profiles?limit=10'
+./.claude/supabase-admin.sh GET 'profiles?limit=10'
+
+# Join tables (embedding)
+./.claude/supabase-admin.sh GET 'coaching_attendance?select=*,profiles(name,email)&payment_status=eq.unpaid'
 ```
 
-**Payment queries:**
+### Update Data
 ```bash
-# See who owes money
-./.claude/supabase-query.sh 'coaching_attendance?select=*,profiles(name,email)&payment_status=eq.unpaid'
+# Update a record
+./.claude/supabase-admin.sh PATCH 'profiles?id=eq.UUID' '{"name":"New Name"}'
 
-# See pending confirmations
-./.claude/supabase-query.sh 'coaching_attendance?select=*,profiles(name,email)&payment_status=eq.pending_confirmation'
+# Update payment status
+./.claude/supabase-admin.sh PATCH 'coaching_attendance?id=eq.UUID' '{"payment_status":"paid"}'
 
-# Check specific player's sessions
-./.claude/supabase-query.sh 'coaching_attendance?select=*,coaching_sessions(session_date)&player_id=eq.YOUR-UUID-HERE'
+# Mark multiple sessions as paid (by player)
+./.claude/supabase-admin.sh PATCH 'coaching_attendance?player_id=eq.UUID&payment_status=eq.unpaid' '{"payment_status":"paid"}'
 ```
 
-**Coaching queries:**
+### Insert Data
 ```bash
-# Upcoming sessions
-./.claude/supabase-query.sh 'coaching_sessions?status=eq.confirmed&order=session_date.asc&limit=10'
+# Insert a new record
+./.claude/supabase-admin.sh POST 'coaching_sessions' '{"session_date":"2025-01-31","status":"confirmed"}'
+```
 
-# Sessions with attendance
-./.claude/supabase-query.sh 'coaching_sessions?select=*,coaching_attendance(player_id,payment_status)'
+### Delete Data
+```bash
+# Delete a record
+./.claude/supabase-admin.sh DELETE 'coaching_attendance?id=eq.UUID'
 ```
 
 ---
 
-### Call RPC Functions (supabase-rpc.sh)
-
-**Payment functions:**
+## RPC Functions
 ```bash
 # Get all players payment summary
-./.claude/supabase-rpc.sh get_all_players_payment_summary
+./.claude/supabase-admin-rpc.sh get_all_players_payment_summary
 
 # Get specific player payment summary
-./.claude/supabase-rpc.sh get_player_payment_summary '{"p_player_id":"uuid-here","p_session_cost":4.00}'
+./.claude/supabase-admin-rpc.sh get_player_payment_summary '{"p_player_id":"uuid-here","p_session_cost":4.00}'
 
 # Validate payment token
-./.claude/supabase-rpc.sh validate_payment_token '{"p_token":"token-uuid-here"}'
+./.claude/supabase-admin-rpc.sh validate_payment_token '{"p_token":"token-uuid-here"}'
 
 # Create payment from unpaid sessions
-./.claude/supabase-rpc.sh create_payment_from_unpaid_sessions '{"p_player_id":"uuid-here"}'
-```
-
-**Other functions:**
-```bash
-# Generate sessions for schedule
-./.claude/supabase-rpc.sh generate_sessions_for_schedule '{"p_schedule_id":"uuid-here","p_start_date":"2025-01-01","p_end_date":"2025-01-31"}'
+./.claude/supabase-admin-rpc.sh create_payment_from_unpaid_sessions '{"p_player_id":"uuid-here"}'
 ```
 
 ---
@@ -101,52 +97,35 @@
 
 ### "Has this player paid?"
 ```bash
-./.claude/supabase-query.sh 'coaching_attendance?select=payment_status,coaching_sessions(session_date)&player_id=eq.UUID'
+./.claude/supabase-admin.sh GET 'coaching_attendance?select=payment_status,coaching_sessions(session_date)&player_id=eq.UUID'
 ```
 
 ### "Who owes money?"
 ```bash
-./.claude/supabase-rpc.sh get_all_players_payment_summary
+./.claude/supabase-admin-rpc.sh get_all_players_payment_summary
 # Look for amount_owed > 0
+```
+
+### "Mark player's sessions as paid"
+```bash
+./.claude/supabase-admin.sh PATCH 'coaching_attendance?player_id=eq.UUID&payment_status=eq.unpaid' '{"payment_status":"paid"}'
 ```
 
 ### "What payments are pending confirmation?"
 ```bash
-./.claude/supabase-query.sh 'coaching_attendance?select=*,profiles(name),coaching_sessions(session_date)&payment_status=eq.pending_confirmation'
-```
-
-### "How many sessions next week?"
-```bash
-./.claude/supabase-query.sh 'coaching_sessions?session_date=gte.2025-11-18&session_date=lt.2025-11-25&status=eq.confirmed'
+./.claude/supabase-admin.sh GET 'coaching_attendance?select=*,profiles(name),coaching_sessions(session_date)&payment_status=eq.pending_confirmation'
 ```
 
 ---
 
-## Tips
+## Key Tables
 
-1. **Always quote complex queries**: Shell needs quotes for special characters
-2. **Use select to reduce data**: Only fetch columns you need
-3. **Join with embedding**: Use `table(columns)` syntax for related data
-4. **Debug with curl**: If script fails, try curl directly to see error message
-5. **Check RLS policies**: If you get no results, might be Row Level Security
-
----
-
-## Direct curl (if scripts fail)
-
-```bash
-# Read ANON_KEY from .env.local
-ANON_KEY=$(grep REACT_APP_SUPABASE_ANON_KEY .env.local | cut -d '=' -f2)
-
-# Query
-curl "https://hwpjrkmplydqaxiikupv.supabase.co/rest/v1/TABLE?FILTERS" \
-  -H "apikey: $ANON_KEY" \
-  -H "Authorization: Bearer $ANON_KEY"
-
-# RPC
-curl "https://hwpjrkmplydqaxiikupv.supabase.co/rest/v1/rpc/FUNCTION" \
-  -H "apikey: $ANON_KEY" \
-  -H "Authorization: Bearer $ANON_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"param":"value"}'
-```
+| Table | Purpose |
+|-------|---------|
+| `profiles` | User accounts (name, email, role) |
+| `coaching_sessions` | Scheduled sessions |
+| `coaching_attendance` | Who attended, payment status |
+| `coaching_payments` | Payment aggregation records |
+| `seasons` | Tennis seasons |
+| `season_players` | Player rankings per season |
+| `matches` | Match scheduling |

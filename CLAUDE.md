@@ -37,8 +37,11 @@ vercel                     # Deploy via Vercel CLI
 Located in `.env.local` (NOT in git - sensitive):
 ```
 REACT_APP_SUPABASE_URL=https://hwpjrkmplydqaxiikupv.supabase.co
-REACT_APP_SUPABASE_ANON_KEY=[anon key here]
+REACT_APP_SUPABASE_ANON_KEY=[anon key - for client-side app]
+SUPABASE_SECRET_KEY=[secret key - for Claude Code admin access]
 ```
+
+**Note:** The `SUPABASE_SECRET_KEY` (starts with `sb_secret_`) gives Claude Code full CRUD access to the database, bypassing Row Level Security.
 
 ---
 
@@ -49,71 +52,64 @@ REACT_APP_SUPABASE_ANON_KEY=[anon key here]
 - **Project URL**: https://hwpjrkmplydqaxiikupv.supabase.co
 - **Dashboard**: https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv
 
-### 📖 Database Schema Documentation
-**Always read `SUPABASE_SCHEMA.md` first when starting a session!**
+### 📖 Database Access
+**Query the live database directly - no static schema files!**
 
-This file is auto-generated on every Claude Code startup and contains:
-- Complete list of all database tables
-- Table structures with key fields
-- Relationships between tables
-- Important RPC functions
-- Payment status workflows
+Use the admin scripts (below) to query tables and understand the schema in real-time.
+This ensures you always have accurate, up-to-date information rather than stale documentation.
 
-The schema file is your primary reference for understanding the database structure.
+**Quick schema discovery:**
+```bash
+# List all tables
+./.claude/supabase-admin.sh GET 'profiles?limit=1'  # See profile columns
+./.claude/supabase-admin.sh GET 'coaching_sessions?limit=1'  # See session columns
+```
 
 ### Access Methods
 
-#### 1. **Query Scripts via PostgREST API** ⭐ (MOST RELIABLE)
-**Use these tools to query data - they bypass flaky MCP!**
+#### 1. **Admin Scripts (Full CRUD Access)** ⭐ PRIMARY METHOD
+**Use these for ALL database operations - full read/write access!**
 
 ```bash
-# Query any table
-./.claude/supabase-query.sh 'table_name?filters'
+# Read, Update, Insert, Delete - full access
+./.claude/supabase-admin.sh GET 'profiles?select=name,email&limit=5'
+./.claude/supabase-admin.sh PATCH 'profiles?id=eq.UUID' '{"name":"New Name"}'
+./.claude/supabase-admin.sh POST 'coaching_sessions' '{"session_date":"2025-01-31"}'
+./.claude/supabase-admin.sh DELETE 'coaching_attendance?id=eq.UUID'
 
-# Call RPC functions
+# Call RPC functions with admin access
+./.claude/supabase-admin-rpc.sh get_all_players_payment_summary '{}'
+```
+
+**Common operations:**
+```bash
+# Who owes money?
+./.claude/supabase-admin-rpc.sh get_all_players_payment_summary '{}'
+
+# Update payment status
+./.claude/supabase-admin.sh PATCH 'coaching_attendance?id=eq.UUID' '{"payment_status":"paid"}'
+
+# Get profiles
+./.claude/supabase-admin.sh GET 'profiles?select=name,email,role&limit=10'
+```
+
+**Why use this**: Uses `SUPABASE_SECRET_KEY` from `.env.local` - bypasses RLS for full CRUD access.
+
+#### 2. **Read-Only Scripts (Legacy - uses anon key)**
+These only have read access due to RLS restrictions:
+```bash
+./.claude/supabase-query.sh 'table_name?filters'
 ./.claude/supabase-rpc.sh function_name '{"param":"value"}'
 ```
 
-**Common queries:**
-```bash
-# Who owes money?
-./.claude/supabase-rpc.sh get_all_players_payment_summary
-
-# Check payment status
-./.claude/supabase-query.sh 'coaching_attendance?select=*,profiles(name)&payment_status=eq.unpaid'
-
-# Get profiles
-./.claude/supabase-query.sh 'profiles?select=name,email,role&limit=10'
-```
-
-**Full examples**: See `.claude/QUERY_EXAMPLES.md` for comprehensive guide
-
-**Why use this**: Direct HTTP calls to PostgREST API - no MCP dependency, 100% reliable!
-
-#### 2. **Supabase Dashboard (For SQL/Migrations)**
+#### 3. **Supabase Dashboard (For SQL/Migrations)**
 - Go to: https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv
 - SQL Editor → Run queries directly
 - Table Editor → View/edit data with UI
-- **Best for**: Running migrations, schema changes, complex SQL
+- **Best for**: Schema changes, complex migrations, debugging
 
-#### 3. **Claude Code with MCP (Unreliable)**
-```javascript
-// Claude Code can call (but often fails):
-mcp__supabase__execute_sql
-mcp__supabase__list_tables
-```
-**Configuration**: `.mcp.json` (in repo root)
-
-⚠️ **Warning**: MCP is flaky - **always prefer query scripts (#1) instead**
-
-#### 4. **Supabase CLI (Local Terminal)**
-```bash
-# Not currently installed - install if needed:
-brew install supabase/tap/supabase
-
-# Then login:
-supabase login
-```
+#### 4. **MCP Server (Deprecated - Unreliable)**
+Configuration in `.mcp.json` - often fails. Use admin scripts instead.
 
 ### Key Database Tables
 
@@ -311,8 +307,8 @@ Components generate WhatsApp-friendly text exports:
 ## Troubleshooting
 
 ### "Can't find table structure" or "Need database schema"
-→ Read `SUPABASE_SCHEMA.md` (auto-generated on startup)
-→ If file is missing or outdated, run: `./.claude/generate-schema.sh`
+→ Query the live database: `./.claude/supabase-admin.sh GET 'table_name?limit=1'`
+→ See `.claude/QUERY_EXAMPLES.md` for common queries
 
 ### "Supabase query failed"
 → Use Supabase Dashboard SQL Editor instead: https://supabase.com/dashboard/project/hwpjrkmplydqaxiikupv/sql

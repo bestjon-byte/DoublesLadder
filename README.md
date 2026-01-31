@@ -133,14 +133,14 @@ npm start
 │   └── migrations/          # Database migrations
 │       └── applied/         # Applied migrations (archive)
 ├── .claude/                 # Claude Code integration
-│   ├── supabase-query.sh    # Query database from CLI
-│   ├── supabase-rpc.sh      # Call RPC functions from CLI
-│   └── generate-schema.sh   # Auto-generate SUPABASE_SCHEMA.md
+│   ├── supabase-admin.sh    # Full CRUD access to database
+│   ├── supabase-admin-rpc.sh # Call RPC functions with admin access
+│   ├── supabase-query.sh    # Read-only queries (legacy)
+│   └── supabase-rpc.sh      # Read-only RPC calls (legacy)
 ├── .env.local               # Environment variables (NOT in git)
 ├── .gitignore
 ├── package.json
 ├── CLAUDE.md                # Claude Code integration guide
-├── SUPABASE_SCHEMA.md       # Auto-generated database schema
 └── README.md                # This file
 ```
 
@@ -169,16 +169,16 @@ git push origin main
 
 ### Database Operations
 
-**Query database via CLI:**
+**Full CRUD access via CLI:**
 ```bash
-# Get all profiles
-./.claude/supabase-query.sh 'profiles?select=name,email,role&limit=10'
+# Read profiles
+./.claude/supabase-admin.sh GET 'profiles?select=name,email,role&limit=10'
 
 # Check payment summary
-./.claude/supabase-rpc.sh get_all_players_payment_summary
+./.claude/supabase-admin-rpc.sh get_all_players_payment_summary
 
-# Get specific player data
-./.claude/supabase-query.sh 'profiles?select=*&name=eq.John Doe'
+# Update payment status
+./.claude/supabase-admin.sh PATCH 'coaching_attendance?id=eq.UUID' '{"payment_status":"paid"}'
 ```
 
 **Access Supabase Dashboard:**
@@ -202,7 +202,7 @@ supabase functions deploy send-payment-reminders --project-ref hwpjrkmplydqaxiik
 
 ## 💾 Database Schema
 
-**Auto-generated documentation:** See `SUPABASE_SCHEMA.md`
+**Query live database:** Use `./.claude/supabase-admin.sh` to explore schema in real-time.
 
 **Key Tables:**
 - `profiles` - User accounts (linked to auth.users)
@@ -279,7 +279,6 @@ Should be: `https://cawood-tennis.vercel.app`
 ## 📚 Additional Documentation
 
 - **CLAUDE.md** - Claude Code integration guide (for AI-assisted development)
-- **SUPABASE_SCHEMA.md** - Auto-generated database schema (updated on startup)
 - **CODEBASE_AUDIT_2025-11-13.md** - Comprehensive code audit and cleanup plan
 - **CLEANUP_ACTION_PLAN.md** - Step-by-step cleanup execution plan
 

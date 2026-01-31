@@ -298,8 +298,9 @@ The Explore agent was WRONG - these functions ARE used internally:
 **What You Actually Need:**
 1. **README.md** - Quick start, deployment, architecture overview
 2. **CLAUDE.md** - Claude Code integration guide (keep this - it's good!)
-3. **SUPABASE_SCHEMA.md** - Auto-generated schema (keep this - it's auto-updated)
-4. **CHANGELOG.md** - Version history (NEW - you don't have this!)
+3. **CHANGELOG.md** - Version history (NEW - you don't have this!)
+
+**Note:** SUPABASE_SCHEMA.md deleted - query live database instead using admin scripts.
 
 **Everything Else Should Be Deleted.**
 
@@ -314,8 +315,7 @@ The Explore agent was WRONG - these functions ARE used internally:
 
 /root/
 ├── README.md (points to /docs/)
-├── CLAUDE.md (Claude Code integration - keep)
-└── SUPABASE_SCHEMA.md (auto-generated - keep)
+└── CLAUDE.md (Claude Code integration - keep)
 ```
 
 **Estimated Time:** 3-4 hours to write proper docs
@@ -812,7 +812,7 @@ npm start  # Runs on localhost:3000
 6. **WhatsApp Export** - Match results & league tables
 
 ## Database Schema
-See `SUPABASE_SCHEMA.md` (auto-generated on startup)
+Query live database using `./.claude/supabase-admin.sh`
 
 ## Environment Variables
 ```bash

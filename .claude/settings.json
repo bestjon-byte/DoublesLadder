@@ -4,7 +4,8 @@
       "Bash(git fetch:*)",
       "Bash(git stash:*)",
       "Bash(git merge:*)",
-      "Bash(./.claude/generate-schema.sh:*)",
+      "Bash(./.claude/supabase-admin.sh:*)",
+      "Bash(./.claude/supabase-admin-rpc.sh:*)",
       "Bash(./.claude/supabase-query.sh:*)",
       "Bash(./.claude/supabase-rpc.sh:*)"
     ],
@@ -14,18 +15,5 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase"
-  ],
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "./.claude/generate-schema.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ]
-  }
+  ]
 }

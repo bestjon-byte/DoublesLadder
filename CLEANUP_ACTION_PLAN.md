@@ -111,9 +111,9 @@ rm PAYMENT_REMINDER_BUG_RESOLVED.md
 
 # Keep only:
 # - CLAUDE.md (good!)
-# - SUPABASE_SCHEMA.md (auto-generated)
 # - CODEBASE_AUDIT_2025-11-13.md (this audit)
 # - CLEANUP_ACTION_PLAN.md (this file)
+# Note: SUPABASE_SCHEMA.md deleted - query live database instead
 
 # Create new README.md
 # (See NEW_README.md in this repo)
