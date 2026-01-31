@@ -1219,6 +1219,29 @@ export const useCoaching = (userId, isAdmin = false) => {
     }
   }, [userId]);
 
+  /**
+   * Reject/cancel an invoice (admin only)
+   */
+  const rejectInvoice = useCallback(async (invoiceId, reason = '') => {
+    try {
+      const { data, error } = await supabase
+        .from('coach_invoices')
+        .update({
+          status: 'cancelled',
+          notes: reason ? `Rejected: ${reason}` : 'Rejected by admin',
+        })
+        .eq('id', invoiceId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error rejecting invoice:', error);
+      return { data: null, error };
+    }
+  }, []);
+
   // ==========================================================================
   // PAYMENT REMINDER SYSTEM
   // ==========================================================================
@@ -1398,6 +1421,7 @@ export const useCoaching = (userId, isAdmin = false) => {
       getCoachInvoices,
       getCoachPendingInvoices,
       markInvoicePaid,
+      rejectInvoice,
 
       // Payment Reminder System
       sendPaymentReminders,

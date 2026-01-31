@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCoaching } from '../../../hooks/useCoaching';
 import { useAppToast } from '../../../contexts/ToastContext';
-import { FileText, CheckCircle, Clock } from 'lucide-react';
+import { FileText, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 /**
  * Coach Payment Tracking Component (Admin Only)
@@ -21,6 +21,8 @@ const CoachPaymentTracking = ({ userId }) => {
   const [showGoodwillPayment, setShowGoodwillPayment] = useState(false);
   const [showRateConfig, setShowRateConfig] = useState(false);
   const [processingInvoice, setProcessingInvoice] = useState(null);
+  const [rejectingInvoice, setRejectingInvoice] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   // Payment form state
   const [paymentForm, setPaymentForm] = useState({
@@ -97,6 +99,29 @@ const CoachPaymentTracking = ({ userId }) => {
     } catch (error) {
       console.error('Error marking invoice as paid:', error);
       showError('Failed to process invoice payment');
+    } finally {
+      setProcessingInvoice(null);
+    }
+  };
+
+  // Handle rejecting invoice
+  const handleRejectInvoice = async (invoice) => {
+    if (!window.confirm(`Are you sure you want to reject Invoice #${String(invoice.invoice_number).padStart(2, '0')} for £${Number(invoice.total_amount).toFixed(2)}?`)) {
+      return;
+    }
+
+    setProcessingInvoice(invoice.id);
+    try {
+      const result = await actions.rejectInvoice(invoice.id, rejectReason);
+      if (result.error) throw result.error;
+
+      showToast('Invoice rejected');
+      setRejectingInvoice(null);
+      setRejectReason('');
+      loadData();
+    } catch (error) {
+      console.error('Error rejecting invoice:', error);
+      showError('Failed to reject invoice');
     } finally {
       setProcessingInvoice(null);
     }
@@ -244,27 +269,37 @@ const CoachPaymentTracking = ({ userId }) => {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="text-xl font-bold text-yellow-700">
                     £{Number(invoice.total_amount).toFixed(2)}
                   </div>
-                  <button
-                    onClick={() => handleMarkInvoicePaid(invoice)}
-                    disabled={processingInvoice === invoice.id}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
-                  >
-                    {processingInvoice === invoice.id ? (
-                      <>
-                        <Clock className="w-4 h-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        Mark as Paid
-                      </>
-                    )}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleMarkInvoicePaid(invoice)}
+                      disabled={processingInvoice === invoice.id}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
+                    >
+                      {processingInvoice === invoice.id ? (
+                        <>
+                          <Clock className="w-4 h-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4" />
+                          Mark as Paid
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleRejectInvoice(invoice)}
+                      disabled={processingInvoice === invoice.id}
+                      className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 font-medium"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Reject
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
