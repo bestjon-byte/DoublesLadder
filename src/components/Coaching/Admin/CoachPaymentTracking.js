@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useCoaching } from '../../../hooks/useCoaching';
 import { useAppToast } from '../../../contexts/ToastContext';
+import { FileText, CheckCircle, Clock } from 'lucide-react';
 
 /**
  * Coach Payment Tracking Component (Admin Only)
  * Tracks what the club owes the coach for delivered sessions
+ * Includes pending invoice requests from coach
  */
 const CoachPaymentTracking = ({ userId }) => {
   const { actions } = useCoaching(userId, true);
@@ -13,10 +15,12 @@ const CoachPaymentTracking = ({ userId }) => {
   const [summary, setSummary] = useState(null);
   const [sessionsToPay, setSessionsToPay] = useState([]);
   const [paymentHistory, setPaymentHistory] = useState([]);
+  const [pendingInvoices, setPendingInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRecordPayment, setShowRecordPayment] = useState(false);
   const [showGoodwillPayment, setShowGoodwillPayment] = useState(false);
   const [showRateConfig, setShowRateConfig] = useState(false);
+  const [processingInvoice, setProcessingInvoice] = useState(null);
 
   // Payment form state
   const [paymentForm, setPaymentForm] = useState({
@@ -40,10 +44,11 @@ const CoachPaymentTracking = ({ userId }) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [summaryRes, sessionsRes, historyRes] = await Promise.all([
+      const [summaryRes, sessionsRes, historyRes, invoicesRes] = await Promise.all([
         actions.getCoachPaymentSummary(),
         actions.getCoachSessionsToPay(),
         actions.getCoachPaymentHistory(),
+        actions.getCoachPendingInvoices(),
       ]);
 
       if (summaryRes.error) throw new Error(summaryRes.error);
@@ -53,11 +58,47 @@ const CoachPaymentTracking = ({ userId }) => {
       setSummary(summaryRes.data);
       setSessionsToPay(sessionsRes.data);
       setPaymentHistory(historyRes.data);
+      setPendingInvoices(invoicesRes.data || []);
     } catch (error) {
       console.error('Error loading coach payment data:', error);
       showError('Failed to load coach payment data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle marking invoice as paid
+  const handleMarkInvoicePaid = async (invoice) => {
+    setProcessingInvoice(invoice.id);
+    try {
+      // First record the payment
+      const paymentResult = await actions.recordCoachPayment({
+        payment_date: new Date().toISOString().split('T')[0],
+        amount: invoice.total_amount,
+        payment_type: 'regular',
+        payment_method: 'bank_transfer',
+        reference: `Invoice #${String(invoice.invoice_number).padStart(2, '0')}`,
+        notes: `Payment for invoice #${invoice.invoice_number}`,
+      });
+
+      if (paymentResult.error) throw paymentResult.error;
+
+      // Then mark the invoice as paid
+      const invoiceResult = await actions.markInvoicePaid(
+        invoice.id,
+        `Invoice #${String(invoice.invoice_number).padStart(2, '0')}`,
+        paymentResult.data?.id || null
+      );
+
+      if (invoiceResult.error) throw invoiceResult.error;
+
+      showToast('Invoice marked as paid and payment recorded');
+      loadData();
+    } catch (error) {
+      console.error('Error marking invoice as paid:', error);
+      showError('Failed to process invoice payment');
+    } finally {
+      setProcessingInvoice(null);
     }
   };
 
@@ -168,6 +209,68 @@ const CoachPaymentTracking = ({ userId }) => {
     <div className="coach-payment-tracking">
       <h2>Coach Payment Tracking</h2>
       <p className="subtitle">Track payments owed to coach for delivered sessions</p>
+
+      {/* Pending Invoice Requests */}
+      {pendingInvoices.length > 0 && (
+        <div className="mb-8 p-5 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="w-5 h-5 text-yellow-700" />
+            <h3 className="m-0 text-yellow-800">
+              Pending Invoice Requests ({pendingInvoices.length})
+            </h3>
+          </div>
+          <p className="text-sm text-yellow-700 mb-4">
+            The coach has requested payment. Review and mark as paid when processed.
+          </p>
+          <div className="space-y-3">
+            {pendingInvoices.map((invoice) => (
+              <div
+                key={invoice.id}
+                className="bg-white p-4 rounded-lg border border-yellow-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div>
+                  <div className="font-semibold text-gray-900">
+                    Invoice #{String(invoice.invoice_number).padStart(2, '0')}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {invoice.coach?.name || 'Coach'} • {new Date(invoice.invoice_date).toLocaleDateString('en-GB')}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {invoice.sessions_count} sessions @ £{invoice.rate_per_session}/session
+                  </div>
+                  {invoice.notes && (
+                    <div className="text-xs text-gray-400 mt-1 italic">
+                      Note: {invoice.notes}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-xl font-bold text-yellow-700">
+                    £{Number(invoice.total_amount).toFixed(2)}
+                  </div>
+                  <button
+                    onClick={() => handleMarkInvoicePaid(invoice)}
+                    disabled={processingInvoice === invoice.id}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
+                  >
+                    {processingInvoice === invoice.id ? (
+                      <>
+                        <Clock className="w-4 h-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        Mark as Paid
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">

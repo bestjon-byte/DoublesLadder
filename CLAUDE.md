@@ -1,11 +1,12 @@
 # Tennis Ladder App - Complete Project Documentation
-*Last updated: 2025-11-11*
+*Last updated: 2026-01-31*
 
 ## Project Overview
 **Cawood Tennis Club Management System** - A comprehensive web application for managing tennis ladder competitions, coaching sessions, payments, and player rankings.
 
 - **Live Production**: https://cawood-tennis.vercel.app
 - **Framework**: React 18.2.0 (Create React App)
+- **Language**: JavaScript + TypeScript (mixed, incremental adoption)
 - **Database**: Supabase (PostgreSQL)
 - **Deployment**: Vercel
 - **Status**: Live in production with active users
@@ -31,6 +32,32 @@ npm test                # Run tests
 # Deployment
 ./deploy "commit message"  # Deploy to production
 vercel                     # Deploy via Vercel CLI
+```
+
+### TypeScript Support
+The project supports **incremental TypeScript adoption** - both `.js/.jsx` and `.ts/.tsx` files work side by side.
+
+**Guidelines:**
+- Write **new files** in TypeScript (`.tsx` for React components, `.ts` for utilities)
+- Convert existing `.js` files to `.ts/.tsx` gradually when modifying them
+- Prioritize converting complex files (payment logic, API calls) where types help most
+- No need to convert simple files that rarely change
+
+**Key files:**
+- `tsconfig.json` - TypeScript configuration (strict mode enabled)
+- Types are in `@types/react`, `@types/react-dom`, `@types/node`
+
+**Example - creating a new typed component:**
+```tsx
+// src/components/NewFeature.tsx
+interface Props {
+  playerId: string;
+  onComplete: () => void;
+}
+
+const NewFeature: React.FC<Props> = ({ playerId, onComplete }) => {
+  // ...
+};
 ```
 
 ### Environment Variables
@@ -288,6 +315,7 @@ Components generate WhatsApp-friendly text exports:
 ## Recent Changes & Status
 
 ### ✅ Recently Completed
+- TypeScript support added for incremental adoption (2026-01-31)
 - Payment reminder bug fixes (2025-11-11)
 - Merged Claude web branch with session-based payment tracking
 - Cleaned up Vercel projects (removed duplicate `tennis-ladder-app`)
@@ -342,6 +370,7 @@ Components generate WhatsApp-friendly text exports:
 - `src/supabaseClient.js` - Database connection
 - `src/hooks/useAuth.js` - Authentication
 - `supabase/functions/send-payment-reminders/index.ts` - Payment emails
+- `tsconfig.json` - TypeScript configuration
 - `.env.local` - Environment variables (NOT in git)
 - `.vercel/project.json` - Vercel project link
 

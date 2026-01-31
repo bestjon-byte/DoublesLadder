@@ -1022,6 +1022,204 @@ export const useCoaching = (userId, isAdmin = false) => {
   }, [fetchSessions]);
 
   // ==========================================================================
+  // COACH INVOICE SYSTEM
+  // ==========================================================================
+
+  /**
+   * Get coach settings (rate, address, bank details for invoices)
+   */
+  const getCoachSettings = useCallback(async (coachId = null) => {
+    try {
+      const targetCoachId = coachId || userId;
+      const { data, error } = await supabase
+        .from('coach_settings')
+        .select('*')
+        .eq('coach_id', targetCoachId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+
+      // If no settings exist, return defaults
+      if (!data) {
+        return {
+          data: {
+            coach_id: targetCoachId,
+            rate_per_session: 20.00,
+            coach_name: 'Joseph Fletcher',
+            coach_address_line1: 'Newland Grange',
+            coach_address_line2: 'Newland',
+            coach_town: 'Selby',
+            coach_postcode: 'YO8 8PS',
+            bank_account_number: '72240459',
+            bank_sort_code: '40-47-65',
+          },
+          error: null,
+        };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error fetching coach settings:', error);
+      return { data: null, error };
+    }
+  }, [userId]);
+
+  /**
+   * Update coach settings (rate, address, bank details)
+   */
+  const updateCoachSettings = useCallback(async (settings) => {
+    try {
+      const { data, error } = await supabase
+        .from('coach_settings')
+        .upsert({
+          coach_id: userId,
+          ...settings,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'coach_id',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error updating coach settings:', error);
+      return { data: null, error };
+    }
+  }, [userId]);
+
+  /**
+   * Create a coach invoice and send email to club
+   */
+  const createCoachInvoice = useCallback(async (sessionsCount, notes = '') => {
+    try {
+      // Get coach settings for rate and details
+      const { data: settings, error: settingsError } = await getCoachSettings();
+      if (settingsError) throw settingsError;
+
+      const totalAmount = sessionsCount * settings.rate_per_session;
+
+      // Create invoice record
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('coach_invoices')
+        .insert({
+          coach_id: userId,
+          sessions_count: sessionsCount,
+          rate_per_session: settings.rate_per_session,
+          total_amount: totalAmount,
+          notes: notes || null,
+        })
+        .select()
+        .single();
+
+      if (invoiceError) throw invoiceError;
+
+      // Send invoice email via Edge Function
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/send-coach-invoice`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            invoice_id: invoice.id,
+            invoice_number: invoice.invoice_number,
+            invoice_date: invoice.invoice_date,
+            sessions_count: sessionsCount,
+            rate_per_session: settings.rate_per_session,
+            total_amount: totalAmount,
+            coach_settings: settings,
+            notes: notes || null,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send invoice email');
+      }
+
+      return { data: invoice, error: null };
+    } catch (error) {
+      console.error('Error creating coach invoice:', error);
+      return { data: null, error };
+    }
+  }, [userId, getCoachSettings]);
+
+  /**
+   * Get all invoices for the current coach
+   */
+  const getCoachInvoices = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('coach_invoices')
+        .select('*')
+        .eq('coach_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Error fetching coach invoices:', error);
+      return { data: [], error };
+    }
+  }, [userId]);
+
+  /**
+   * Get pending invoices (for admin view)
+   */
+  const getCoachPendingInvoices = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('coach_invoices')
+        .select(`
+          *,
+          coach:profiles!coach_invoices_coach_id_fkey(id, name, email)
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return { data: data || [], error: null };
+    } catch (error) {
+      console.error('Error fetching pending invoices:', error);
+      return { data: [], error };
+    }
+  }, []);
+
+  /**
+   * Mark an invoice as paid (admin only)
+   */
+  const markInvoicePaid = useCallback(async (invoiceId, paymentReference = '', linkedPaymentId = null) => {
+    try {
+      const { data, error } = await supabase
+        .from('coach_invoices')
+        .update({
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+          paid_by: userId,
+          payment_reference: paymentReference,
+          linked_payment_id: linkedPaymentId,
+        })
+        .eq('id', invoiceId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error marking invoice as paid:', error);
+      return { data: null, error };
+    }
+  }, [userId]);
+
+  // ==========================================================================
   // PAYMENT REMINDER SYSTEM
   // ==========================================================================
 
@@ -1192,6 +1390,14 @@ export const useCoaching = (userId, isAdmin = false) => {
       getCoachPaymentHistory,
       updateCoachRate,
       updateSessionCoachPaymentStatus,
+
+      // Coach Invoice System
+      getCoachSettings,
+      updateCoachSettings,
+      createCoachInvoice,
+      getCoachInvoices,
+      getCoachPendingInvoices,
+      markInvoicePaid,
 
       // Payment Reminder System
       sendPaymentReminders,
